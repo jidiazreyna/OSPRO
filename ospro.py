@@ -32,6 +32,35 @@ MESES_ES = [
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
 ]
 
+# opciones de Tribunales; el usuario puede editarlas o escribir otras
+TRIBUNALES = [
+    "Cámara en lo Criminal y Correccional de Primera Nominación",
+    "Cámara en lo Criminal y Correccional de Segunda Nominación",
+    "Cámara en lo Criminal y Correccional de Tercera Nominación",
+    "Cámara en lo Criminal y Correccional de Cuarta Nominación",
+    "Cámara en lo Criminal y Correccional de Quinta Nominación",
+    "Cámara en lo Criminal y Correccional de Sexta Nominación",
+    "Cámara en lo Criminal y Correccional de Séptima Nominación",
+    "Cámara en lo Criminal y Correccional de Octava Nominación",
+    "Cámara en lo Criminal y Correccional de Novena Nominación",
+    "Cámara en lo Criminal y Correccional de Décima Nominación",
+    "Cámara en lo Criminal y Correccional de Onceava Nominación",
+    "Cámara en lo Criminal y Correccional de Doceava Nominación",
+    "Juzgado de Control en lo Penal Económico",
+    "Juzgado de Control y Faltas N° 2",
+    "Juzgado de Control y Faltas N° 3",
+    "Juzgado de Control y Faltas N° 4",
+    "Juzgado de Control y Faltas N° 5",
+    "Juzgado de Control en Violencia de Género y Familiar N° 1",
+    "Juzgado de Control en Violencia de Género y Familiar N° 2",
+    "Juzgado de Control y Faltas N° 7",
+    "Juzgado de Control y Faltas N° 8",
+    "Juzgado de Control y Faltas N° 9",
+    "Juzgado de Control y Faltas N° 10",
+    "Juzgado de Control y Faltas N° 11",
+    "Juzgado de Control de Lucha contra el Narcotráfico",
+]
+
 def fecha_alineada(loc: str, hoy: datetime = None, punto: bool = False) -> str:
     hoy = hoy or datetime.now()
     txt = f"{loc}, {hoy.day} de {MESES_ES[hoy.month-1]} de {hoy.year}"
@@ -119,7 +148,7 @@ class MainWindow(QMainWindow):
         # ─── datos generales ───
         self.entry_localidad = add_combo('entry_localidad', "Localidad:", [], editable=True)
         self.entry_caratula  = add_line ('entry_caratula',  "Carátula:")
-        self.entry_tribunal  = add_combo('entry_tribunal',  "Tribunal:", [], editable=True)
+        self.entry_tribunal  = add_combo('entry_tribunal',  "Tribunal:", TRIBUNALES, editable=True)
         self.entry_fecha     = add_line ('entry_fecha',     "Fecha audiencia:")
         self.entry_hora      = add_combo('entry_hora',      "Hora audiencia:",
                                         [f"{h:02d}:{m:02d}" for h in range(24) for m in (0,30)])
