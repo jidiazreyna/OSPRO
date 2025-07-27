@@ -434,7 +434,7 @@ class MainWindow(QMainWindow):
 
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha = fecha_alineada(loc + "…", hoy, punto=True)
+        fecha = fecha_alineada(loc, hoy, punto=True)
 
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
