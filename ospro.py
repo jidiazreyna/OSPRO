@@ -26,6 +26,20 @@ class NoWheelSpinBox(QSpinBox):
 CAUSAS_DIR = Path("causas_guardadas")
 CAUSAS_DIR.mkdir(exist_ok=True)
 
+# meses en español para las fechas
+MESES_ES = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+]
+
+def fecha_alineada(loc: str, hoy: datetime = None, ancho: int = 70, punto: bool = False) -> str:
+    """Devuelve la fecha con mes en letras, alineada a la derecha."""
+    hoy = hoy or datetime.now()
+    fecha = f"{loc}, {hoy.day} de {MESES_ES[hoy.month - 1]} de {hoy.year}"
+    if punto:
+        fecha += "."
+    return fecha.rjust(ancho)
+
 # ───────────────────────── MainWindow ────────────────────────
 class MainWindow(QMainWindow):
     FIELD_WIDTH = 140        # ancho preferido de los campos cortos
@@ -298,7 +312,7 @@ class MainWindow(QMainWindow):
         # ─ datos básicos ─
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}."
+        fecha = fecha_alineada(loc, hoy, punto=True)
 
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -330,7 +344,7 @@ class MainWindow(QMainWindow):
         # ─ datos básicos ─
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha_larga = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha_larga = fecha_alineada(loc, hoy)
 
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -365,7 +379,7 @@ class MainWindow(QMainWindow):
         # ─ datos básicos ─
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha_larga = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha_larga = fecha_alineada(loc, hoy)
 
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -397,7 +411,7 @@ class MainWindow(QMainWindow):
 
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha = f"{loc}…, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc + "…", hoy)
 
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -430,7 +444,7 @@ class MainWindow(QMainWindow):
 
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
 
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -468,7 +482,7 @@ class MainWindow(QMainWindow):
 
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
 
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -505,7 +519,7 @@ class MainWindow(QMainWindow):
 
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
 
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -543,7 +557,7 @@ class MainWindow(QMainWindow):
 
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
 
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -582,7 +596,7 @@ class MainWindow(QMainWindow):
 
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
 
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -625,7 +639,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
@@ -650,7 +664,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
@@ -682,7 +696,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
@@ -709,7 +723,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la CÁMARA EN LO CRIMINAL Y CORRECCIONAL"
         nom, sec, sac = "…", "…", "…"
@@ -751,7 +765,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
@@ -786,7 +800,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
@@ -813,7 +827,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
@@ -840,7 +854,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
-        fecha = f"{loc}, {hoy.day:02d}/{hoy.month:02d}/{hoy.year}"
+        fecha = fecha_alineada(loc, hoy)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
