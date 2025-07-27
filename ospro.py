@@ -13,8 +13,8 @@ from PySide6.QtWidgets import (
     QScrollArea, QSizePolicy, QSplitter, QTextEdit     
 )
 from PySide6.QtGui import QIcon, QTextCursor, QFont   # QIcon y QFont para más adelante
-from PySide6.QtWidgets import QHBoxLayout             # se usa luego para el botón “Resuelvo…”
-
+from PySide6.QtWidgets import QHBoxLayout             
+from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
     """Evita que la rueda del mouse cambie accidentalmente la opción."""
@@ -32,17 +32,38 @@ MESES_ES = [
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
 ]
 
-def fecha_alineada(loc: str, hoy: datetime = None, ancho: int = 70, punto: bool = False) -> str:
-    """Devuelve la fecha con mes en letras, alineada a la derecha."""
+def fecha_alineada(loc: str, hoy: datetime = None, punto: bool = False) -> str:
     hoy = hoy or datetime.now()
-    fecha = f"{loc}, {hoy.day} de {MESES_ES[hoy.month - 1]} de {hoy.year}"
-    if punto:
-        fecha += "."
-    return fecha.rjust(ancho)
+    txt = f"{loc}, {hoy.day} de {MESES_ES[hoy.month-1]} de {hoy.year}"
+    return txt + ("." if punto else "")
 
 # ───────────────────────── MainWindow ────────────────────────
 class MainWindow(QMainWindow):
     FIELD_WIDTH = 140        # ancho preferido de los campos cortos
+
+    # ── helper para insertar párrafos con alineación ─────────────
+    def _insert_paragraph(self, te: QTextEdit, text: str,
+                          align: Qt.AlignmentFlag = Qt.AlignJustify,
+                          font_family: str = "Times New Roman",
+                          point_size: int = 12) -> None:
+        """
+        Agrega uno o varios párrafos a `te` con la alineación indicada
+        (Left, Right, Center o Justify).  Cada salto de línea en `text`
+        genera un bloque nuevo.
+        """
+        cursor = te.textCursor()
+        block  = QTextBlockFormat()
+        block.setAlignment(align)
+
+        char   = QTextCharFormat()
+        char.setFontFamily(font_family)
+        char.setFontPointSize(point_size)
+
+        for linea in text.split("\n"):
+            cursor.insertBlock(block)
+            cursor.setCharFormat(char)
+            cursor.insertText(linea)
+
 
     def __init__(self):
         super().__init__()
@@ -310,32 +331,34 @@ class MainWindow(QMainWindow):
         te.clear()
 
         # ─ datos básicos ─
-        loc  = self.entry_localidad.currentText() or "Córdoba"
-        hoy  = datetime.now()
-        fecha = fecha_alineada(loc, hoy, punto=True)
+        loc = self.entry_localidad.currentText() or "Córdoba"
+        hoy = datetime.now()
+        fecha = fecha_alineada(loc, hoy, punto=True)       # ← solo el texto
 
-        car   = self.entry_caratula.text() or "“…”"
-        trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        # si quisieras guardar Nº SAC, añadí un campo nuevo y tomalo igual
+        # 1) FECHA a la derecha
+        self._insert_paragraph(te, fecha, Qt.AlignRight)
 
-        # ─ redacción (tomada del modelo PDF) ─
+        # 2) CUERPO justificado
+        car  = self.entry_caratula.text() or "“…”"
+        trib = self.entry_tribunal.currentText() or \
+            "la Cámara en lo Criminal y Correccional"
+
         cuerpo = (
-            f"{fecha}\n\n"
             "Sr/a Director/a\n"
             "de la Dirección Nacional de Migraciones\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan "
-            f"por ante {trib}, se ha dispuesto librar a Ud. el presente oficio, a fin de "
-            "informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos "
-            "personales se mencionan a continuación:\n\n"
+            f"por ante {trib}, se ha dispuesto librar a Ud. el presente oficio, "
+            "a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
+            "cuyos datos personales se mencionan a continuación:\n\n"
             "“SENTENCIA N° …, DE FECHA: …/…/…. Se Resuelve: (transcribir toda la parte "
             "resolutoria de la sentencia)..”\n\n"
             "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
-        te.setPlainText(cuerpo)
 
     def _plantilla_juez_electoral(self):
         te = self.text_edits["Oficio Juez Electoral"]
