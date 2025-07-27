@@ -45,7 +45,8 @@ class MainWindow(QMainWindow):
     def _insert_paragraph(self, te: QTextEdit, text: str,
                           align: Qt.AlignmentFlag = Qt.AlignJustify,
                           font_family: str = "Times New Roman",
-                          point_size: int = 12) -> None:
+                          point_size: int = 12,
+                          weight: int = QFont.Normal) -> None:
         """
         Agrega uno o varios párrafos a `te` con la alineación indicada
         (Left, Right, Center o Justify).  Cada salto de línea en `text`
@@ -58,11 +59,23 @@ class MainWindow(QMainWindow):
         char   = QTextCharFormat()
         char.setFontFamily(font_family)
         char.setFontPointSize(point_size)
+        char.setFontWeight(weight)
 
         for linea in text.split("\n"):
             cursor.insertBlock(block)
             cursor.setCharFormat(char)
             cursor.insertText(linea)
+
+
+    def _insert_with_header(self, te: QTextEdit, text: str) -> None:
+        """Inserta encabezado en negrita y cuerpo justificado."""
+        if "\n\n" in text:
+            header, rest = text.split("\n\n", 1)
+        else:
+            header, rest = text, ""
+        self._insert_paragraph(te, header, Qt.AlignJustify, weight=QFont.Bold)
+        if rest.strip():
+            self._insert_paragraph(te, rest, Qt.AlignJustify)
 
 
     def __init__(self):
@@ -357,7 +370,7 @@ class MainWindow(QMainWindow):
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
 
     def _plantilla_juez_electoral(self):
@@ -393,7 +406,7 @@ class MainWindow(QMainWindow):
         )
 
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_consulado(self):
         te = self.text_edits["Oficio Consulado"]
@@ -426,7 +439,7 @@ class MainWindow(QMainWindow):
         )
 
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_registro_automotor(self):
         te = self.text_edits["Oficio Registro Automotor"]
@@ -459,7 +472,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atte."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_tsj_secpenal(self):
         te = self.text_edits["Oficio TSJ Sec. Penal"]
@@ -497,7 +510,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_tsj_secpenal_depositos(self):
         te = self.text_edits["Oficio TSJ Sec. Penal (Depósitos)"]
@@ -534,7 +547,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_comisaria_traslado(self):
         te = self.text_edits["Oficio Comisaría Traslado"]
@@ -572,7 +585,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_tsj_secpenal_elementos(self):
         te = self.text_edits["Oficio TSJ Sec. Penal (Elementos)"]
@@ -611,7 +624,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_automotores_secuestrados(self):
         te = self.text_edits["Oficio Automotores Secuestrados"]
@@ -655,7 +668,7 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_fiscalia_instruccion(self):
         te = self.text_edits["Oficio Fiscalía Instrucción"]
@@ -680,7 +693,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atte."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_policia_documentacion(self):
         te = self.text_edits["Oficio Policía Documentación"]
@@ -712,7 +725,7 @@ class MainWindow(QMainWindow):
             "Fecha de firmeza de la Sentencia: ………\n\n"
             "Saluda a Ud. atentamente."
         )
-        te.setPlainText(cuerpo)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_registro_civil(self):
         te = self.text_edits["Oficio Registro Civil"]
@@ -739,7 +752,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_registro_condenados_sexuales(self):
         te = self.text_edits["Oficio Registro Condenados Sexuales"]
@@ -781,7 +794,7 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_registro_nacional_reincidencia(self):
         te = self.text_edits["Oficio Registro Nacional Reincidencia"]
@@ -816,7 +829,7 @@ class MainWindow(QMainWindow):
             "Saluda a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_repat(self):
         te = self.text_edits["Oficio RePAT"]
@@ -843,7 +856,7 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_juzgado_ninez(self):
         te = self.text_edits["Oficio Juzgado Niñez‑Adolescencia"]
@@ -870,7 +883,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def _plantilla_complejo_carcelario(self):
         te = self.text_edits["Oficio Complejo Carcelario"]
@@ -897,7 +910,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, lo saludo atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_with_header(te, cuerpo)
 
     def copy_to_clipboard(self, te: QTextEdit):
         QApplication.clipboard().setText(te.toPlainText())
