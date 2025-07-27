@@ -149,9 +149,6 @@ class MainWindow(QMainWindow):
         self.entry_localidad = add_combo('entry_localidad', "Localidad:", [], editable=True)
         self.entry_caratula  = add_line ('entry_caratula',  "Carátula:")
         self.entry_tribunal  = add_combo('entry_tribunal',  "Tribunal:", TRIBUNALES, editable=True)
-        self.entry_fecha     = add_line ('entry_fecha',     "Fecha audiencia:")
-        self.entry_hora      = add_combo('entry_hora',      "Hora audiencia:",
-                                        [f"{h:02d}:{m:02d}" for h in range(24) for m in (0,30)])
 
         # ─── sentencia (número y fecha) ───
         label("Sentencia:")
@@ -308,8 +305,7 @@ class MainWindow(QMainWindow):
             'localidad' : self.entry_localidad.currentText(),
             'caratula'  : self.entry_caratula.text(),
             'tribunal'  : self.entry_tribunal.currentText(),
-            'fecha'     : self.entry_fecha.text(),
-            'hora'      : self.entry_hora.currentText(),
+
             'sent_num'  : self.entry_sent_num.text(),
             'sent_fecha': self.entry_sent_date.text(),
         }
@@ -341,8 +337,6 @@ class MainWindow(QMainWindow):
             self.entry_localidad.setCurrentText(g.get('localidad', ""))
             self.entry_caratula.setText(g.get('caratula', ""))
             self.entry_tribunal.setCurrentText(g.get('tribunal', ""))
-            self.entry_fecha.setText(g.get('fecha', ""))
-            self.entry_hora.setCurrentText(g.get('hora', ""))
             self.entry_sent_num.setText(g.get('sent_num', ""))
             self.entry_sent_date.setText(g.get('sent_fecha', ""))
 
@@ -465,13 +459,15 @@ class MainWindow(QMainWindow):
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac   = "…"   # campo opcional a futuro
         nom   = "…"   # idem Nominación
         sec   = "…"   # idem Secretaría
         pais  = "…"   # cuando agregues un ComboBox para el país, usalo acá
+
 
         cuerpo = (
             "Al Sr. Titular del Consulado de la República de " + pais + " S/D:\n"
@@ -497,7 +493,8 @@ class MainWindow(QMainWindow):
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC (añadí el widget cuando lo necesites)
@@ -530,7 +527,8 @@ class MainWindow(QMainWindow):
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -568,7 +566,8 @@ class MainWindow(QMainWindow):
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -605,7 +604,8 @@ class MainWindow(QMainWindow):
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -643,7 +643,8 @@ class MainWindow(QMainWindow):
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -682,7 +683,8 @@ class MainWindow(QMainWindow):
         loc  = self.entry_localidad.currentText() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -728,7 +730,8 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         cuerpo = (
             "Sr/a Fiscal de Instrucción que por turno corresponda\n"
             "S/D:\n\n"
@@ -747,7 +750,8 @@ class MainWindow(QMainWindow):
     def _plantilla_policia_documentacion(self):
         te = self.text_edits["Oficio Policía Documentación"]
         te.clear()
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -779,7 +783,8 @@ class MainWindow(QMainWindow):
     def _plantilla_registro_civil(self):
         te = self.text_edits["Oficio Registro Civil"]
         te.clear()
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -806,7 +811,8 @@ class MainWindow(QMainWindow):
     def _plantilla_registro_condenados_sexuales(self):
         te = self.text_edits["Oficio Registro Condenados Sexuales"]
         te.clear()
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -848,7 +854,8 @@ class MainWindow(QMainWindow):
     def _plantilla_registro_nacional_reincidencia(self):
         te = self.text_edits["Oficio Registro Nacional Reincidencia"]
         te.clear()
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -883,7 +890,8 @@ class MainWindow(QMainWindow):
     def _plantilla_repat(self):
         te = self.text_edits["Oficio RePAT"]
         te.clear()
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -916,7 +924,8 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
-
+        sent_n = self.entry_sent_num.text() or "…"
+        sent_f = self.entry_sent_date.text() or "…/…/…"
         cuerpo = (
             "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de "
             "….. Nom. – Sec. N° …..\n"
