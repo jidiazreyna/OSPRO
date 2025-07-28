@@ -15,6 +15,23 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon, QTextCursor, QFont   # QIcon y QFont para más adelante
 from PySide6.QtWidgets import QHBoxLayout             
 from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
+# ── NUEVOS IMPORTS ──────────────────────────────────────────────
+import openai                    # cliente oficial
+from pdfminer.high_level import extract_text              # PDF → texto
+import docx2txt                  # DOCX → texto
+
+def main():
+    app = QApplication(sys.argv)
+
+    # ahora SÍ podés usar QMessageBox
+    if not os.getenv("OPENAI_API_KEY"):
+        QMessageBox.critical(None, "Error", "Falta la variable OPENAI_API_KEY")
+        sys.exit(1)
+
+    win = MainWindow()
+    win.show()
+    sys.exit(app.exec())
+
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
     """Evita que la rueda del mouse cambie accidentalmente la opción."""
@@ -181,7 +198,10 @@ class MainWindow(QMainWindow):
                         ("Eliminar causa", self.eliminar_causa)):
             btn = QPushButton(txt); btn.clicked.connect(slot)
             self.form.addWidget(btn, self._row, 0, 1, 2); self._row += 1
-
+        btn_auto = QPushButton("Cargar sentencia y autocompletar")
+        btn_auto.clicked.connect(self.autocompletar_desde_sentencia)
+        self.form.addWidget(btn_auto, self._row, 0, 1, 2)
+        self._row += 1
         # =========== PANEL DERECHO (selector + pestañas texto) ===========
         right_panel  = QWidget()
         right_layout = QVBoxLayout(right_panel)
@@ -364,6 +384,64 @@ class MainWindow(QMainWindow):
                                          f"¿Eliminar {Path(ruta).name}?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             Path(ruta).unlink(missing_ok=True)
+
+    # ───────── helper: asegura string ──────────
+    @staticmethod
+    def _as_str(value):
+        """Convierte listas, números o None en str plano."""
+        if isinstance(value, list):
+            return ", ".join(map(str, value))
+        return str(value) if value is not None else ""
+    # ───────────────── Autocompletar ───────────────────────────
+    def autocompletar_desde_sentencia(self):
+        ruta, _ = QFileDialog.getOpenFileName(
+            self, "Seleccionar sentencia (PDF/DOCX)", "", "Documentos (*.pdf *.docx)"
+        )
+        if not ruta:
+            return
+
+        try:
+            # 1) Extraer texto
+            if ruta.lower().endswith(".pdf"):
+                texto = extract_text(ruta)
+            else:
+                texto = docx2txt.process(ruta)
+
+            # 2) Llamar a la API en JSON mode
+            respuesta = openai.ChatCompletion.create(
+                model="gpt-4o-mini",          # arranquemos barato
+                temperature=0,
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Extraé de la sentencia los siguientes campos y devolvé un JSON "
+                            "con strings (no listas): caratula, tribunal, sent_num, sent_fecha, "
+                            "resuelvo, firmantes."
+                        ),
+                    },
+                    {"role": "user", "content": texto[:120000]},  # límite 128 k tokens
+                ],
+            )
+
+            datos = json.loads(respuesta.choices[0].message.content)
+
+            # 3) Volcar en los widgets
+            self.entry_caratula.setText(self._as_str(datos.get("caratula")))
+            self.entry_tribunal.setCurrentText(self._as_str(datos.get("tribunal")))
+            self.entry_sent_num.setText(self._as_str(datos.get("sent_num")))
+            self.entry_sent_date.setText(self._as_str(datos.get("sent_fecha")))
+            self.entry_resuelvo.setText(self._as_str(datos.get("resuelvo")))
+            self.entry_firmantes.setText(self._as_str(datos.get("firmantes")))
+
+            # 4) Refrescar plantillas
+            self.update_templates()
+
+            QMessageBox.information(self, "Listo", "Campos cargados exitosamente.")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
 
     # ─────────────────── plantillas de oficios ────────────────────
     def update_templates(self):
