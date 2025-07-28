@@ -510,7 +510,7 @@ class MainWindow(QMainWindow):
                         "content": (
                             "Extraé de la sentencia los siguientes campos y devolvé un JSON con: \
                             generales (caratula, tribunal, sent_num, sent_fecha, resuelvo, firmantes) \
-                            e imputados (lista de objetos con datos_personales y prontuario)."
+                            e imputados (lista de datos_personales ‑incluí nombre, DNI, prontuario y el resto‑"
                         ),
                     },
                     {"role": "user", "content": texto[:120000]},  # límite 128 k tokens
@@ -534,8 +534,19 @@ class MainWindow(QMainWindow):
             self.rebuild_imputados()                             # fuerza recreación
 
             for idx, imp in enumerate(imps):
-                bruto = imp.get("datos_personales", imp)   # por si ya es el dict mismo
-                self.imputados_widgets[idx]['datos_personales'].setPlainText(
+                # ── tomamos el bloque de datos personales ──
+                bruto = imp.get("datos_personales", imp)
+
+                # ①  Si el JSON vino con “prontuario” (o “pront/prio”) SUELTO,
+                #    lo metemos adentro del mismo dict para que el formateador lo vea.
+                if isinstance(bruto, dict):
+                    for key in ("prontuario", "pront", "prio"):
+                        if key in imp and key not in bruto and imp[key]:
+                            bruto["prontuario"] = imp[key]
+                            break
+
+                # ②  Ahora sí convertimos todo a la línea legible
+                self.imputados_widgets[idx]["datos_personales"].setPlainText(
                     self._format_datos_personales(bruto)
                 )
             # 4) Refrescar plantillas
