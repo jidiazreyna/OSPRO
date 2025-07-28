@@ -179,6 +179,11 @@ class MainWindow(QMainWindow):
         hbox.addWidget(self.entry_sent_date)
         self.form.addLayout(hbox, self._row, 1); self._row += 1
 
+        # Firmeza de la sentencia (fecha)
+        self.entry_sent_firmeza = add_line('entry_sent_firmeza',
+                                            "Firmeza de la sentencia:")
+        self.entry_sent_firmeza.setPlaceholderText("Fecha")
+
         self.entry_resuelvo = add_line('entry_resuelvo', "Resuelvo:")
         self.entry_firmantes = add_line('entry_firmantes', "Firmantes de la sentencia:")
 
@@ -340,6 +345,7 @@ class MainWindow(QMainWindow):
 
             'sent_num'  : self.entry_sent_num.text(),
             'sent_fecha': self.entry_sent_date.text(),
+            'sent_firmeza': self.entry_sent_firmeza.text(),
         }
 
     def _imputados_list(self):
@@ -386,6 +392,7 @@ class MainWindow(QMainWindow):
             self.entry_firmantes.setText(g.get("firmantes", ""))
             self.entry_sent_num.setText(g.get("sent_num", ""))
             self.entry_sent_date.setText(g.get("sent_fecha", ""))
+            self.entry_sent_firmeza.setText(g.get("sent_firmeza", ""))
 
             # --------- imputados ---------
             imps = data.get("imputados", [])
@@ -609,7 +616,7 @@ class MainWindow(QMainWindow):
             "cuyos datos personales se mencionan a continuación:\n\n"
             f"{self._imp_datos()}\n"
             f"“SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. Se Resuelve: {res}”\n\n"
-            "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -647,7 +654,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
-            "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -685,7 +692,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
-            "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -991,7 +998,7 @@ class MainWindow(QMainWindow):
             f"(Fdo.: {firm}).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
             "de los arts. 27 y 27 bis del C.P.\n"
-            "Fecha de firmeza de la Sentencia: ………\n\n"
+            f"Fecha de firmeza de la Sentencia: {sent_firmeza}\n\n"
             "Saluda a Ud. atentamente."
         )
         self._insert_with_header(te, cuerpo)
@@ -1019,7 +1026,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
-            "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -1092,7 +1099,7 @@ class MainWindow(QMainWindow):
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “{res} PROTOCOLÍCESE. NOTIFÍQUESE.” (Fdo.: {firm}).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
             "de los arts. 27 y 27 bis del C.P.\n"
-            "Fecha de firmeza de la sentencia: ………\n\n"
+            f"Fecha de firmeza de la sentencia: {sent_firmeza}\n\n"
             "Saluda a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -1103,6 +1110,7 @@ class MainWindow(QMainWindow):
         te.clear()
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
+        sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
@@ -1120,7 +1128,7 @@ class MainWindow(QMainWindow):
             "Nacimiento, Padre, Madre).\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se resuelve: {res}” "
             f"(Fdo.: {firm}).\n\n"
-            "Asimismo, se informa que la sentencia condenatoria quedó firme con fecha …\n"
+            f"Asimismo, se informa que la sentencia condenatoria quedó firme con fecha {sent_firmeza}\n"
             "Se adjuntan copias digitales de la sentencia y del cómputo de pena respectivos.\n\n"
             "Saludo a Ud. atentamente."
         )
