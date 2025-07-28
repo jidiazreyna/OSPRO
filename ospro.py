@@ -163,6 +163,7 @@ class MainWindow(QMainWindow):
         self.form.addLayout(hbox, self._row, 1); self._row += 1
 
         self.entry_resuelvo = add_line('entry_resuelvo', "Resuelvo:")
+        self.entry_firmantes = add_line('entry_firmantes', "Firmantes de la sentencia:")
 
         # ─── número de imputados ───
         label("Número de imputados:")
@@ -309,6 +310,7 @@ class MainWindow(QMainWindow):
             'tribunal'  : self.entry_tribunal.currentText(),
 
             'resuelvo'  : self.entry_resuelvo.text(),
+            'firmantes' : self.entry_firmantes.text(),
 
             'sent_num'  : self.entry_sent_num.text(),
             'sent_fecha': self.entry_sent_date.text(),
@@ -342,6 +344,7 @@ class MainWindow(QMainWindow):
             self.entry_caratula.setText(g.get('caratula', ""))
             self.entry_tribunal.setCurrentText(g.get('tribunal', ""))
             self.entry_resuelvo.setText(g.get('resuelvo', ""))
+            self.entry_firmantes.setText(g.get('firmantes', ""))
             self.entry_sent_num.setText(g.get('sent_num', ""))
             self.entry_sent_date.setText(g.get('sent_fecha', ""))
 
@@ -394,6 +397,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
 
         # 1) FECHA a la derecha
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -448,7 +452,7 @@ class MainWindow(QMainWindow):
             "el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos "
             "datos personales se mencionan a continuación: (Nombre, Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre).\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
-            "Fdo. Dr/a. ……… -Vocal de Cámara-, Dr/a. ……… -Secretario/a de Cámara-.\n\n"
+            f"Fdo.: {firm}\n\n"
             "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
@@ -468,6 +472,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac   = "…"   # campo opcional a futuro
@@ -484,7 +489,7 @@ class MainWindow(QMainWindow):
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a "
             "continuación: (Nombre, Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre).\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
-            "Fdo. Dr/a. ……… -Vocal de Cámara-, Dr/a. ……… -Secretario/a de Cámara-.\n\n"
+            f"Fdo.: {firm}\n\n"
             "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
@@ -503,6 +508,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC (añadí el widget cuando lo necesites)
@@ -522,7 +528,7 @@ class MainWindow(QMainWindow):
             f"{veh}.\n"
             "Se transcribe a continuación la parte pertinente de la misma:\n"
             f"“SE RESUELVE: {res}”. "
-            "(Fdo. Dr./a. Vocal de Cámara, Dr./a. Secretario/a de Cámara).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             "Sin otro particular, saludo a Ud. atte."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -538,6 +544,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -560,7 +567,7 @@ class MainWindow(QMainWindow):
             "Pongo en su conocimiento que la mencionada sentencia se encuentra firme, transcribiéndose a "
             "continuación la parte pertinente de la misma:\n"
             f"“SE RESUELVE: {res}”. "
-            "(Fdo. Dr./a. … Vocal de Cámara, Dr./a. … Secretario/a de Cámara).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             f"Asimismo, se informa que en el día de la fecha se comunicó dicha resolución al Registro del Automotor "
             f"donde está radicado el vehículo, Nº {registro}.\n\n"
             "Sin otro particular, saludo a Ud. muy atentamente."
@@ -578,6 +585,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -601,7 +609,7 @@ class MainWindow(QMainWindow):
             "de Efectos Secuestrados el/los objeto/s decomisado/s.\n\n"
             "Asimismo, informo que la sentencia referida se encuentra firme, transcribiéndose a continuación la parte "
             f"pertinente de la misma: “SE RESUELVE: {res}”. "
-            "(Fdo. Dr./a. … Vocal de Cámara, Dr./a. … Secretario/a de Cámara).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -617,6 +625,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -640,7 +649,7 @@ class MainWindow(QMainWindow):
             "estén en Comisarías, Subcomisarías y otras dependencias policiales.\n\n"
             "Se transcribe a continuación la parte pertinente de la Sentencia que así lo ordena:\n"
             f"Sentencia N° {sent_n} de fecha {sent_f}, “{res}” "
-            "(Fdo. Dr./a. … Vocal de Cámara, Dr./a. … Secretario/a de Cámara), elemento/s que fuera/n secuestrado/s "
+            f"(Fdo.: {firm}), elemento/s que fuera/n secuestrado/s "
             "en las presentes actuaciones y que actualmente se encuentra/n en el Depósito de la Comisaría a su cargo.\n\n"
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
@@ -657,6 +666,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac  = "…"   # Nº SAC
@@ -682,7 +692,7 @@ class MainWindow(QMainWindow):
             "Otros billetes de moneda extranjera y/o dólares en mal estado (N° de registro)\tDepósito de Armas y elementos secuestrados (Tribunales II)\n\n"
             "Pongo en su conocimiento que la mencionada resolución se encuentra firme, transcribiéndose a continuación "
             f"la parte pertinente de la misma: “SE RESUELVE: {res}”. "
-            "(Fdo. Dr./a. … Vocal de Cámara, Dr./a. … Secretario/a de Cámara).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -745,6 +755,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         cuerpo = (
             "Sr/a Fiscal de Instrucción que por turno corresponda\n"
             "S/D:\n\n"
@@ -754,7 +765,7 @@ class MainWindow(QMainWindow):
             "sentencia dictada en la causa de referencia, remitiendo los antecedentes obrantes en el expediente mencionado "
             "a fin de investigar la posible comisión de un delito perseguible de oficio.\n\n"
             f"Se transcribe a continuación la parte pertinente: “Se resuelve: {res}”. "
-            "(Fdo. Dr./a. … ‑Vocal de Cámara‑, Dr./a. … ‑Secretario/a de Cámara‑).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             "Sin otro particular, saludo a Ud. atte."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -766,6 +777,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -786,7 +798,7 @@ class MainWindow(QMainWindow):
             "ALIAS:……………………………………….  FECHA NAC.: …/…/……  NACIONALIDAD: ……………………. \n"
             "N° PRONTUARIO PCIAL: ……………...\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f} “Se resuelve: {res}. PROTOCOLÍCESE. NOTIFÍQUESE.” "
-            "(Fdo. Dr./a. … ‑Vocal de Cámara‑, Dr./a. … ‑Secretaria de Cámara‑).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
             "de los arts. 27 y 27 bis del C.P.\n"
             "Fecha de firmeza de la Sentencia: ………\n\n"
@@ -800,6 +812,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -815,7 +828,7 @@ class MainWindow(QMainWindow):
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos se mencionan a continuación: "
             "(Nombre, Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre).\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se Resuelve: {res}” "
-            "Fdo. Dr./a. … ‑Vocal de Cámara‑, Dr./a. … ‑Secretario/a de Cámara‑.\n\n"
+            f"Fdo.: {firm}\n\n"
             "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
@@ -829,6 +842,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -859,7 +873,7 @@ class MainWindow(QMainWindow):
             "V. TRATAMIENTOS MÉDICOS Y PSICOLÓGICOS: …\n"
             "VI. OTROS DATOS DE INTERÉS:\n"
             f"   La Cámara … resolvió mediante Sentencia N° {sent_n} de fecha {sent_f} …RESUELVE: {res}\n"
-            "   Fdo. Dr/a. … (Vocal), Dr/a. … (Secretario). Por decreto … se fijó fecha definitiva de cumplimiento "
+            f"   Fdo.: {firm} Por decreto … se fijó fecha definitiva de cumplimiento "
             "el … de … de …\n\n"
             "Se adjuntan copias digitales de ficha RNR, sentencia firme y cómputo.\n\n"
             "Saludo a Ud. atentamente."
@@ -873,6 +887,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
@@ -894,8 +909,7 @@ class MainWindow(QMainWindow):
             "ALIAS: …………………….\n"
             "FECHA NACIMIENTO: ………  NACIONALIDAD: ………\n"
             "Nº PRONTUARIO PCIAL: ………\n\n"
-            f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “{res}"
-            "PROTOCOLÍCESE. NOTIFÍQUESE.” (Fdo. Dr/a. … –Vocal de Cámara–, Dr/a. … –Sec. de Cámara–).\n\n"
+            f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “{res} PROTOCOLÍCESE. NOTIFÍQUESE.” (Fdo.: {firm}).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
             "de los arts. 27 y 27 bis del C.P.\n"
             "Fecha de firmeza de la sentencia: ………\n\n"
@@ -925,7 +939,7 @@ class MainWindow(QMainWindow):
             "dicho Tribunal respecto de la persona cuyos datos se detallan a continuación: (Nombre, D.N.I., Fecha de "
             "Nacimiento, Padre, Madre).\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se resuelve: {res}” "
-            "(Fdo. Dr/a. … ‑Vocal de Cámara‑, Dr/a. … ‑Secretario/a de Cámara‑).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             "Asimismo, se informa que la sentencia condenatoria quedó firme con fecha …\n"
             "Se adjuntan copias digitales de la sentencia y del cómputo de pena respectivos.\n\n"
             "Saludo a Ud. atentamente."
@@ -945,6 +959,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
+        firm = self.entry_firmantes.text() or "…"
         cuerpo = (
             "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de "
             "….. Nom. – Sec. N° …..\n"
@@ -954,7 +969,7 @@ class MainWindow(QMainWindow):
             "(OSPRO), se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por el Tribunal respecto de "
             "(Apellido y Nombre – D.N.I.):\n\n"
             f"SENTENCIA N° {sent_n}, de fecha {sent_f}: “Se Resuelve: {res}” "
-            "(Fdo. Dr/a. … ‑Vocal de Cámara‑, Dr/a. … ‑Secretario/a de Cámara‑).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             "Se adjuntan copias digitales de la sentencia y, de existir, del cómputo de pena.\n"
             "Expediente de V.F. relacionado: n° ………….\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
@@ -985,8 +1000,7 @@ class MainWindow(QMainWindow):
             f"{trib} de {nom} Nominación, Sec. {sec}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
             "me dirijo a Ud. a fin de informar lo resuelto respecto de (Nombre y Apellido – D.N.I.) mediante Sentencia "
             f"N° {sent_n}, de fecha {sent_f}: “{res}” "
-            "(Fdo. Dr/a. … ‑Vocal de Cámara‑, "
-            "Dr/a. … ‑Secretaria/o de Cámara‑).\n\n"
+            f"(Fdo.: {firm}).\n\n"
             "Sin otro particular, lo saludo atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
