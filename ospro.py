@@ -597,7 +597,7 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
         firm = self.entry_firmantes.text() or "…"
-
+        sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         # 1) FECHA a la derecha
         self._insert_paragraph(te, fecha, Qt.AlignRight)
 
@@ -640,7 +640,7 @@ class MainWindow(QMainWindow):
         sac   = "…"   # si luego agregás un campo “N° SAC”, leélo acá
         nom   = "…"   # idem Nominación
         sec   = "…"   # idem Secretaría
-
+        sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "SR. JUEZ ELECTORAL:\n"
             "S………………./………………D\n"
@@ -680,7 +680,7 @@ class MainWindow(QMainWindow):
         nom   = "…"   # idem Nominación
         sec   = "…"   # idem Secretaría
         pais  = "…"   # cuando agregues un ComboBox para el país, usalo acá
-
+        sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         cuerpo = (
             "Al Sr. Titular del Consulado de la República de " + pais + " S/D:\n"
@@ -985,7 +985,7 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
-
+        sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "Sr. Titular de la División de Documentación Personal – Policía de la Provincia de Córdoba\n"
             "S ______/_______D:\n\n"
@@ -1015,7 +1015,7 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
-
+        sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "Sr/a Director/a del Registro Civil y Capacidad de las Personas\n"
             "S/D:\n\n"
@@ -1045,7 +1045,7 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la CÁMARA EN LO CRIMINAL Y CORRECCIONAL"
         nom, sec, sac = "…", "…", "…"
-
+        sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "Al Sr. Titular del Registro Provincial de Personas Condenadas por Delitos contra la Integridad Sexual\n"
             "S./D.\n\n"
@@ -1058,7 +1058,7 @@ class MainWindow(QMainWindow):
             "II. IDENTIFICACIÓN DACTILAR (adjuntar ficha).\n"
             "III. DATOS DE CONDENA Y LIBERACIÓN (adjuntar copia de la sentencia).\n"
             "   • Condena impuesta: … años … meses de prisión.\n"
-            "   • Fecha firmeza: …/…/20…\n"
+            f"   • Fecha firmeza: {sent_firmeza}\n"
             "   • Fecha de extinción: … de … de …\n"
             "   • Servicio Penitenciario: Bower, Complejo …, Legajo …\n"
             "   • Delito: …\n"
@@ -1086,7 +1086,7 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
-
+        sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "Al Sr. Director del Registro Nacional de Reincidencia\n"
             "S/D:\n\n"
