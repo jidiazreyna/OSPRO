@@ -434,7 +434,7 @@ class MainWindow(QMainWindow):
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
-
+        firm = self.entry_firmantes.text() or "…"
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sac   = "…"   # si luego agregás un campo “N° SAC”, leélo acá
@@ -929,7 +929,7 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom, sec, sac = "…", "…", "…"
-
+        firm = self.entry_firmantes.text() or "…"
         cuerpo = (
             "SR. DIRECTOR DEL REGISTRO PROVINCIAL DE ANTECEDENTES DE TRÁNSITO (RePAT)\n"
             "S/D:\n\n"
@@ -980,7 +980,7 @@ class MainWindow(QMainWindow):
     def _plantilla_complejo_carcelario(self):
         te = self.text_edits["Oficio Complejo Carcelario"]
         te.clear()
-
+        firm = self.entry_firmantes.text() or "…"
         loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy)
         sent_n = self.entry_sent_num.text() or "…"
