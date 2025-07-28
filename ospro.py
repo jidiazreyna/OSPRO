@@ -894,7 +894,7 @@ class MainWindow(QMainWindow):
             "ALIAS: …………………….\n"
             "FECHA NACIMIENTO: ………  NACIONALIDAD: ………\n"
             "Nº PRONTUARIO PCIAL: ………\n\n"
-            f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “I. Declarar a ……… – {res}. "
+            f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “{res}"
             "PROTOCOLÍCESE. NOTIFÍQUESE.” (Fdo. Dr/a. … –Vocal de Cámara–, Dr/a. … –Sec. de Cámara–).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
             "de los arts. 27 y 27 bis del C.P.\n"
@@ -924,7 +924,7 @@ class MainWindow(QMainWindow):
             "Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por "
             "dicho Tribunal respecto de la persona cuyos datos se detallan a continuación: (Nombre, D.N.I., Fecha de "
             "Nacimiento, Padre, Madre).\n\n"
-            f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se resuelve: I. Declarar a ……… {res}” "
+            f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se resuelve: {res}” "
             "(Fdo. Dr/a. … ‑Vocal de Cámara‑, Dr/a. … ‑Secretario/a de Cámara‑).\n\n"
             "Asimismo, se informa que la sentencia condenatoria quedó firme con fecha …\n"
             "Se adjuntan copias digitales de la sentencia y del cómputo de pena respectivos.\n\n"
@@ -975,7 +975,8 @@ class MainWindow(QMainWindow):
         nom, sec, sac = "…", "…", "…"
         complejo = "…"  # Nº Complejo
         localidad = "…" # Localidad
-
+        res = self.entry_resuelvo.text() or "…"
+        
         cuerpo = (
             f"AL SEÑOR DIRECTOR DEL COMPLEJO CARCELARIO N° {complejo}\n"
             f"LOCALIDAD DE {localidad}\n"
@@ -983,8 +984,8 @@ class MainWindow(QMainWindow):
             f"En los autos caratulados: {car}, que se tramitan por ante "
             f"{trib} de {nom} Nominación, Sec. {sec}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
             "me dirijo a Ud. a fin de informar lo resuelto respecto de (Nombre y Apellido – D.N.I.) mediante Sentencia "
-            f"N° {sent_n}, de fecha {sent_f}: “IV) Oficiar al lugar donde se encuentra actualmente detenido …, para que, en caso "
-            "de evaluarse su necesidad, brinde tratamiento … por su adicción a …”. (Fdo. Dr/a. … ‑Vocal de Cámara‑, "
+            f"N° {sent_n}, de fecha {sent_f}: “{res}” "
+            "(Fdo. Dr/a. … ‑Vocal de Cámara‑, "
             "Dr/a. … ‑Secretaria/o de Cámara‑).\n\n"
             "Sin otro particular, lo saludo atentamente."
         )
