@@ -19,7 +19,7 @@ from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
 import openai                    # cliente oficial
 from pdfminer.high_level import extract_text              # PDF → texto
 import docx2txt                  # DOCX → texto
-
+import ast             
 def main():
     app = QApplication(sys.argv)
 
@@ -255,7 +255,6 @@ class MainWindow(QMainWindow):
         # primer refresco de textos
         self.update_templates()
 
-
     def rebuild_imputados(self):
         """Reconstruye las pestañas según la cantidad elegida, sin perder datos."""
         # 1) guardo lo ya escrito
@@ -294,28 +293,35 @@ class MainWindow(QMainWindow):
                 'dni'     : QLineEdit(),
                 'delitos' : QLineEdit(),
                 'defensa' : QLineEdit(),
+                'datos_personales': QTextEdit() 
             }
             w['tipo'].addItems(['efectiva', 'condicional'])
+
 
             pair("Tipo de pena:",      w['tipo'])
             pair("Nombre y apellido:", w['nombre'])
             pair("DNI:",               w['dni'])
             pair("Delitos:",           w['delitos'])
             pair("Defensa:",           w['defensa'])
+            pair("Datos personales:", w['datos_personales'])
 
             # 4) restauro datos previos si los hubiera
             if i < len(prev):
                 for k, v in prev[i].items():
-                    if isinstance(w[k], QLineEdit):
-                        w[k].setText(v)
-                    else:
-                        w[k].setCurrentText(v)
+                    widget = w[k]
+                    if isinstance(widget, QLineEdit):
+                        widget.setText(v)
+                    elif isinstance(widget, QTextEdit):
+                        widget.setPlainText(v)
+                    elif isinstance(widget, QComboBox):
+                        widget.setCurrentText(v)
+
 
             # 5) agrego pestaña y actualizo listas
             self.tabs_imp.addTab(tab, f"Imputado {i+1}")
             self.selector_imp.addItem(f"Imputado {i+1}")
             self.imputados_widgets.append(w)
-
+            w['datos_personales'].textChanged.connect(self.update_templates)
         # 6) habilito señales y dejo seleccionado el primero
         self.selector_imp.blockSignals(False)
         self.selector_imp.setCurrentIndex(0)
@@ -337,12 +343,20 @@ class MainWindow(QMainWindow):
         }
 
     def _imputados_list(self):
+        """Devuelve una lista de dicts con TODOS los campos de cada imputado."""
         li = []
         for w in self.imputados_widgets:
-            li.append({k: (
-                w[k].text() if isinstance(w[k], QLineEdit) else
-                w[k].currentText()
-            ) for k in w})
+            datos = {}
+            for k, widget in w.items():
+                if isinstance(widget, QLineEdit):
+                    datos[k] = widget.text()
+                elif isinstance(widget, QTextEdit):
+                    datos[k] = widget.toPlainText()
+                elif isinstance(widget, QComboBox):
+                    datos[k] = widget.currentText()
+                else:
+                    datos[k] = ""
+            li.append(datos)
         return li
 
     def guardar_causa(self):
@@ -354,27 +368,40 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "OK", "Causa guardada correctamente.")
 
     def cargar_causa(self):
-        ruta, _ = QFileDialog.getOpenFileName(self, "Abrir causa", str(CAUSAS_DIR), "JSON (*.json)")
-        if not ruta: return
+        ruta, _ = QFileDialog.getOpenFileName(
+            self, "Abrir causa", str(CAUSAS_DIR), "JSON (*.json)"
+        )
+        if not ruta:
+            return
         try:
             with open(ruta, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            g = data.get('generales', {})
-            self.entry_localidad.setCurrentText(g.get('localidad', ""))
-            self.entry_caratula.setText(g.get('caratula', ""))
-            self.entry_tribunal.setCurrentText(g.get('tribunal', ""))
-            self.entry_resuelvo.setText(g.get('resuelvo', ""))
-            self.entry_firmantes.setText(g.get('firmantes', ""))
-            self.entry_sent_num.setText(g.get('sent_num', ""))
-            self.entry_sent_date.setText(g.get('sent_fecha', ""))
 
-            imps = data.get('imputados', [])
+            # --------- generales ---------
+            g = data.get("generales", {})
+            self.entry_localidad.setCurrentText(g.get("localidad", ""))
+            self.entry_caratula.setText(g.get("caratula", ""))
+            self.entry_tribunal.setCurrentText(g.get("tribunal", ""))
+            self.entry_resuelvo.setText(g.get("resuelvo", ""))
+            self.entry_firmantes.setText(g.get("firmantes", ""))
+            self.entry_sent_num.setText(g.get("sent_num", ""))
+            self.entry_sent_date.setText(g.get("sent_fecha", ""))
+
+            # --------- imputados ---------
+            imps = data.get("imputados", [])
             self.combo_n.setCurrentText(str(max(1, len(imps))))
+            # rebuild_imputados() será llamado por la señal currentIndexChanged,
+            # así que los widgets ya existen cuando entremos al for.
             for idx, imp in enumerate(imps):
                 w = self.imputados_widgets[idx]
-                for k,v in imp.items():
-                    if isinstance(w[k], QLineEdit): w[k].setText(v)
-                    else:                           w[k].setCurrentText(v)
+                for k, v in imp.items():
+                    widget = w[k]
+                    if isinstance(widget, QLineEdit):
+                        widget.setText(v)
+                    elif isinstance(widget, QTextEdit):
+                        widget.setPlainText(v)
+                    elif isinstance(widget, QComboBox):
+                        widget.setCurrentText(v)
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
@@ -392,6 +419,71 @@ class MainWindow(QMainWindow):
         if isinstance(value, list):
             return ", ".join(map(str, value))
         return str(value) if value is not None else ""
+
+    def _format_datos_personales(self, raw):
+        """
+        Convierte un dict o string con llaves en una línea humana.
+        Ej. {'nombre':'Juan', 'dni':'12.3'} -> 'Juan, D.N.I. 12.3'
+        """
+        if isinstance(raw, dict):
+            dp = raw
+        else:
+            # Si viene como texto "{'nombre': …}", intento parsearlo.
+            try:
+                dp = ast.literal_eval(raw)
+                if not isinstance(dp, dict):
+                    raise ValueError
+            except Exception:
+                return str(raw)         # lo dejo como esté
+        partes = []
+        if dp.get("nombre"): partes.append(dp["nombre"])
+        if dp.get("dni"):    partes.append(f"D.N.I. {dp['dni']}")
+        if dp.get("nacionalidad"): partes.append(dp["nacionalidad"])
+        if dp.get("edad"):   partes.append(f"{dp['edad']} años")
+        if dp.get("estado_civil"): partes.append(dp["estado_civil"])
+        if dp.get("instruccion"):  partes.append(dp["instruccion"])
+        if dp.get("ocupacion"):    partes.append(dp["ocupacion"])
+        if dp.get("fecha_nacimiento"):
+            partes.append(f"Nacido el {dp['fecha_nacimiento']}")
+        if dp.get("lugar_nacimiento"):
+            partes.append(f"en {dp['lugar_nacimiento']}")
+        if dp.get("domicilio"):    partes.append(f"Domicilio: {dp['domicilio']}")
+
+        if dp.get("padres"):
+            padres_val = dp["padres"]
+            if isinstance(padres_val, str):
+                padres = padres_val                      # ya viene listo
+            elif isinstance(padres_val, list):
+                # lista de strings o de dicts
+                nombres = []
+                for item in padres_val:
+                    if isinstance(item, dict):
+                        nombres.append(item.get("nombre", str(item)))
+                    else:
+                        nombres.append(str(item))
+                padres = ", ".join(nombres)
+            else:
+                padres = str(padres_val)
+            partes.append(f"Hijo de {padres}")
+
+        if dp.get("prontuario") or dp.get("prio") or dp.get("pront"):
+            pront = dp.get("prontuario") or dp.get("prio") or dp.get("pront")
+            partes.append(f"Pront. {pront}")          # ← NUEVA LÍNEA
+        return ", ".join(partes)
+
+    def _imp_datos(self, idx=None):
+        if idx is None:
+            idx = self.selector_imp.currentIndex()
+        if idx < 0 or idx >= len(self.imputados_widgets):
+            return "Nombre, D.N.I., F° Nac., Padre, Madre"
+
+        raw = self.imputados_widgets[idx]['datos_personales'].toPlainText().strip()
+        if not raw:
+            return "Nombre, D.N.I., F° Nac., Padre, Madre"
+
+        return self._format_datos_personales(raw)
+
+
     # ───────────────── Autocompletar ───────────────────────────
     def autocompletar_desde_sentencia(self):
         ruta, _ = QFileDialog.getOpenFileName(
@@ -416,9 +508,9 @@ class MainWindow(QMainWindow):
                     {
                         "role": "system",
                         "content": (
-                            "Extraé de la sentencia los siguientes campos y devolvé un JSON "
-                            "con strings (no listas): caratula, tribunal, sent_num, sent_fecha, "
-                            "resuelvo, firmantes."
+                            "Extraé de la sentencia los siguientes campos y devolvé un JSON con: \
+                            generales (caratula, tribunal, sent_num, sent_fecha, resuelvo, firmantes) \
+                            e imputados (lista de objetos con datos_personales y prontuario)."
                         ),
                     },
                     {"role": "user", "content": texto[:120000]},  # límite 128 k tokens
@@ -427,14 +519,25 @@ class MainWindow(QMainWindow):
 
             datos = json.loads(respuesta.choices[0].message.content)
 
-            # 3) Volcar en los widgets
-            self.entry_caratula.setText(self._as_str(datos.get("caratula")))
-            self.entry_tribunal.setCurrentText(self._as_str(datos.get("tribunal")))
-            self.entry_sent_num.setText(self._as_str(datos.get("sent_num")))
-            self.entry_sent_date.setText(self._as_str(datos.get("sent_fecha")))
-            self.entry_resuelvo.setText(self._as_str(datos.get("resuelvo")))
-            self.entry_firmantes.setText(self._as_str(datos.get("firmantes")))
+            # ------------------ 1) Generales ------------------
+            g = datos.get("generales", {})
+            self.entry_caratula.setText(self._as_str(g.get("caratula")))
+            self.entry_tribunal.setCurrentText(self._as_str(g.get("tribunal")))
+            self.entry_sent_num.setText(self._as_str(g.get("sent_num")))
+            self.entry_sent_date.setText(self._as_str(g.get("sent_fecha")))
+            self.entry_resuelvo.setText(self._as_str(g.get("resuelvo")))
+            self.entry_firmantes.setText(self._as_str(g.get("firmantes")))
 
+            # ------------------ 2) Imputados ------------------
+            imps = datos.get("imputados", [])
+            self.combo_n.setCurrentText(str(max(1, len(imps))))  # ajusta N
+            self.rebuild_imputados()                             # fuerza recreación
+
+            for idx, imp in enumerate(imps):
+                bruto = imp.get("datos_personales", imp)   # por si ya es el dict mismo
+                self.imputados_widgets[idx]['datos_personales'].setPlainText(
+                    self._format_datos_personales(bruto)
+                )
             # 4) Refrescar plantillas
             self.update_templates()
 
@@ -493,7 +596,7 @@ class MainWindow(QMainWindow):
             f"por ante {trib}, se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos personales se mencionan a continuación:\n\n"
-            f"Nombre y Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre.\n\n"
+            f"{self._imp_datos()}\n"
             f"“SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. Se Resuelve: {res}”\n\n"
             "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
@@ -529,7 +632,8 @@ class MainWindow(QMainWindow):
             f"{trib} de {nom} Nominación, Secretaría N° {sec}, de la ciudad de Córdoba, Provincia de Córdoba, "
             "con la intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. "
             "el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos "
-            "datos personales se mencionan a continuación: (Nombre, Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre).\n\n"
+            "datos personales se mencionan a continuación:\n"
+            f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
             "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
@@ -566,7 +670,8 @@ class MainWindow(QMainWindow):
             f"{trib} de {nom} Nominación, Secretaría N° {sec}, de la ciudad de Córdoba, Provincia de Córdoba, "
             "con la intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a "
-            "continuación: (Nombre, Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre).\n\n"
+            "continuación:\n"
+            f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
             "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
@@ -870,7 +975,7 @@ class MainWindow(QMainWindow):
             f"{trib} de {nom} Nom., Sec. {sec}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
             "se ha resuelto enviar el presente oficio a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos se detallan a continuación:\n\n"
-            "Nombre y Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre.\n\n"
+            f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f} “Se resuelve: {res}. PROTOCOLÍCESE. NOTIFÍQUESE.” "
             f"(Fdo.: {firm}).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
@@ -900,7 +1005,7 @@ class MainWindow(QMainWindow):
             f"{trib} de {nom} Nominación, Secretaría N° {sec}, de la ciudad de Córdoba, Provincia de Córdoba, con "
             "intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos se mencionan a continuación: "
-            "(Nombre, Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre).\n\n"
+            f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
             "Asimismo, se informa que la sentencia antes señalada quedó firme con fecha …\n"
@@ -931,7 +1036,7 @@ class MainWindow(QMainWindow):
             f"se ha resuelto librar el presente a fin de registrar en dicha dependencia lo resuelto por Sentencia N° {sent_n}, "
             f"de fecha {sent_f} dictada por el mencionado Tribunal.\n\n"
             "I. DATOS PERSONALES\n"
-            "(Nombre, Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre).\n\n"
+            f"{self._imp_datos()}\n"
             "II. IDENTIFICACIÓN DACTILAR (adjuntar ficha).\n"
             "III. DATOS DE CONDENA Y LIBERACIÓN (adjuntar copia de la sentencia).\n"
             "   • Condena impuesta: … años … meses de prisión.\n"
@@ -972,7 +1077,7 @@ class MainWindow(QMainWindow):
             f"{car}, que se tramitan por ante "
             f"{trib} de {nom} Nom., Sec. {sec}, de la ciudad de Córdoba, Provincia de Córdoba, con intervención de ésta "
             "Oficina de Servicios Procesales (OSPRO), respecto de:\n\n"
-            "(Nombre, Apellido / D.N.I. / Fecha de Nacimiento / Padre, Madre).\n\n"
+            f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “{res} PROTOCOLÍCESE. NOTIFÍQUESE.” (Fdo.: {firm}).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
             "de los arts. 27 y 27 bis del C.P.\n"
@@ -1031,7 +1136,7 @@ class MainWindow(QMainWindow):
             f"En los autos caratulados: {car}, que se tramitan por ante "
             f"{trib} de {nom} Nominación, Secretaría N.º {sec}, con intervención de esta Oficina de Servicios Procesales "
             "(OSPRO), se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por el Tribunal respecto de "
-            "(Apellido y Nombre – D.N.I.):\n\n"
+            f"{self._imp_datos()}\n"
             f"SENTENCIA N° {sent_n}, de fecha {sent_f}: “Se Resuelve: {res}” "
             f"(Fdo.: {firm}).\n\n"
             "Se adjuntan copias digitales de la sentencia y, de existir, del cómputo de pena.\n"
@@ -1073,8 +1178,9 @@ class MainWindow(QMainWindow):
     def copy_to_clipboard(self, te: QTextEdit):
         QApplication.clipboard().setText(te.toPlainText())
 
-    def update_for_imp(self, idx: int):       # idx es el índice seleccionado
-        pass
+    def update_for_imp(self, idx: int):
+        self.update_templates()
+
 
     # ───────────────────── interceptar cierre ──────────────────────
     def closeEvent(self, ev):
