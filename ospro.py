@@ -1047,6 +1047,8 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la CÁMARA EN LO CRIMINAL Y CORRECCIONAL"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
+        computo, _ = self._imp_computo()
+        extincion = computo or "…"
         cuerpo = (
             "Al Sr. Titular del Registro Provincial de Personas Condenadas por Delitos contra la Integridad Sexual\n"
             "S./D.\n\n"
@@ -1060,7 +1062,7 @@ class MainWindow(QMainWindow):
             "III. DATOS DE CONDENA Y LIBERACIÓN (adjuntar copia de la sentencia).\n"
             "   • Condena impuesta: … años … meses de prisión.\n"
             f"   • Fecha firmeza: {sent_firmeza}\n"
-            "   • Fecha de extinción: … de … de …\n"
+            f"   • Fecha de extinción: {extincion}\n"
             "   • Servicio Penitenciario: Bower, Complejo …, Legajo …\n"
             "   • Delito: …\n"
             "IV. HISTORIAL DE DELITOS Y CONDENAS ANTERIORES: …\n"
