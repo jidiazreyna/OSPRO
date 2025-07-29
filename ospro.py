@@ -91,6 +91,28 @@ PENITENCIARIOS = [
     "Establecimiento Penitenciario n.° 8 (Villa Dolores)",
 ]
 
+# opciones de Juzgados de Niñez, Adolescencia, Violencia Familiar y de Género
+JUZ_NAVFYG = [
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 1ª Nom. – Sec.\u202fN°\u202f1",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 1ª Nom. – Sec.\u202fN°\u202f2",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 2ª Nom. – Sec.\u202fN°\u202f3",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 2ª Nom. – Sec.\u202fN°\u202f4",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 3ª Nom. – Sec.\u202fN°\u202f5",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 3ª Nom. – Sec.\u202fN°\u202f6",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 4ª Nom. – Sec.\u202fN°\u202f7",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 4ª Nom. – Sec.\u202fN°\u202f8",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 5ª Nom. – Sec.\u202fN°\u202f9",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 5ª Nom. – Sec.\u202fN°\u202f10",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 6ª Nom. – Sec.\u202fN°\u202f11",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 6ª Nom. – Sec.\u202fN°\u202f12",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 7ª Nom. – Sec.\u202fN°\u202f13",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 7ª Nom. – Sec.\u202fN°\u202f14",
+    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f15",
+    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f16",
+    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f17",
+    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f18",
+]
+
 def fecha_alineada(loc: str, hoy: datetime = None, punto: bool = False) -> str:
     hoy = hoy or datetime.now()
     txt = f"{loc}, {hoy.day} de {MESES_ES[hoy.month-1]} de {hoy.year}"
@@ -313,9 +335,13 @@ class MainWindow(QMainWindow):
                 'delitos': QLineEdit(),
                 'antecedentes': QLineEdit(),
                 'tratamientos': QLineEdit(),
+                'juz_navfyg': NoWheelComboBox(),
+                'ee_relacionado': QLineEdit(),
             }
             w['computo_tipo'].addItems(["Efec.", "Cond."])
             w['servicio_penitenciario'].addItems(PENITENCIARIOS)
+            w['juz_navfyg'].addItems(JUZ_NAVFYG)
+            w['juz_navfyg'].setEditable(True)
             w['dni'].textChanged.connect(self.update_templates)
             w['computo'].textChanged.connect(self.update_templates)
             w['computo_tipo'].currentIndexChanged.connect(self.update_templates)
@@ -325,6 +351,9 @@ class MainWindow(QMainWindow):
             w['delitos'].textChanged.connect(self.update_templates)
             w['antecedentes'].textChanged.connect(self.update_templates)
             w['tratamientos'].textChanged.connect(self.update_templates)
+            w['juz_navfyg'].currentIndexChanged.connect(self.update_templates)
+            w['juz_navfyg'].editTextChanged.connect(self.update_templates)
+            w['ee_relacionado'].textChanged.connect(self.update_templates)
 
             pair("Nombre y apellido:", w['nombre'])
             pair("DNI:",               w['dni'])
@@ -336,6 +365,14 @@ class MainWindow(QMainWindow):
             pair("Delitos:", w['delitos'])
             pair("Antecedentes:", w['antecedentes'])
             pair("Tratamientos:", w['tratamientos'])
+
+            grid.addWidget(QLabel("Juz. NAVFyG:"), row, 0)
+            hbox_j = QHBoxLayout()
+            hbox_j.addWidget(w['juz_navfyg'])
+            hbox_j.addWidget(w['ee_relacionado'])
+            w['ee_relacionado'].setPlaceholderText("EE relacionado")
+            grid.addLayout(hbox_j, row, 1)
+            row += 1
 
             grid.addWidget(QLabel("Cómputo:"), row, 0)
             hbox_c = QHBoxLayout()
@@ -1207,9 +1244,13 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
         firm = self.entry_firmantes.text() or "…"
-        cuerpo = (
+        juz = self._imp_field('juz_navfyg') or (
             "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de "
-            "….. Nom. – Sec. N° …..\n"
+            "….. Nom. – Sec. N° ….."
+        )
+        ee_rel = self._imp_field('ee_relacionado') or "…………."
+        cuerpo = (
+            f"{juz}\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
             f"{trib}, con intervención de esta Oficina de Servicios Procesales "
@@ -1218,7 +1259,7 @@ class MainWindow(QMainWindow):
             f"SENTENCIA N° {sent_n}, de fecha {sent_f}: “Se Resuelve: {res}” "
             f"(Fdo.: {firm}).\n\n"
             "Se adjuntan copias digitales de la sentencia y, de existir, del cómputo de pena.\n"
-            "Expediente de V.F. relacionado: n° ………….\n\n"
+            f"Expediente de V.F. relacionado: n° {ee_rel}\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
