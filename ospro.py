@@ -316,6 +316,7 @@ class MainWindow(QMainWindow):
             }
             w['computo_tipo'].addItems(["Efec.", "Cond."])
             w['servicio_penitenciario'].addItems(PENITENCIARIOS)
+            w['dni'].textChanged.connect(self.update_templates)
             w['computo'].textChanged.connect(self.update_templates)
             w['computo_tipo'].currentIndexChanged.connect(self.update_templates)
             w['condena'].textChanged.connect(self.update_templates)
@@ -366,6 +367,7 @@ class MainWindow(QMainWindow):
         self.selector_imp.blockSignals(False)
         self.selector_imp.setCurrentIndex(0)
         self._refresh_imp_names_in_selector()
+        self.update_templates()
 
 
     def _refresh_imp_names_in_selector(self):
@@ -454,6 +456,7 @@ class MainWindow(QMainWindow):
                     elif isinstance(widget, QComboBox):
                         widget.setCurrentText(v)
             self._refresh_imp_names_in_selector()
+            self.update_templates()
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
