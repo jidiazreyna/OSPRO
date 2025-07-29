@@ -179,6 +179,17 @@ class MainWindow(QMainWindow):
         self.entry_resuelvo = add_line('entry_resuelvo', "Resuelvo:")
         self.entry_firmantes = add_line('entry_firmantes', "Firmantes de la sentencia:")
 
+        # ─── cómputo de pena / resolución art. 27 ───
+        label("Cómputo:")
+        hbox_comp = QHBoxLayout()
+        self.entry_computo = QLineEdit(); self.entry_computo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.entry_computo.textChanged.connect(self.update_templates)
+        self.combo_computo = NoWheelComboBox(); self.combo_computo.addItems(["Efec.", "Cond."])
+        self.combo_computo.currentIndexChanged.connect(self.update_templates)
+        hbox_comp.addWidget(self.entry_computo)
+        hbox_comp.addWidget(self.combo_computo)
+        self.form.addLayout(hbox_comp, self._row, 1); self._row += 1
+
         # ─── número de imputados ───
         label("Número de imputados:")
         self.combo_n = NoWheelComboBox(); self.combo_n.addItems([str(i) for i in range(1,21)])
@@ -331,6 +342,8 @@ class MainWindow(QMainWindow):
             'sent_num'  : self.entry_sent_num.text(),
             'sent_fecha': self.entry_sent_date.text(),
             'sent_firmeza': self.entry_sent_firmeza.text(),
+            'computo' : self.entry_computo.text(),
+            'computo_tipo' : self.combo_computo.currentText(),
         }
 
     def _imputados_list(self):
@@ -378,6 +391,8 @@ class MainWindow(QMainWindow):
             self.entry_sent_num.setText(g.get("sent_num", ""))
             self.entry_sent_date.setText(g.get("sent_fecha", ""))
             self.entry_sent_firmeza.setText(g.get("sent_firmeza", ""))
+            self.entry_computo.setText(g.get("computo", ""))
+            self.combo_computo.setCurrentText(g.get("computo_tipo", "Efec."))
 
             # --------- imputados ---------
             imps = data.get("imputados", [])
@@ -946,6 +961,11 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
+        computo = self.entry_computo.text() or "…"
+        if self.combo_computo.currentText().startswith("Efec"):
+            comp_label = "cómputo de pena respectivo"
+        else:
+            comp_label = "la resolución que fija la fecha de cumplimiento de los arts. 27 y 27 bis del C.P."
         cuerpo = (
             "Sr. Titular de la División de Documentación Personal – Policía de la Provincia de Córdoba\n"
             "S ______/_______D:\n\n"
@@ -956,8 +976,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f} “Se resuelve: {res}. PROTOCOLÍCESE. NOTIFÍQUESE.” "
             f"(Fdo.: {firm}).\n\n"
-            "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
-            "de los arts. 27 y 27 bis del C.P.\n"
+            f"Se transcribe a continuación el {comp_label}: {computo}\n"
             f"Fecha de firmeza de la Sentencia: {sent_firmeza}\n\n"
             "Saluda a Ud. atentamente."
         )
