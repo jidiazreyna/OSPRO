@@ -51,31 +51,31 @@ MESES_ES = [
 
 # opciones de Tribunales; el usuario puede editarlas o escribir otras
 TRIBUNALES = [
-    "Cámara en lo Criminal y Correccional de Primera Nominación",
-    "Cámara en lo Criminal y Correccional de Segunda Nominación",
-    "Cámara en lo Criminal y Correccional de Tercera Nominación",
-    "Cámara en lo Criminal y Correccional de Cuarta Nominación",
-    "Cámara en lo Criminal y Correccional de Quinta Nominación",
-    "Cámara en lo Criminal y Correccional de Sexta Nominación",
-    "Cámara en lo Criminal y Correccional de Séptima Nominación",
-    "Cámara en lo Criminal y Correccional de Octava Nominación",
-    "Cámara en lo Criminal y Correccional de Novena Nominación",
-    "Cámara en lo Criminal y Correccional de Décima Nominación",
-    "Cámara en lo Criminal y Correccional de Onceava Nominación",
-    "Cámara en lo Criminal y Correccional de Doceava Nominación",
-    "Juzgado de Control en lo Penal Económico",
-    "Juzgado de Control y Faltas N° 2",
-    "Juzgado de Control y Faltas N° 3",
-    "Juzgado de Control y Faltas N° 4",
-    "Juzgado de Control y Faltas N° 5",
-    "Juzgado de Control en Violencia de Género y Familiar N° 1",
-    "Juzgado de Control en Violencia de Género y Familiar N° 2",
-    "Juzgado de Control y Faltas N° 7",
-    "Juzgado de Control y Faltas N° 8",
-    "Juzgado de Control y Faltas N° 9",
-    "Juzgado de Control y Faltas N° 10",
-    "Juzgado de Control y Faltas N° 11",
-    "Juzgado de Control de Lucha contra el Narcotráfico",
+    "la Cámara en lo Criminal y Correccional de Primera Nominación",
+    "la Cámara en lo Criminal y Correccional de Segunda Nominación",
+    "la Cámara en lo Criminal y Correccional de Tercera Nominación",
+    "la Cámara en lo Criminal y Correccional de Cuarta Nominación",
+    "la Cámara en lo Criminal y Correccional de Quinta Nominación",
+    "la Cámara en lo Criminal y Correccional de Sexta Nominación",
+    "la Cámara en lo Criminal y Correccional de Séptima Nominación",
+    "la Cámara en lo Criminal y Correccional de Octava Nominación",
+    "la Cámara en lo Criminal y Correccional de Novena Nominación",
+    "la Cámara en lo Criminal y Correccional de Décima Nominación",
+    "la Cámara en lo Criminal y Correccional de Onceava Nominación",
+    "la Cámara en lo Criminal y Correccional de Doceava Nominación",
+    "el Juzgado de Control en lo Penal Económico",
+    "el Juzgado de Control y Faltas N° 2",
+    "el Juzgado de Control y Faltas N° 3",
+    "el Juzgado de Control y Faltas N° 4",
+    "el Juzgado de Control y Faltas N° 5",
+    "el Juzgado de Control en Violencia de Género y Familiar N° 1",
+    "el Juzgado de Control en Violencia de Género y Familiar N° 2",
+    "el Juzgado de Control y Faltas N° 7",
+    "el Juzgado de Control y Faltas N° 8",
+    "el Juzgado de Control y Faltas N° 9",
+    "el Juzgado de Control y Faltas N° 10",
+    "el Juzgado de Control y Faltas N° 11",
+    "el Juzgado de Control de Lucha contra el Narcotráfico",
 ]
 
 def fecha_alineada(loc: str, hoy: datetime = None, punto: bool = False) -> str:
@@ -112,17 +112,9 @@ class MainWindow(QMainWindow):
             cursor.setCharFormat(char)
             cursor.insertText(linea)
 
-
     def _insert_with_header(self, te: QTextEdit, text: str) -> None:
-        """Inserta encabezado en negrita y cuerpo justificado."""
-        if "\n\n" in text:
-            header, rest = text.split("\n\n", 1)
-        else:
-            header, rest = text, ""
-        self._insert_paragraph(te, header, Qt.AlignJustify, weight=QFont.Bold)
-        if rest.strip():
-            self._insert_paragraph(te, rest, Qt.AlignJustify)
-
+        """Inserta todo el texto justificado, sin convertir \n\n en encabezado."""
+        self._insert_paragraph(te, text, Qt.AlignJustify)
 
     def __init__(self):
         super().__init__()
@@ -163,7 +155,7 @@ class MainWindow(QMainWindow):
             setattr(self, attr, w); return w
 
         # ─── datos generales ───
-        self.entry_localidad = add_combo('entry_localidad', "Localidad:", [], editable=True)
+        self.entry_localidad = add_line('entry_localidad', "Localidad:")
         self.entry_caratula  = add_line ('entry_caratula',  "Carátula:")
         self.entry_tribunal  = add_combo('entry_tribunal',  "Tribunal:", TRIBUNALES, editable=True)
 
@@ -226,22 +218,23 @@ class MainWindow(QMainWindow):
         # pestañas de oficios
         self.text_edits = {}
         for name in ("Oficio Migraciones",
-                    "Oficio Juez Electoral",
                     "Oficio Consulado",
+                    "Oficio Juez Electoral",                    
+                    "Oficio Policía Documentación",
+                    "Oficio Registro Civil",
+                    "Oficio Registro Condenados Sexuales",                     
+                    "Oficio Registro Nacional Reincidencia",
+                    "Oficio Complejo Carcelario",
+                    "Oficio Juzgado Niñez‑Adolescencia",
+                    "Oficio RePAT",                    
+                    "Oficio Fiscalía Instrucción",
+                    "Oficio Automotores Secuestrados",
                     "Oficio Registro Automotor",
                     "Oficio TSJ Sec. Penal",
                     "Oficio TSJ Sec. Penal (Depósitos)",  
                     "Oficio Comisaría Traslado",
                     "Oficio TSJ Sec. Penal (Elementos)",
-                    "Oficio Automotores Secuestrados",
-                    "Oficio Fiscalía Instrucción",
-                    "Oficio Policía Documentación",
-                    "Oficio Registro Civil",
-                    "Oficio Registro Condenados Sexuales", 
-                    "Oficio Registro Nacional Reincidencia",
-                    "Oficio RePAT", 
-                    "Oficio Juzgado Niñez‑Adolescencia",
-                    "Oficio Complejo Carcelario" ):
+                    ):
 
             te = QTextEdit(); te.setReadOnly(True)
             te.setFontFamily("Times New Roman"); te.setFontPointSize(12)
@@ -293,21 +286,13 @@ class MainWindow(QMainWindow):
 
             # —— widgets del imputado ——
             w = {
-                'tipo'    : NoWheelComboBox(),
                 'nombre'  : QLineEdit(),
                 'dni'     : QLineEdit(),
-                'delitos' : QLineEdit(),
-                'defensa' : QLineEdit(),
                 'datos_personales': QTextEdit() 
             }
-            w['tipo'].addItems(['efectiva', 'condicional'])
 
-
-            pair("Tipo de pena:",      w['tipo'])
             pair("Nombre y apellido:", w['nombre'])
             pair("DNI:",               w['dni'])
-            pair("Delitos:",           w['delitos'])
-            pair("Defensa:",           w['defensa'])
             pair("Datos personales:", w['datos_personales'])
 
             # 4) restauro datos previos si los hubiera
@@ -336,7 +321,7 @@ class MainWindow(QMainWindow):
     def _generales_dict(self):
         """Devuelve un dict con los datos generales."""
         return {
-            'localidad' : self.entry_localidad.currentText(),
+            'localidad' : self.entry_localidad.text(),
             'caratula'  : self.entry_caratula.text(),
             'tribunal'  : self.entry_tribunal.currentText(),
 
@@ -385,7 +370,7 @@ class MainWindow(QMainWindow):
 
             # --------- generales ---------
             g = data.get("generales", {})
-            self.entry_localidad.setCurrentText(g.get("localidad", ""))
+            self.entry_localidad.setText(g.get("localidad", ""))
             self.entry_caratula.setText(g.get("caratula", ""))
             self.entry_tribunal.setCurrentText(g.get("tribunal", ""))
             self.entry_resuelvo.setText(g.get("resuelvo", ""))
@@ -482,11 +467,11 @@ class MainWindow(QMainWindow):
         if idx is None:
             idx = self.selector_imp.currentIndex()
         if idx < 0 or idx >= len(self.imputados_widgets):
-            return "Nombre, D.N.I., F° Nac., Padre, Madre"
+            return "Datos personales"
 
         raw = self.imputados_widgets[idx]['datos_personales'].toPlainText().strip()
         if not raw:
-            return "Nombre, D.N.I., F° Nac., Padre, Madre"
+            return "Datos personales"
 
         return self._format_datos_personales(raw)
 
@@ -590,7 +575,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         # ─ datos básicos ─
-        loc = self.entry_localidad.currentText() or "Córdoba"
+        loc = self.entry_localidad.text() or "Córdoba"
         hoy = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)       # ← solo el texto
         sent_n = self.entry_sent_num.text() or "…"
@@ -614,13 +599,13 @@ class MainWindow(QMainWindow):
             f"por ante {trib}, se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos personales se mencionan a continuación:\n\n"
-            f"{self._imp_datos()}\n"
+            f"{self._imp_datos()}\n\n"
             f"“SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. Se Resuelve: {res}”\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
 
     def _plantilla_juez_electoral(self):
@@ -628,7 +613,7 @@ class MainWindow(QMainWindow):
         te.clear()
 
         # ─ datos básicos ─
-        loc  = self.entry_localidad.currentText() or "Córdoba"
+        loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
@@ -637,9 +622,7 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        sac   = "…"   # si luego agregás un campo “N° SAC”, leélo acá
         nom   = "…"   # idem Nominación
-        sec   = "…"   # idem Secretaría
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "SR. JUEZ ELECTORAL:\n"
@@ -647,11 +630,11 @@ class MainWindow(QMainWindow):
             "-Av. Concepción Arenales esq. Wenceslao Paunero, Bº Rogelio Martínez, Córdoba.\n"
             "Tribunales Federales de Córdoba-\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N° {sec}, de la ciudad de Córdoba, Provincia de Córdoba, "
+            f"{trib} de {nom} , de la ciudad de Córdoba, Provincia de Córdoba, "
             "con la intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. "
             "el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos "
-            "datos personales se mencionan a continuación:\n"
-            f"{self._imp_datos()}\n"
+            "datos personales se mencionan a continuación:\n\n"
+            f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
@@ -660,14 +643,14 @@ class MainWindow(QMainWindow):
         )
 
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_consulado(self):
         te = self.text_edits["Oficio Consulado"]
         te.clear()
 
         # ─ datos básicos ─
-        loc  = self.entry_localidad.currentText() or "Córdoba"
+        loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
@@ -676,20 +659,17 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        sac   = "…"   # campo opcional a futuro
-        nom   = "…"   # idem Nominación
-        sec   = "…"   # idem Secretaría
         pais  = "…"   # cuando agregues un ComboBox para el país, usalo acá
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         cuerpo = (
-            "Al Sr. Titular del Consulado de la República de " + pais + " S/D:\n"
+            "Al Sr. Titular del Consulado de la República de " + pais + " S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N° {sec}, de la ciudad de Córdoba, Provincia de Córdoba, "
+            f"{trib}, de la ciudad de Córdoba, Provincia de Córdoba, "
             "con la intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a "
-            "continuación:\n"
-            f"{self._imp_datos()}\n"
+            "continuación:\n\n"
+            f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
@@ -698,13 +678,13 @@ class MainWindow(QMainWindow):
         )
 
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_registro_automotor(self):
         te = self.text_edits["Oficio Registro Automotor"]
         te.clear()
 
-        loc  = self.entry_localidad.currentText() or "Córdoba"
+        loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
@@ -713,34 +693,31 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        sac  = "…"   # Nº SAC (añadí el widget cuando lo necesites)
-        nom  = "…"   # Nominación
-        sec  = "…"   # Secretaría
         regn = "…"   # Nº de Registro del Automotor
         veh  = "marca, modelo, dominio …"   # datos del rodado
 
         cuerpo = (
             f"AL SR. TITULAR DEL REGISTRO DE LA\n"
             f"PROPIEDAD DEL AUTOMOTOR N° {regn}\n"
-            "S/D:\n"
+            "S/D:\n\n"
             f"\tEn los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N° {sec}, con intervención de esta Oficina de Servicios "
+            f"{trib}, con intervención de esta Oficina de Servicios "
             "Procesales – OSPRO –, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante "
             f"Sentencia N° {sent_n} de fecha {sent_f}, dicho Tribunal resolvió ordenar el DECOMISO del vehículo "
-            f"{veh}.\n"
+            f"{veh}.\n\n"
             "Se transcribe a continuación la parte pertinente de la misma:\n"
             f"“SE RESUELVE: {res}”. "
             f"(Fdo.: {firm}).\n\n"
             "Sin otro particular, saludo a Ud. atte."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_tsj_secpenal(self):
         te = self.text_edits["Oficio TSJ Sec. Penal"]
         te.clear()
 
-        loc  = self.entry_localidad.currentText() or "Córdoba"
+        loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
@@ -749,17 +726,14 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        sac  = "…"   # Nº SAC
-        nom  = "…"   # Nominación
-        sec  = "…"   # Secretaría
         registro = "…de …"  # Nº de Registro y localidad
 
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
-            "S______/_______D:\n"
+            "S______/_______D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nom., Secretaría {sec}, con conocimiento e intervención de esta Oficina de Servicios "
+            f"{trib}, con conocimiento e intervención de esta Oficina de Servicios "
             "Procesales – OSPRO –, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo "
             f"resuelto por la Sentencia N° {sent_n} del {sent_f}, dictada por la Cámara mencionada, en virtud de la cual "
             "se ordenó el DECOMISO de los siguientes objetos:\n\n"
@@ -775,13 +749,13 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_tsj_secpenal_depositos(self):
         te = self.text_edits["Oficio TSJ Sec. Penal (Depósitos)"]
         te.clear()
 
-        loc  = self.entry_localidad.currentText() or "Córdoba"
+        loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
@@ -790,9 +764,6 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        sac  = "…"   # Nº SAC
-        nom  = "…"   # Nominación
-        sec  = "…"   # Secretaría
         desc = "RUS/RUV: …………………….."                   # editable
         ubic = "Cría. n°/Sub‑Destacamento/Comisaría …"    # editable
 
@@ -801,7 +772,7 @@ class MainWindow(QMainWindow):
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N° {sec}, con intervención de esta Oficina de Servicios Procesales "
+            f"{trib}, con intervención de esta Oficina de Servicios Procesales "
             f"- OSPRO -, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante Sentencia N° {sent_n} "
             f"de {sent_f}, dicho Tribunal resolvió ordenar el DECOMISO de los siguientes objetos:\n\n"
             "Descripción del objeto\tUbicación Actual\n"
@@ -815,13 +786,13 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_comisaria_traslado(self):
         te = self.text_edits["Oficio Comisaría Traslado"]
         te.clear()
 
-        loc  = self.entry_localidad.currentText() or "Córdoba"
+        loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
@@ -830,9 +801,6 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        sac  = "…"   # Nº SAC
-        nom  = "…"   # Nominación
-        sec  = "…"   # Secretaría
         comi = "…"   # Nº Comisaría
         objetos = "(descripción de los objetos a trasladar)"
 
@@ -841,7 +809,7 @@ class MainWindow(QMainWindow):
             f"DE LA COMISARÍA N° {comi} DE LA POLICÍA DE CÓRDOBA\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N° {sec}, con intervención de esta Oficina de Servicios Procesales "
+            f"{trib}, con intervención de esta Oficina de Servicios Procesales "
             "- OSPRO -, se ha dispuesto librar a Ud. el presente, a los fines de solicitarle que personal a su cargo "
             "traslade los efectos que a continuación se detallan al Depósito General de Efectos Secuestrados "
             "-sito en calle Abdel Taier n° 270, B° Comercial, de esta ciudad de Córdoba-, para que sean allí recibidos:\n\n"
@@ -856,13 +824,13 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_tsj_secpenal_elementos(self):
         te = self.text_edits["Oficio TSJ Sec. Penal (Elementos)"]
         te.clear()
 
-        loc  = self.entry_localidad.currentText() or "Córdoba"
+        loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
@@ -871,16 +839,13 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        sac  = "…"   # Nº SAC
-        nom  = "…"   # Nominación
-        sec  = "…"   # Secretaría
 
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S______/_______D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nom., Secretaría {sec}, con conocimiento e intervención de ésta Oficina de Servicios "
+            f"{trib}, con conocimiento e intervención de ésta Oficina de Servicios "
             "Procesales ‑ OSPRO‑, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto "
             f"por la Sentencia N° {sent_n} del {sent_f}, dictada por la Cámara mencionada, en virtud de la cual se ordenó el "
             "DECOMISO de los siguientes objetos:\n\n"
@@ -898,22 +863,19 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_automotores_secuestrados(self):
         te = self.text_edits["Oficio Automotores Secuestrados"]
         te.clear()
 
-        loc  = self.entry_localidad.currentText() or "Córdoba"
+        loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        sac  = "…"   # Nº SAC
-        nom  = "…"   # Nominación
-        sec  = "…"   # Secretaría
         marca = "…"  # rellenar a mano
         modelo = "…"
         dominio = "…"
@@ -928,7 +890,7 @@ class MainWindow(QMainWindow):
             "AUTOMOTORES SECUESTRADOS EN CAUSAS PENALES, TRIBUNAL SUPERIOR DE JUSTICIA.\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N° {sec}, con intervención de ésta Oficina de Servicios Procesales "
+            f"{trib}, con intervención de ésta Oficina de Servicios Procesales "
             "(OSPRO), se ha resuelto enviar a Ud. el presente a fines de solicitarle que establezca lo necesario para que, "
             "por intermedio de quien corresponda, se coloque a la orden y disposición de la Cámara señalada, el rodado "
             f"MARCA: {marca}, MODELO: {modelo}, DOMINIO: {dominio}, MOTOR N°: {motor}, CHASIS N°: {chasis}, "
@@ -943,17 +905,16 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_fiscalia_instruccion(self):
         te = self.text_edits["Oficio Fiscalía Instrucción"]
         te.clear()
 
-        loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
+        loc, hoy = self.entry_localidad.text() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        nom, sec, sac = "…", "…", "…"
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
@@ -962,7 +923,7 @@ class MainWindow(QMainWindow):
             "Sr/a Fiscal de Instrucción que por turno corresponda\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N° {sec}, con intervención de la Oficina de Servicios Procesales "
+            f"{trib}, con intervención de la Oficina de Servicios Procesales "
             "(OSPRO), se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a la "
             "sentencia dictada en la causa de referencia, remitiendo los antecedentes obrantes en el expediente mencionado "
             "a fin de investigar la posible comisión de un delito perseguible de oficio.\n\n"
@@ -971,7 +932,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atte."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_policia_documentacion(self):
         te = self.text_edits["Oficio Policía Documentación"]
@@ -980,20 +941,19 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
         firm = self.entry_firmantes.text() or "…"
-        loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
+        loc, hoy = self.entry_localidad.text() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        nom, sec, sac = "…", "…", "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "Sr. Titular de la División de Documentación Personal – Policía de la Provincia de Córdoba\n"
             "S ______/_______D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan ante "
-            f"{trib} de {nom} Nom., Sec. {sec}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
+            f"{trib}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
             "se ha resuelto enviar el presente oficio a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos se detallan a continuación:\n\n"
-            f"{self._imp_datos()}\n"
+            f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f} “Se resuelve: {res}. PROTOCOLÍCESE. NOTIFÍQUESE.” "
             f"(Fdo.: {firm}).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
@@ -1001,7 +961,7 @@ class MainWindow(QMainWindow):
             f"Fecha de firmeza de la Sentencia: {sent_firmeza}\n\n"
             "Saluda a Ud. atentamente."
         )
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_registro_civil(self):
         te = self.text_edits["Oficio Registro Civil"]
@@ -1010,20 +970,19 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
         firm = self.entry_firmantes.text() or "…"
-        loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
+        loc, hoy = self.entry_localidad.text() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        nom, sec, sac = "…", "…", "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "Sr/a Director/a del Registro Civil y Capacidad de las Personas\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N° {sec}, de la ciudad de Córdoba, Provincia de Córdoba, con "
+            f"{trib}, de la ciudad de Córdoba, Provincia de Córdoba, con "
             "intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente oficio, "
-            "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos se mencionan a continuación: "
-            f"{self._imp_datos()}\n"
+            "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos se mencionan a continuación:\n\n"
+            f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se Resuelve: {res}” "
             f"Fdo.: {firm}\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
@@ -1031,7 +990,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_registro_condenados_sexuales(self):
         te = self.text_edits["Oficio Registro Condenados Sexuales"]
@@ -1040,17 +999,16 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
         firm = self.entry_firmantes.text() or "…"
-        loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
+        loc, hoy = self.entry_localidad.text() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la CÁMARA EN LO CRIMINAL Y CORRECCIONAL"
-        nom, sec, sac = "…", "…", "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "Al Sr. Titular del Registro Provincial de Personas Condenadas por Delitos contra la Integridad Sexual\n"
             "S./D.\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nom., Sec. {sec}, con intervención de ésta Oficina de Servicios Procesales (OSPRO), "
+            f"{trib}, con intervención de ésta Oficina de Servicios Procesales (OSPRO), "
             f"se ha resuelto librar el presente a fin de registrar en dicha dependencia lo resuelto por Sentencia N° {sent_n}, "
             f"de fecha {sent_f} dictada por el mencionado Tribunal.\n\n"
             "I. DATOS PERSONALES\n"
@@ -1064,7 +1022,7 @@ class MainWindow(QMainWindow):
             "   • Delito: …\n"
             "IV. HISTORIAL DE DELITOS Y CONDENAS ANTERIORES: …\n"
             "V. TRATAMIENTOS MÉDICOS Y PSICOLÓGICOS: …\n"
-            "VI. OTROS DATOS DE INTERÉS:\n"
+            "VI. OTROS DATOS DE INTERÉS:\n\n"
             f"   La Cámara … resolvió mediante Sentencia N° {sent_n} de fecha {sent_f} …RESUELVE: {res}\n"
             f"   Fdo.: {firm} Por decreto … se fijó fecha definitiva de cumplimiento "
             "el … de … de …\n\n"
@@ -1072,7 +1030,7 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_registro_nacional_reincidencia(self):
         te = self.text_edits["Oficio Registro Nacional Reincidencia"]
@@ -1081,11 +1039,10 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
         firm = self.entry_firmantes.text() or "…"
-        loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
+        loc, hoy = self.entry_localidad.text() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        nom, sec, sac = "…", "…", "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         cuerpo = (
             "Al Sr. Director del Registro Nacional de Reincidencia\n"
@@ -1093,9 +1050,9 @@ class MainWindow(QMainWindow):
             "De acuerdo a lo dispuesto por el art. 2º de la Ley 22.177, remito a Ud. testimonio de la parte dispositiva "
             "de la resolución dictada en los autos caratulados: "
             f"{car}, que se tramitan por ante "
-            f"{trib} de {nom} Nom., Sec. {sec}, de la ciudad de Córdoba, Provincia de Córdoba, con intervención de ésta "
+            f"{trib}, de la ciudad de Córdoba, Provincia de Córdoba, con intervención de ésta "
             "Oficina de Servicios Procesales (OSPRO), respecto de:\n\n"
-            f"{self._imp_datos()}\n"
+            f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “{res} PROTOCOLÍCESE. NOTIFÍQUESE.” (Fdo.: {firm}).\n\n"
             "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
             "de los arts. 27 y 27 bis del C.P.\n"
@@ -1103,7 +1060,7 @@ class MainWindow(QMainWindow):
             "Saluda a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_repat(self):
         te = self.text_edits["Oficio RePAT"]
@@ -1112,20 +1069,19 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
-        loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
+        loc, hoy = self.entry_localidad.text() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        nom, sec, sac = "…", "…", "…"
         firm = self.entry_firmantes.text() or "…"
         cuerpo = (
             "SR. DIRECTOR DEL REGISTRO PROVINCIAL DE ANTECEDENTES DE TRÁNSITO (RePAT)\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nom., Sec. N° {sec}, de esta ciudad de Córdoba, con intervención de esta Oficina de "
+            f"{trib}, de esta ciudad de Córdoba, con intervención de esta Oficina de "
             "Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por "
-            "dicho Tribunal respecto de la persona cuyos datos se detallan a continuación: (Nombre, D.N.I., Fecha de "
-            "Nacimiento, Padre, Madre).\n\n"
+            "dicho Tribunal respecto de la persona cuyos datos se detallan a continuación:\n\n"
+            f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se resuelve: {res}” "
             f"(Fdo.: {firm}).\n\n"
             f"Asimismo, se informa que la sentencia condenatoria quedó firme con fecha {sent_firmeza}\n"
@@ -1133,17 +1089,16 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_juzgado_ninez(self):
         te = self.text_edits["Oficio Juzgado Niñez‑Adolescencia"]
         te.clear()
 
-        loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
+        loc, hoy = self.entry_localidad.text() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        nom, sec, sac = "…", "…", "…"
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
@@ -1153,9 +1108,9 @@ class MainWindow(QMainWindow):
             "….. Nom. – Sec. N° …..\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Secretaría N.º {sec}, con intervención de esta Oficina de Servicios Procesales "
+            f"{trib}, con intervención de esta Oficina de Servicios Procesales "
             "(OSPRO), se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por el Tribunal respecto de "
-            f"{self._imp_datos()}\n"
+            f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, de fecha {sent_f}: “Se Resuelve: {res}” "
             f"(Fdo.: {firm}).\n\n"
             "Se adjuntan copias digitales de la sentencia y, de existir, del cómputo de pena.\n"
@@ -1163,19 +1118,18 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def _plantilla_complejo_carcelario(self):
         te = self.text_edits["Oficio Complejo Carcelario"]
         te.clear()
         firm = self.entry_firmantes.text() or "…"
-        loc, hoy = self.entry_localidad.currentText() or "Córdoba", datetime.now()
+        loc, hoy = self.entry_localidad.text() or "Córdoba", datetime.now()
         fecha = fecha_alineada(loc, hoy)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        nom, sec, sac = "…", "…", "…"
         complejo = "…"  # Nº Complejo
         localidad = "…" # Localidad
         res = self.entry_resuelvo.text() or "…"
@@ -1185,14 +1139,14 @@ class MainWindow(QMainWindow):
             f"LOCALIDAD DE {localidad}\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} Nominación, Sec. {sec}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
+            f"{trib}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
             "me dirijo a Ud. a fin de informar lo resuelto respecto de (Nombre y Apellido – D.N.I.) mediante Sentencia "
             f"N° {sent_n}, de fecha {sent_f}: “{res}” "
             f"(Fdo.: {firm}).\n\n"
             "Sin otro particular, lo saludo atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_with_header(te, cuerpo)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
 
     def copy_to_clipboard(self, te: QTextEdit):
         QApplication.clipboard().setText(te.toPlainText())
