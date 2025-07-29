@@ -6,15 +6,29 @@ Interfaz: datos generales + pestañas de imputados (sin plantillas)
 import sys, json, os
 from pathlib import Path
 from datetime import datetime
-from PySide6.QtCore    import Qt
+from PySide6.QtCore import Qt, QRect, QPropertyAnimation
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QLineEdit, QComboBox, QSpinBox,
-    QPushButton, QGridLayout, QVBoxLayout, QTabWidget, QFileDialog, QMessageBox,
-    QScrollArea, QSizePolicy, QSplitter, QTextEdit     
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QLabel,
+    QLineEdit,
+    QComboBox,
+    QSpinBox,
+    QPushButton,
+    QGridLayout,
+    QVBoxLayout,
+    QTabWidget,
+    QFileDialog,
+    QMessageBox,
+    QScrollArea,
+    QSizePolicy,
+    QSplitter,
+    QTextEdit,
+    QFrame,
+    QHBoxLayout,
 )
-from PySide6.QtGui import QIcon, QTextCursor, QFont   # QIcon y QFont para más adelante
-from PySide6.QtWidgets import QHBoxLayout, QGraphicsOpacityEffect, QStyle
-from PySide6.QtCore import QPropertyAnimation
+from PySide6.QtGui import QIcon, QTextCursor, QFont  # QIcon y QFont para más adelante
 from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
 # ── NUEVOS IMPORTS ──────────────────────────────────────────────
 import openai                    # cliente oficial
@@ -258,6 +272,25 @@ class MainWindow(QMainWindow):
 
         self.tabs_txt = QTabWidget()
         right_layout.addWidget(self.tabs_txt, 1)
+        # indicador visual que une pestañas relacionadas (animado)
+        self.related_indicator = QFrame(self.tabs_txt.tabBar())
+        self.related_indicator.setObjectName("related_indicator")
+        self.related_indicator.setStyleSheet(
+            "#related_indicator{background:palette(highlight);height:2px;border-radius:1px;}"
+        )
+        self.related_indicator.hide()
+        self.tabs_txt.currentChanged.connect(self.update_related_indicator)
+        bar = self.tabs_txt.tabBar()
+        orig_enter = bar.enterEvent
+
+        def _enter(ev):
+            idx = bar.tabAt(ev.position().toPoint())
+            if idx != -1:
+                self.update_related_indicator(idx)
+            if orig_enter:
+                orig_enter(ev)
+
+        bar.enterEvent = _enter
 
         # pestañas de oficios
         self.text_edits = {}
@@ -294,6 +327,8 @@ class MainWindow(QMainWindow):
             self.text_edits[name] = te
 
         self.tab_widgets = {n: self.tabs_txt.widget(i) for n, i in self.tab_indices.items()}
+        # Pares de pestañas cuyo vínculo se destaca con una animación
+        # cuando el usuario cambia u observa las tabs.
         self.related_pairs = [
             ("Oficio Registro Automotor", "Oficio TSJ Sec. Penal"),
             ("Oficio TSJ Sec. Penal (Depósitos)", "Oficio Comisaría Traslado"),
@@ -305,6 +340,42 @@ class MainWindow(QMainWindow):
 
         # primer refresco de textos
         self.update_templates()
+
+    def update_related_indicator(self, idx: int) -> None:
+        """Muestra un conector animado entre pestañas relacionadas."""
+        name = self.tabs_txt.tabText(idx)
+        paired = None
+        for a, b in self.related_pairs:
+            if name == a:
+                paired = b
+                break
+            if name == b:
+                paired = a
+                break
+        if paired is None:
+            self.related_indicator.hide()
+            return
+
+        tabbar = self.tabs_txt.tabBar()
+        idx2 = self.tab_indices.get(paired)
+        if idx2 is None:
+            self.related_indicator.hide()
+            return
+
+        r1 = tabbar.tabRect(idx)
+        r2 = tabbar.tabRect(idx2)
+        y = r1.bottom() + 1
+        start = QRect(r1.center().x(), y, 1, 2)
+        end_x = min(r1.center().x(), r2.center().x())
+        end_w = abs(r2.center().x() - r1.center().x())
+        end = QRect(end_x, y, end_w, 2)
+        self.related_indicator.setGeometry(start)
+        self.related_indicator.show()
+        anim = QPropertyAnimation(self.related_indicator, b"geometry", self)
+        anim.setDuration(300)
+        anim.setStartValue(start)
+        anim.setEndValue(end)
+        anim.start(QPropertyAnimation.DeleteWhenStopped)
 
     def rebuild_imputados(self):
         """Reconstruye las pestañas según la cantidad elegida, sin perder datos."""
