@@ -180,15 +180,7 @@ class MainWindow(QMainWindow):
         self.entry_firmantes = add_line('entry_firmantes', "Firmantes de la sentencia:")
 
         # ─── cómputo de pena / resolución art. 27 ───
-        label("Cómputo:")
-        hbox_comp = QHBoxLayout()
-        self.entry_computo = QLineEdit(); self.entry_computo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.entry_computo.textChanged.connect(self.update_templates)
-        self.combo_computo = NoWheelComboBox(); self.combo_computo.addItems(["Efec.", "Cond."])
-        self.combo_computo.currentIndexChanged.connect(self.update_templates)
-        hbox_comp.addWidget(self.entry_computo)
-        hbox_comp.addWidget(self.combo_computo)
-        self.form.addLayout(hbox_comp, self._row, 1); self._row += 1
+        #   ← se mueve a la pestaña de cada imputado
 
         # ─── número de imputados ───
         label("Número de imputados:")
@@ -299,12 +291,24 @@ class MainWindow(QMainWindow):
             w = {
                 'nombre'  : QLineEdit(),
                 'dni'     : QLineEdit(),
-                'datos_personales': QTextEdit() 
+                'datos_personales': QTextEdit(),
+                'computo' : QLineEdit(),
+                'computo_tipo': NoWheelComboBox(),
             }
+            w['computo_tipo'].addItems(["Efec.", "Cond."])
+            w['computo'].textChanged.connect(self.update_templates)
+            w['computo_tipo'].currentIndexChanged.connect(self.update_templates)
 
             pair("Nombre y apellido:", w['nombre'])
             pair("DNI:",               w['dni'])
             pair("Datos personales:", w['datos_personales'])
+
+            grid.addWidget(QLabel("Cómputo:"), row, 0)
+            hbox_c = QHBoxLayout()
+            hbox_c.addWidget(w['computo'])
+            hbox_c.addWidget(w['computo_tipo'])
+            grid.addLayout(hbox_c, row, 1)
+            row += 1
 
             # 4) restauro datos previos si los hubiera
             if i < len(prev):
@@ -342,8 +346,6 @@ class MainWindow(QMainWindow):
             'sent_num'  : self.entry_sent_num.text(),
             'sent_fecha': self.entry_sent_date.text(),
             'sent_firmeza': self.entry_sent_firmeza.text(),
-            'computo' : self.entry_computo.text(),
-            'computo_tipo' : self.combo_computo.currentText(),
         }
 
     def _imputados_list(self):
@@ -391,8 +393,6 @@ class MainWindow(QMainWindow):
             self.entry_sent_num.setText(g.get("sent_num", ""))
             self.entry_sent_date.setText(g.get("sent_fecha", ""))
             self.entry_sent_firmeza.setText(g.get("sent_firmeza", ""))
-            self.entry_computo.setText(g.get("computo", ""))
-            self.combo_computo.setCurrentText(g.get("computo_tipo", "Efec."))
 
             # --------- imputados ---------
             imps = data.get("imputados", [])
@@ -489,6 +489,16 @@ class MainWindow(QMainWindow):
             return "Datos personales"
 
         return self._format_datos_personales(raw)
+
+    def _imp_computo(self, idx=None):
+        if idx is None:
+            idx = self.selector_imp.currentIndex()
+        if idx < 0 or idx >= len(self.imputados_widgets):
+            return "", "Efec."
+        w = self.imputados_widgets[idx]
+        texto = w['computo'].text()
+        tipo  = w['computo_tipo'].currentText()
+        return texto, tipo
 
 
     # ───────────────── Autocompletar ───────────────────────────
@@ -961,8 +971,9 @@ class MainWindow(QMainWindow):
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
-        computo = self.entry_computo.text() or "…"
-        if self.combo_computo.currentText().startswith("Efec"):
+        computo, tipo = self._imp_computo()
+        computo = computo or "…"
+        if tipo.startswith("Efec"):
             comp_label = "el cómputo de pena respectivo"
         else:
             comp_label = "la resolución que fija la fecha de cumplimiento de los arts. 27 y 27 bis del C.P."
