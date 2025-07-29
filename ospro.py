@@ -78,6 +78,19 @@ TRIBUNALES = [
     "el Juzgado de Control de Lucha contra el Narcotráfico",
 ]
 
+# opciones de complejos penitenciarios
+PENITENCIARIOS = [
+    "Complejo Carcelario n.° 1 (Bouwer)",
+    "Establecimiento Penitenciario n.° 9 (UCA)",
+    "Establecimiento Penitenciario n.° 3 (para mujeres)",
+    "Complejo Carcelario n.° 2 (Cruz del Eje)",
+    "Establecimiento Penitenciario n.° 4 (Colonia Abierta Monte Cristo)",
+    "Establecimiento Penitenciario n.° 5 (Villa María)",
+    "Establecimiento Penitenciario n.° 6 (Río Cuarto)",
+    "Establecimiento Penitenciario n.° 7 (San Francisco)",
+    "Establecimiento Penitenciario n.° 8 (Villa Dolores)",
+]
+
 def fecha_alineada(loc: str, hoy: datetime = None, punto: bool = False) -> str:
     hoy = hoy or datetime.now()
     txt = f"{loc}, {hoy.day} de {MESES_ES[hoy.month-1]} de {hoy.year}"
@@ -294,14 +307,34 @@ class MainWindow(QMainWindow):
                 'datos_personales': QTextEdit(),
                 'computo' : QLineEdit(),
                 'computo_tipo': NoWheelComboBox(),
+                'condena': QLineEdit(),
+                'servicio_penitenciario': NoWheelComboBox(),
+                'legajo': QLineEdit(),
+                'delitos': QLineEdit(),
+                'antecedentes': QLineEdit(),
+                'tratamientos': QLineEdit(),
             }
             w['computo_tipo'].addItems(["Efec.", "Cond."])
+            w['servicio_penitenciario'].addItems(PENITENCIARIOS)
             w['computo'].textChanged.connect(self.update_templates)
             w['computo_tipo'].currentIndexChanged.connect(self.update_templates)
+            w['condena'].textChanged.connect(self.update_templates)
+            w['servicio_penitenciario'].currentIndexChanged.connect(self.update_templates)
+            w['legajo'].textChanged.connect(self.update_templates)
+            w['delitos'].textChanged.connect(self.update_templates)
+            w['antecedentes'].textChanged.connect(self.update_templates)
+            w['tratamientos'].textChanged.connect(self.update_templates)
 
             pair("Nombre y apellido:", w['nombre'])
             pair("DNI:",               w['dni'])
             pair("Datos personales:", w['datos_personales'])
+
+            pair("Condena:", w['condena'])
+            pair("Servicio Penitenciario:", w['servicio_penitenciario'])
+            pair("Legajo:", w['legajo'])
+            pair("Delitos:", w['delitos'])
+            pair("Antecedentes:", w['antecedentes'])
+            pair("Tratamientos:", w['tratamientos'])
 
             grid.addWidget(QLabel("Cómputo:"), row, 0)
             hbox_c = QHBoxLayout()
@@ -511,6 +544,21 @@ class MainWindow(QMainWindow):
         texto = w['computo'].text()
         tipo  = w['computo_tipo'].currentText()
         return texto, tipo
+
+    def _imp_field(self, key, idx=None):
+        """Devuelve el contenido textual de un campo del imputado."""
+        if idx is None:
+            idx = self.selector_imp.currentIndex()
+        if idx < 0 or idx >= len(self.imputados_widgets):
+            return ""
+        widget = self.imputados_widgets[idx][key]
+        if isinstance(widget, QLineEdit):
+            return widget.text()
+        if isinstance(widget, QTextEdit):
+            return widget.toPlainText()
+        if isinstance(widget, QComboBox):
+            return widget.currentText()
+        return ""
 
 
     # ───────────────── Autocompletar ───────────────────────────
@@ -1049,6 +1097,12 @@ class MainWindow(QMainWindow):
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         computo, _ = self._imp_computo()
         extincion = computo or "…"
+        condena = self._imp_field('condena') or "…"
+        servicio = self._imp_field('servicio_penitenciario') or "…"
+        legajo = self._imp_field('legajo') or "…"
+        delitos = self._imp_field('delitos') or "…"
+        antecedentes = self._imp_field('antecedentes') or "…"
+        tratamientos = self._imp_field('tratamientos') or "…"
         cuerpo = (
             "Al Sr. Titular del Registro Provincial de Personas Condenadas por Delitos contra la Integridad Sexual\n"
             "S./D.\n\n"
@@ -1060,13 +1114,14 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos()}\n"
             "II. IDENTIFICACIÓN DACTILAR (adjuntar ficha).\n"
             "III. DATOS DE CONDENA Y LIBERACIÓN (adjuntar copia de la sentencia).\n"
-            "   • Condena impuesta: … años … meses de prisión.\n"
+            f"   • Condena impuesta: {condena}\n"
             f"   • Fecha firmeza: {sent_firmeza}\n"
             f"   • Fecha de extinción: {extincion}\n"
-            "   • Servicio Penitenciario: Bower, Complejo …, Legajo …\n"
-            "   • Delito: …\n"
-            "IV. HISTORIAL DE DELITOS Y CONDENAS ANTERIORES: …\n"
-            "V. TRATAMIENTOS MÉDICOS Y PSICOLÓGICOS: …\n"
+            f"   • Servicio Penitenciario: {servicio}\n"
+            f"     Legajo: {legajo}\n"
+            f"   • Delito: {delitos}\n"
+            f"IV. HISTORIAL DE DELITOS Y CONDENAS ANTERIORES: {antecedentes}\n"
+            f"V. TRATAMIENTOS MÉDICOS Y PSICOLÓGICOS: {tratamientos}\n"
             "VI. OTROS DATOS DE INTERÉS:\n\n"
             f"   La Cámara … resolvió mediante Sentencia N° {sent_n} de fecha {sent_f} …RESUELVE: {res}\n"
             f"   Fdo.: {firm} Por decreto … se fijó fecha definitiva de cumplimiento "
