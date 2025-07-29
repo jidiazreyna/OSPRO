@@ -1231,18 +1231,20 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        complejo = "…"  # Nº Complejo
-        localidad = "…" # Localidad
-        res = self.entry_resuelvo.text() or "…"
-        
+        res = self.entry_resuelvo.text() or "\u2026"
+        establecimiento = self._imp_field('servicio_penitenciario').upper()
+        if not establecimiento:
+            establecimiento = "\u2026"
+        nombre = self._imp_field('nombre') or "\u2026"
+        dni = self._imp_field('dni') or "\u2026"
+
         cuerpo = (
-            f"AL SEÑOR DIRECTOR DEL COMPLEJO CARCELARIO N° {complejo}\n"
-            f"LOCALIDAD DE {localidad}\n"
+            f"AL SEÑOR DIRECTOR DEL {establecimiento}\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
             f"{trib}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
-            "me dirijo a Ud. a fin de informar lo resuelto respecto de (Nombre y Apellido – D.N.I.) mediante Sentencia "
-            f"N° {sent_n}, de fecha {sent_f}: “{res}” "
+            f"me dirijo a Ud. a fin de informar lo resuelto respecto de {nombre} – D.N.I. {dni} mediante Sentencia "
+            f"N\u202f{sent_n}, de fecha {sent_f}: \u201c{res}\u201d "
             f"(Fdo.: {firm}).\n\n"
             "Sin otro particular, lo saludo atentamente."
         )
