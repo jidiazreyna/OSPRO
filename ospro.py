@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QSizePolicy, QSplitter, QTextEdit     
 )
 from PySide6.QtGui import QIcon, QTextCursor, QFont   # QIcon y QFont para más adelante
-from PySide6.QtWidgets import QHBoxLayout             
+from PySide6.QtWidgets import QHBoxLayout, QStyle
 from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
 # ── NUEVOS IMPORTS ──────────────────────────────────────────────
 import openai                    # cliente oficial
@@ -260,9 +260,10 @@ class MainWindow(QMainWindow):
 
         # pestañas de oficios
         self.text_edits = {}
+        self.tab_indices = {}
         for name in ("Oficio Migraciones",
                     "Oficio Consulado",
-                    "Oficio Juez Electoral",                    
+                    "Oficio Juez Electoral",
                     "Oficio Policía Documentación",
                     "Oficio Registro Civil",
                     "Oficio Registro Condenados Sexuales",                     
@@ -287,7 +288,17 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(lambda _=False, t=te: self.copy_to_clipboard(t))
             lay.addWidget(btn)
             self.tabs_txt.addTab(cont, name)
+            idx = self.tabs_txt.indexOf(cont)
+            self.tab_indices[name] = idx
             self.text_edits[name] = te
+
+        bar = self.tabs_txt.tabBar()
+        icon_next = self.style().standardIcon(QStyle.SP_ArrowRight)
+        icon_prev = self.style().standardIcon(QStyle.SP_ArrowLeft)
+        bar.setTabIcon(self.tab_indices["Oficio Registro Automotor"], icon_prev)
+        bar.setTabIcon(self.tab_indices["Oficio TSJ Sec. Penal"], icon_next)
+        bar.setTabIcon(self.tab_indices["Oficio TSJ Sec. Penal (Depósitos)"], icon_prev)
+        bar.setTabIcon(self.tab_indices["Oficio Comisaría Traslado"], icon_next)
 
         # ─── AHORA que selector_imp existe, construimos imputados ───
         self.imputados_widgets = []         #  ← línea movida aquí
