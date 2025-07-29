@@ -243,7 +243,7 @@ class MainWindow(QMainWindow):
             te.setFontFamily("Times New Roman"); te.setFontPointSize(12)
             cont = QWidget(); lay = QVBoxLayout(cont)
             lay.addWidget(te)
-            btn = QPushButton("Copiar al portapapeles")
+            btn = QPushButton("Copiar")
             btn.clicked.connect(lambda _=False, t=te: self.copy_to_clipboard(t))
             lay.addWidget(btn)
             self.tabs_txt.addTab(cont, name)
