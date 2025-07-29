@@ -963,7 +963,7 @@ class MainWindow(QMainWindow):
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         computo = self.entry_computo.text() or "…"
         if self.combo_computo.currentText().startswith("Efec"):
-            comp_label = "cómputo de pena respectivo"
+            comp_label = "el cómputo de pena respectivo"
         else:
             comp_label = "la resolución que fija la fecha de cumplimiento de los arts. 27 y 27 bis del C.P."
         cuerpo = (
@@ -976,7 +976,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos()}\n\n"
             f"SENTENCIA N° {sent_n}, DE FECHA {sent_f} “Se resuelve: {res}. PROTOCOLÍCESE. NOTIFÍQUESE.” "
             f"(Fdo.: {firm}).\n\n"
-            f"Se transcribe a continuación el {comp_label}: {computo}\n"
+            f"Se transcribe a continuación {comp_label}: {computo}\n"
             f"Fecha de firmeza de la Sentencia: {sent_firmeza}\n\n"
             "Saluda a Ud. atentamente."
         )
