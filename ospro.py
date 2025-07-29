@@ -113,6 +113,11 @@ JUZ_NAVFYG = [
     "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f18",
 ]
 
+# texto acortado para mostrar en el combo: tomamos la última parte
+def _abreviar_juzgado(nombre: str) -> str:
+    idx = nombre.rfind(" de ")
+    return nombre[idx + 4:] if idx != -1 else nombre
+
 def fecha_alineada(loc: str, hoy: datetime = None, punto: bool = False) -> str:
     hoy = hoy or datetime.now()
     txt = f"{loc}, {hoy.day} de {MESES_ES[hoy.month-1]} de {hoy.year}"
@@ -340,7 +345,8 @@ class MainWindow(QMainWindow):
             }
             w['computo_tipo'].addItems(["Efec.", "Cond."])
             w['servicio_penitenciario'].addItems(PENITENCIARIOS)
-            w['juz_navfyg'].addItems(JUZ_NAVFYG)
+            for item in JUZ_NAVFYG:
+                w['juz_navfyg'].addItem(_abreviar_juzgado(item), item)
             w['juz_navfyg'].setEditable(True)
             w['dni'].textChanged.connect(self.update_templates)
             w['computo'].textChanged.connect(self.update_templates)
@@ -390,7 +396,11 @@ class MainWindow(QMainWindow):
                     elif isinstance(widget, QTextEdit):
                         widget.setPlainText(v)
                     elif isinstance(widget, QComboBox):
-                        widget.setCurrentText(v)
+                        idx = widget.findData(v)
+                        if idx != -1:
+                            widget.setCurrentIndex(idx)
+                        else:
+                            widget.setCurrentText(v)
 
 
             # 5) agrego pestaña y actualizo listas
@@ -442,7 +452,8 @@ class MainWindow(QMainWindow):
                 elif isinstance(widget, QTextEdit):
                     datos[k] = widget.toPlainText()
                 elif isinstance(widget, QComboBox):
-                    datos[k] = widget.currentText()
+                    data = widget.currentData()
+                    datos[k] = data if data is not None else widget.currentText()
                 else:
                     datos[k] = ""
             li.append(datos)
@@ -491,7 +502,11 @@ class MainWindow(QMainWindow):
                     elif isinstance(widget, QTextEdit):
                         widget.setPlainText(v)
                     elif isinstance(widget, QComboBox):
-                        widget.setCurrentText(v)
+                        idx = widget.findData(v)
+                        if idx != -1:
+                            widget.setCurrentIndex(idx)
+                        else:
+                            widget.setCurrentText(v)
             self._refresh_imp_names_in_selector()
             self.update_templates()
         except Exception as e:
@@ -597,7 +612,8 @@ class MainWindow(QMainWindow):
         if isinstance(widget, QTextEdit):
             return widget.toPlainText()
         if isinstance(widget, QComboBox):
-            return widget.currentText()
+            data = widget.currentData()
+            return data if data is not None else widget.currentText()
         return ""
 
 
