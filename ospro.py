@@ -13,7 +13,8 @@ from PySide6.QtWidgets import (
     QScrollArea, QSizePolicy, QSplitter, QTextEdit     
 )
 from PySide6.QtGui import QIcon, QTextCursor, QFont   # QIcon y QFont para más adelante
-from PySide6.QtWidgets import QHBoxLayout             
+from PySide6.QtWidgets import QHBoxLayout, QGraphicsOpacityEffect
+from PySide6.QtCore import QPropertyAnimation
 from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
 # ── NUEVOS IMPORTS ──────────────────────────────────────────────
 import openai                    # cliente oficial
@@ -260,9 +261,10 @@ class MainWindow(QMainWindow):
 
         # pestañas de oficios
         self.text_edits = {}
+        self.tab_indices = {}
         for name in ("Oficio Migraciones",
                     "Oficio Consulado",
-                    "Oficio Juez Electoral",                    
+                    "Oficio Juez Electoral",
                     "Oficio Policía Documentación",
                     "Oficio Registro Civil",
                     "Oficio Registro Condenados Sexuales",                     
@@ -287,7 +289,23 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(lambda _=False, t=te: self.copy_to_clipboard(t))
             lay.addWidget(btn)
             self.tabs_txt.addTab(cont, name)
+            idx = self.tabs_txt.indexOf(cont)
+            self.tab_indices[name] = idx
             self.text_edits[name] = te
+
+        self.tab_widgets = {n: self.tabs_txt.widget(i) for n, i in self.tab_indices.items()}
+        self.related_pairs = [
+            ("Oficio Registro Automotor", "Oficio TSJ Sec. Penal"),
+            ("Oficio TSJ Sec. Penal (Depósitos)", "Oficio Comisaría Traslado"),
+        ]
+        self.hidden_tabs = {}
+        for _, second in self.related_pairs:
+            w = self.tab_widgets[second]
+            idx = self.tabs_txt.indexOf(w)
+            self.tabs_txt.removeTab(idx)
+            self.hidden_tabs[second] = w
+
+        self.tabs_txt.currentChanged.connect(self._check_related_tabs)
 
         # ─── AHORA que selector_imp existe, construimos imputados ───
         self.imputados_widgets = []         #  ← línea movida aquí
@@ -295,6 +313,23 @@ class MainWindow(QMainWindow):
 
         # primer refresco de textos
         self.update_templates()
+
+    def _check_related_tabs(self, idx: int) -> None:
+        name = self.tabs_txt.tabText(idx)
+        for first, second in self.related_pairs:
+            if name == first and second in self.hidden_tabs:
+                widget = self.hidden_tabs.pop(second)
+                idx_first = self.tabs_txt.indexOf(self.tab_widgets[first])
+                self.tabs_txt.insertTab(idx_first + 1, widget, second)
+                widget.setStyleSheet("background-color: lightgray;")
+                effect = QGraphicsOpacityEffect(widget)
+                widget.setGraphicsEffect(effect)
+                anim = QPropertyAnimation(effect, b"opacity", self)
+                anim.setDuration(300)
+                anim.setStartValue(0)
+                anim.setEndValue(1)
+                anim.start(QPropertyAnimation.DeleteWhenStopped)
+                break
 
     def rebuild_imputados(self):
         """Reconstruye las pestañas según la cantidad elegida, sin perder datos."""
