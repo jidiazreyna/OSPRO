@@ -327,12 +327,23 @@ class MainWindow(QMainWindow):
             self.selector_imp.addItem(f"Imputado {i+1}")
             self.imputados_widgets.append(w)
             w['datos_personales'].textChanged.connect(self.update_templates)
+            w['nombre'].textChanged.connect(self.update_templates)
+            w['nombre'].textChanged.connect(self._refresh_imp_names_in_selector)
         # 6) habilito señales y dejo seleccionado el primero
         self.selector_imp.blockSignals(False)
         self.selector_imp.setCurrentIndex(0)
+        self._refresh_imp_names_in_selector()
 
 
-    # ───────────────────────── persistencia ────────────────────────
+    def _refresh_imp_names_in_selector(self):
+        """Muestra el nombre si está cargado (“Imputado 1 – Pérez”)."""
+        for i, w in enumerate(self.imputados_widgets):
+            nom = w['nombre'].text().strip()
+            txt = f"Imputado {i+1}" + (f" – {nom}" if nom else "")
+            self.selector_imp.setItemText(i, txt)
+
+
+    # —————————————————— persistencia ——————————————————
     def _generales_dict(self):
         """Devuelve un dict con los datos generales."""
         return {
@@ -409,6 +420,7 @@ class MainWindow(QMainWindow):
                         widget.setPlainText(v)
                     elif isinstance(widget, QComboBox):
                         widget.setCurrentText(v)
+            self._refresh_imp_names_in_selector()
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
@@ -566,6 +578,7 @@ class MainWindow(QMainWindow):
                 self.imputados_widgets[idx]["datos_personales"].setPlainText(
                     self._format_datos_personales(bruto)
                 )
+            self._refresh_imp_names_in_selector()
             # 4) Refrescar plantillas
             self.update_templates()
 
