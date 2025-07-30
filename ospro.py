@@ -279,6 +279,8 @@ class MainWindow(QMainWindow):
             "#related_indicator{background:palette(highlight);height:2px;border-radius:1px;}"
         )
         self.related_indicator.hide()
+        # Pares de pestañas cuyo vínculo se destaca con una animación
+        # cuando el usuario cambia u observa las tabs.
         self.related_pairs = [
             ("Oficio Registro Automotor", "Oficio TSJ Sec. Penal"),
             ("Oficio TSJ Sec. Penal (Depósitos)", "Oficio Comisaría Traslado"),
@@ -322,12 +324,6 @@ class MainWindow(QMainWindow):
             self.text_edits[name] = te
 
         self.tab_widgets = {n: self.tabs_txt.widget(i) for n, i in self.tab_indices.items()}
-        # Pares de pestañas cuyo vínculo se destaca con una animación
-        # cuando el usuario cambia u observa las tabs.
-        self.related_pairs = [
-            ("Oficio Registro Automotor", "Oficio TSJ Sec. Penal"),
-            ("Oficio TSJ Sec. Penal (Depósitos)", "Oficio Comisaría Traslado"),
-        ]
 
         # ─── AHORA que selector_imp existe, construimos imputados ───
         self.imputados_widgets = []         #  ← línea movida aquí
