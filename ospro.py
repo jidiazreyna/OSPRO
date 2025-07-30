@@ -1198,7 +1198,7 @@ class MainWindow(QMainWindow):
         partes = []
         for m in re.finditer(pattern, plano, re.DOTALL | re.IGNORECASE):
             num, txt = m.group(1), m.group(2).strip()
-            if re.search(r"investig|esclarec|antecedente", txt, re.IGNORECASE):
+            if re.search(r"investig|esclarec|antecedente|instruc", txt, re.IGNORECASE):
                 partes.append(f"{num}. {txt}")
         res = " ".join(partes) if partes else (self.entry_resuelvo.text() or "…")
         firm = self.entry_firmantes.text() or "…"
