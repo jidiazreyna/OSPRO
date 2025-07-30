@@ -237,8 +237,8 @@ class MainWindow(QMainWindow):
         self.entry_resuelvo = add_line('entry_resuelvo', "Resuelvo:")
         self.entry_firmantes = add_line('entry_firmantes', "Firmantes de la sentencia:")
 
-        self.entry_rodado = add_line('entry_rodado', "Objetos decomisados/secuestrados:")
-        label("Registro del automotor / Comisaría:")
+        self.entry_rodado = add_line('entry_rodado', "Decomisado/secuestrado:")
+        label("Reg. automotor / Comisaría:")
         h_reg_com = QHBoxLayout()
         self.entry_regn = QLineEdit(); self.entry_regn.setPlaceholderText("Reg. N°")
         self.entry_comisaria = QLineEdit(); self.entry_comisaria.setPlaceholderText("Comisaría N°")
@@ -252,7 +252,7 @@ class MainWindow(QMainWindow):
         self.entry_dep_def = add_combo('entry_dep_def', "Carácter de la entrega:", CARACTER_ENTREGA, editable=True)
         self.entry_titular_veh = add_line('entry_titular_veh', "Titular del vehículo:")
 
-        label("Informe Técnico de Identificación de Matrículas:")
+        label("Inf. Téc. Iden. Matrícula:")
         h_itim = QHBoxLayout()
         self.entry_itim_num = QLineEdit();  self.entry_itim_num.setPlaceholderText("N°")
         self.entry_itim_fecha = QLineEdit(); self.entry_itim_fecha.setPlaceholderText("Fecha")
