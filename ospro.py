@@ -279,6 +279,10 @@ class MainWindow(QMainWindow):
             "#related_indicator{background:palette(highlight);height:2px;border-radius:1px;}"
         )
         self.related_indicator.hide()
+        self.related_pairs = [
+            ("Oficio Registro Automotor", "Oficio TSJ Sec. Penal"),
+            ("Oficio TSJ Sec. Penal (Depósitos)", "Oficio Comisaría Traslado"),
+        ]
         self.tabs_txt.currentChanged.connect(self.update_related_indicator)
         bar = self.tabs_txt.tabBar()
         orig_enter = bar.enterEvent
