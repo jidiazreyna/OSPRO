@@ -1852,7 +1852,6 @@ class MainWindow(QMainWindow):
 # ──────────────────────────── main ───────────────────────────────
 def main():
     app = QApplication(sys.argv)
-    app.setFont(QFont("Times New Roman", 12))
 
     # ahora SÍ podés usar QMessageBox
     if not os.getenv("OPENAI_API_KEY"):
