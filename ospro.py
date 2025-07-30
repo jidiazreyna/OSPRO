@@ -823,17 +823,21 @@ class MainWindow(QMainWindow):
             elif ext.endswith(".docx"):
                 texto = docx2txt.process(ruta)
             else:  # .doc
-                antiword = shutil.which("antiword")
-                if not antiword:
+                unoconv = shutil.which("unoconv")
+                if not unoconv:
                     raise RuntimeError(
-                        "No se encontró el programa 'antiword' para leer archivos .doc"
+                        "No se encontró el programa 'unoconv' para leer archivos .doc. "
+                        "Instálelo o convierta el documento a .docx"
                     )
                 res = subprocess.run(
-                    [antiword, ruta], capture_output=True, text=True, check=False
+                    [unoconv, "-f", "txt", "-o", "-", ruta],
+                    capture_output=True,
+                    text=True,
+                    check=False,
                 )
                 if res.returncode != 0:
                     raise RuntimeError(
-                        f"antiword falló al leer {ruta}: {res.stderr.strip()}"
+                        f"unoconv falló al leer {ruta}: {res.stderr.strip()}"
                     )
                 texto = res.stdout
 
