@@ -162,7 +162,7 @@ _RESUELVO_REGEX = re.compile(
         (                               # ── INICIO bloque a devolver ──
             (?:                         #   uno o más ítems “I) …”
                 \s*[IVXLCDM]+\)\s.*?    #   línea con número romano
-                (?:\n(?!\s*[IVXLCDM]+\)).*?  #   líneas internas que NO
+                (?:\n(?!\s*[IVXLCDM]+\)).*?)*  #   líneas internas que NO
             )+                          #   comienzan con otro número
         )                               # ── FIN bloque ──
         (?=                             # look‑ahead de cierre
@@ -829,8 +829,8 @@ class MainWindow(QMainWindow):
             # --------------- asegurar que 'resuelvo' tenga contenido ---------------
 # --------------- asegurar que 'resuelvo' tenga buen contenido ---------------
             g = datos.get("generales", {})
-            if not g.get("resuelvo"):                # si vino vacío...
-                g["resuelvo"] = extraer_resuelvo(texto)  # ...lo rellenamos nosotros
+            # siempre priorizamos el bloque final de la sentencia
+            g["resuelvo"] = extraer_resuelvo(texto)
 
             # normalizar saltos de línea (opcional pero recomendable)
             g["resuelvo"] = re.sub(r"\s*\n\s*", " ", g["resuelvo"]).strip()
