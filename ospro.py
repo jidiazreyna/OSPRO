@@ -1107,7 +1107,7 @@ class MainWindow(QMainWindow):
             f"MARCA: {marca}, MODELO: {modelo}, DOMINIO: {dominio}, MOTOR N°: {motor}, CHASIS N°: {chasis}, "
             f"DE COLOR: {color}, RUV N° {ruv}, vehículo que se encuentra en el Depósito de {deposito}.\n\n"
             "Se hace saber a Ud. que dicha petición obedece a que el Tribunal mencionado ha dispuesto la entrega del "
-            "referido vehículo en carácter de ………… al/la titular registral Sr./Sra. ………………... Para mayor recaudo se "
+            "referido vehículo en carácter de ………… a su titular registral ………………... Para mayor recaudo se "
             "adjunta en documento informático copia de la resolución que dispuso la medida.\n\n"
             "Finalmente, se informa que a dicho rodado, con fecha …/…/…, se le realizó el correspondiente Informe "
             "Técnico de Identificación de Matrículas N° XXXXXX (Interno N° XXXXXXX), concluyendo que la unidad no "
