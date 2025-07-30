@@ -38,6 +38,7 @@ import docx2txt                  # DOCX → texto
 import ast
 import subprocess
 import shutil
+import tempfile
 
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
@@ -823,23 +824,25 @@ class MainWindow(QMainWindow):
             elif ext.endswith(".docx"):
                 texto = docx2txt.process(ruta)
             else:  # .doc
-                unoconv = shutil.which("unoconv")
-                if not unoconv:
+                soffice = shutil.which("soffice") or shutil.which("libreoffice")
+                if not soffice:
                     raise RuntimeError(
-                        "No se encontró el programa 'unoconv' para leer archivos .doc. "
-                        "Instálelo o convierta el documento a .docx"
+                        "No se encontró LibreOffice ('soffice') para convertir archivos .doc a .docx. "
+                        "Instálelo o convierta el documento manualmente."
                     )
-                res = subprocess.run(
-                    [unoconv, "-f", "txt", "-o", "-", ruta],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                if res.returncode != 0:
-                    raise RuntimeError(
-                        f"unoconv falló al leer {ruta}: {res.stderr.strip()}"
+                with tempfile.TemporaryDirectory() as tmp:
+                    res = subprocess.run(
+                        [soffice, "--headless", "--convert-to", "docx", ruta, "--outdir", tmp],
+                        capture_output=True,
+                        text=True,
+                        check=False,
                     )
-                texto = res.stdout
+                    if res.returncode != 0:
+                        raise RuntimeError(
+                            f"LibreOffice falló al convertir {ruta}: {res.stderr.strip()}"
+                        )
+                    docx_path = Path(tmp) / (Path(ruta).stem + ".docx")
+                    texto = docx2txt.process(docx_path)
 
             # 2) Llamar a la API en JSON mode
             respuesta = openai.ChatCompletion.create(
