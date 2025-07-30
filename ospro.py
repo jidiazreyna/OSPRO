@@ -814,9 +814,9 @@ class MainWindow(QMainWindow):
                         "generales (caratula, tribunal, sent_num, sent_fecha, resuelvo o parte resolutiva, firmantes) "
                         "e imputados (lista de datos_personales ‑incluí nombre, DNI, prontuario y el resto‑). "
                         "Si no hay datos, dejá el campo vacío. "
-                        "⚠️ Si el texto NO contiene explícitamente las palabras “RESUELVE:” o “RESUELVO:”, "
-                        "considerá como parte resolutiva todo el bloque que comienza en la primera enumeración "
-                        "(por ej. “I) …”) y termina antes de las fórmulas de estilo “Protocolícese / Hágase saber / Notifíquese”. "
+                        "El texto del resuelvo SIEMPRE esta AL FINAL de la sentencia, precedido por “RESUELVE:” o “RESUELVO:”, "
+                        "considerá como parte resolutiva todo el bloque que comienza en la primera enumeración después de esas palabras, "
+                        "y termina con las fórmulas de estilo “Protocolícese / Hágase saber / Notifíquese (entre otras)”. "
                         "No resumas ni sintetices, devolvé el texto tal cual."
                     ),
                     },
