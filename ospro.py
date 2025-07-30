@@ -1083,8 +1083,6 @@ class MainWindow(QMainWindow):
         loc  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
         fecha = fecha_alineada(loc, hoy, punto=True)
-        sent_n = self.entry_sent_num.text() or "…"
-        sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         rodado = "…"  # Rodado a entregar (marca, modelo, dominio)
