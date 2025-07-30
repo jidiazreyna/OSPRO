@@ -95,6 +95,20 @@ PENITENCIARIOS = [
     "Establecimiento Penitenciario n.° 8 (Villa Dolores)",
 ]
 
+# opciones de depósitos para rodados u objetos decomisados
+DEPOSITOS = [
+    "Depósito General de Efectos Secuestrados",
+    "Depósito de la Unidad Judicial de Lucha c/ Narcotráfico",
+    "Depósito de Armas (Tribunales II)",
+    "Depósito de Automotores 1 (Bouwer)",
+    "Depósito de Automotores 2 (Bouwer)",
+    "Depositado en Cuenta Judicial en pesos o dólares del Banco de Córdoba",
+    "Depósito de Armas y elementos secuestrados (Tribunales II)",
+]
+
+# opciones para el carácter de la entrega de vehículos
+CARACTER_ENTREGA = ["definitivo", "de depositario judicial"]
+
 # opciones de Juzgados de Niñez, Adolescencia, Violencia Familiar y de Género
 JUZ_NAVFYG = [
     "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 1ª Nom. – Sec.\u202fN°\u202f1",
@@ -222,6 +236,24 @@ class MainWindow(QMainWindow):
 
         self.entry_resuelvo = add_line('entry_resuelvo', "Resuelvo:")
         self.entry_firmantes = add_line('entry_firmantes', "Firmantes de la sentencia:")
+
+        self.entry_rodado = add_line('entry_rodado', "Objetos decomisados/secuestrados:")
+        self.entry_regn = add_line('entry_regn', "Registro del automotor N°:")
+        self.entry_deposito = add_combo('entry_deposito', "Depósito:", DEPOSITOS, editable=True)
+        self.entry_comisaria = add_line('entry_comisaria', "Comisaría N°:")
+        self.entry_dep_def = add_combo('entry_dep_def', "Carácter de la entrega:", CARACTER_ENTREGA, editable=True)
+        self.entry_titular_veh = add_line('entry_titular_veh', "Titular del vehículo:")
+
+        label("Informe Técnico de Identificación de Matrículas:")
+        h_itim = QHBoxLayout()
+        self.entry_itim_num = QLineEdit();  self.entry_itim_num.setPlaceholderText("N°")
+        self.entry_itim_fecha = QLineEdit(); self.entry_itim_fecha.setPlaceholderText("Fecha")
+        for w in (self.entry_itim_num, self.entry_itim_fecha):
+            w.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            w.textChanged.connect(self.update_templates)
+        h_itim.addWidget(self.entry_itim_num)
+        h_itim.addWidget(self.entry_itim_fecha)
+        self.form.addLayout(h_itim, self._row, 1); self._row += 1
 
         # ─── cómputo de pena / resolución art. 27 ───
         #   ← se mueve a la pestaña de cada imputado
@@ -508,6 +540,15 @@ class MainWindow(QMainWindow):
             'sent_num'  : self.entry_sent_num.text(),
             'sent_fecha': self.entry_sent_date.text(),
             'sent_firmeza': self.entry_sent_firmeza.text(),
+
+            'rodado': self.entry_rodado.text(),
+            'regn': self.entry_regn.text(),
+            'deposito': self.entry_deposito.currentText(),
+            'comisaria': self.entry_comisaria.text(),
+            'dep_def': self.entry_dep_def.currentText(),
+            'titular_veh': self.entry_titular_veh.text(),
+            'itim_num': self.entry_itim_num.text(),
+            'itim_fecha': self.entry_itim_fecha.text(),
         }
 
     def _imputados_list(self):
@@ -556,6 +597,14 @@ class MainWindow(QMainWindow):
             self.entry_sent_num.setText(g.get("sent_num", ""))
             self.entry_sent_date.setText(g.get("sent_fecha", ""))
             self.entry_sent_firmeza.setText(g.get("sent_firmeza", ""))
+            self.entry_rodado.setText(g.get("rodado", ""))
+            self.entry_regn.setText(g.get("regn", ""))
+            self.entry_deposito.setCurrentText(g.get("deposito", ""))
+            self.entry_comisaria.setText(g.get("comisaria", ""))
+            self.entry_dep_def.setCurrentText(g.get("dep_def", ""))
+            self.entry_titular_veh.setText(g.get("titular_veh", ""))
+            self.entry_itim_num.setText(g.get("itim_num", ""))
+            self.entry_itim_fecha.setText(g.get("itim_fecha", ""))
 
             # --------- imputados ---------
             imps = data.get("imputados", [])
@@ -904,8 +953,8 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        regn = "…"   # Nº de Registro del Automotor
-        rodado = "…"  # tipo de rodado (auto, moto, etc.)
+        regn = self.entry_regn.text() or "…"
+        rodado = self.entry_rodado.text() or "…"
 
         cuerpo = (
             f"AL SR. TITULAR DEL REGISTRO DE LA\n"
@@ -937,9 +986,9 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        regn = "…de …"  # Nº de Registro y localidad
-        rodado = "…"  # tipo de rodado (auto, moto, etc.)
-        deposito = "…"  # editable
+        regn = self.entry_regn.text() or "…de …"
+        rodado = self.entry_rodado.text() or "…"
+        deposito = self.entry_deposito.currentText() or "…"
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
@@ -975,9 +1024,9 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        rodado = "…"  # tipo de rodado (auto, moto, etc.)
-        deposito = "…"  # editable
-        comisaria = "…"
+        rodado = self.entry_rodado.text() or "…"
+        deposito = self.entry_deposito.currentText() or "…"
+        comisaria = self.entry_comisaria.text() or "…"
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
@@ -1012,8 +1061,8 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        comisaria = "…"   # Nº Comisaría
-        rodado = "…"
+        comisaria = self.entry_comisaria.text() or "…"
+        rodado = self.entry_rodado.text() or "…"
 
         cuerpo = (
             f"AL SR. TITULAR\n"
@@ -1050,8 +1099,8 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        rodado = "…"  # tipo de rodado (auto, moto, etc.)
-        deposito = "…"  # editable, dónde están los elementos decomisados
+        rodado = self.entry_rodado.text() or "…"
+        deposito = self.entry_deposito.currentText() or "…"
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
@@ -1080,12 +1129,12 @@ class MainWindow(QMainWindow):
         fecha = fecha_alineada(loc, hoy, punto=True)
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        rodado = "…"  # Rodado a entregar (marca, modelo, dominio)
-        deposito = "…"  # Depósito actual
-        numero_itim = "…"  # N° de Informe Técnico de Identificación de Matrículas
-        fecha_itim = "…"  # Fecha del ITIM
-        titular_veh = "…"  # Titular registral del vehículo
-        dep_def = "…"  #
+        rodado = self.entry_rodado.text() or "…"
+        deposito = self.entry_deposito.currentText() or "…"
+        numero_itim = self.entry_itim_num.text() or "…"
+        fecha_itim = self.entry_itim_fecha.text() or "…"
+        titular_veh = self.entry_titular_veh.text() or "…"
+        dep_def = self.entry_dep_def.currentText() or "…"
 
         cuerpo = (
             "A LA OFICINA DE\n"
