@@ -785,6 +785,22 @@ class MainWindow(QMainWindow):
             return data if data is not None else widget.currentText()
         return ""
 
+    def _res_decomiso(self) -> str:
+        """Extrae del resuelvo solo los puntos relacionados al decomiso."""
+        res_html = self.entry_resuelvo.property("html")
+        if res_html:
+            plano = html_a_plano(res_html, mantener_saltos=False)
+        else:
+            plano = self.entry_resuelvo.text()
+        plano = " ".join(plano.splitlines())
+        pattern = r"\b([IVXLCDM]+|\d+)[\.\)]\s+([\s\S]*?)(?=\b(?:[IVXLCDM]+|\d+)[\.\)]\s+|$)"
+        partes = []
+        for m in re.finditer(pattern, plano, re.DOTALL | re.IGNORECASE):
+            num, txt = m.group(1), m.group(2).strip()
+            if re.search(r"decomis", txt, re.IGNORECASE):
+                partes.append(f"{num}. {txt}")
+        return " ".join(partes) if partes else (self.entry_resuelvo.text() or "…")
+
 
     # ───────────────── Autocompletar ───────────────────────────
     def autocompletar_desde_sentencia(self):
@@ -1015,7 +1031,7 @@ class MainWindow(QMainWindow):
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
-        res = self.entry_resuelvo.text() or "…"
+        res = self._res_decomiso()
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -1048,7 +1064,7 @@ class MainWindow(QMainWindow):
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
-        res = self.entry_resuelvo.text() or "…"
+        res = self._res_decomiso()
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -1086,7 +1102,7 @@ class MainWindow(QMainWindow):
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
-        res = self.entry_resuelvo.text() or "…"
+        res = self._res_decomiso()
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -1123,7 +1139,7 @@ class MainWindow(QMainWindow):
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
-        res = self.entry_resuelvo.text() or "…"
+        res = self._res_decomiso()
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
@@ -1161,7 +1177,7 @@ class MainWindow(QMainWindow):
         fecha = fecha_alineada(loc, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
-        res = self.entry_resuelvo.text() or "…"
+        res = self._res_decomiso()
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
