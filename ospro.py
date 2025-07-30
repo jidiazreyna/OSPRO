@@ -6,6 +6,7 @@ Interfaz: datos generales + pestañas de imputados (sin plantillas)
 import sys, json, os
 from pathlib import Path
 from datetime import datetime
+import re
 from PySide6.QtCore import Qt, QRect, QPropertyAnimation, QEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -140,6 +141,18 @@ def fecha_alineada(loc: str, hoy: datetime = None, punto: bool = False) -> str:
     hoy = hoy or datetime.now()
     txt = f"{loc}, {hoy.day} de {MESES_ES[hoy.month-1]} de {hoy.year}"
     return txt + ("." if punto else "")
+
+# -- conversor HTML a texto plano --
+def html_a_plano(html: str, mantener_saltos: bool = True) -> str:
+    """Convierte un fragmento HTML en texto simple."""
+    if not html:
+        return ""
+    text = re.sub(r"<br\s*/?>", "\n", html, flags=re.IGNORECASE)
+    text = re.sub(r"</p\s*>", "\n\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", "", text)
+    if not mantener_saltos:
+        text = " ".join(text.splitlines())
+    return text.strip()
 
 # ───────────────────────── MainWindow ────────────────────────
 class MainWindow(QMainWindow):
@@ -1175,7 +1188,19 @@ class MainWindow(QMainWindow):
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
-        res = self.entry_resuelvo.text() or "…"
+        res_html = self.entry_resuelvo.property("html")
+        if res_html:
+            plano = html_a_plano(res_html, mantener_saltos=False)
+        else:
+            plano = self.entry_resuelvo.text()
+        plano = " ".join(plano.splitlines())
+        pattern = r"\b([IVX]+|\d+)\.\s+([\s\S]*?)(?=(?:[IVX]+|\d+)\.\s+|$)"
+        partes = []
+        for m in re.finditer(pattern, plano, re.DOTALL | re.IGNORECASE):
+            num, txt = m.group(1), m.group(2).strip()
+            if re.search(r"investig|esclarec|antecedente", txt, re.IGNORECASE):
+                partes.append(f"{num}. {txt}")
+        res = " ".join(partes) if partes else (self.entry_resuelvo.text() or "…")
         firm = self.entry_firmantes.text() or "…"
         cuerpo = (
             "Sr/a Fiscal de Instrucción que por turno corresponda\n"
