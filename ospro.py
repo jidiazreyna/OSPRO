@@ -905,7 +905,7 @@ class MainWindow(QMainWindow):
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         regn = "…"   # Nº de Registro del Automotor
-        veh  = "marca, modelo, dominio …"   # datos del rodado
+        rodado = "…"  # tipo de rodado (auto, moto, etc.)
 
         cuerpo = (
             f"AL SR. TITULAR DEL REGISTRO DE LA\n"
@@ -914,8 +914,8 @@ class MainWindow(QMainWindow):
             f"\tEn los autos caratulados: {car}, que se tramitan por ante "
             f"{trib}, con intervención de esta Oficina de Servicios "
             "Procesales – OSPRO –, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante "
-            f"Sentencia N° {sent_n} de fecha {sent_f}, dicho Tribunal resolvió ordenar el DECOMISO del vehículo "
-            f"{veh}.\n\n"
+            f"Sentencia N° {sent_n} de fecha {sent_f}, dicho Tribunal resolvió ordenar el DECOMISO del "
+            f"{rodado}.\n\n"
             "Se transcribe a continuación la parte pertinente de la misma:\n"
             f"“SE RESUELVE: {res}”. "
             f"(Fdo.: {firm}).\n\n"
@@ -937,8 +937,9 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        registro = "…de …"  # Nº de Registro y localidad
-
+        regn = "…de …"  # Nº de Registro y localidad
+        rodado = "…"  # tipo de rodado (auto, moto, etc.)
+        deposito = "…"  # editable
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
@@ -946,17 +947,16 @@ class MainWindow(QMainWindow):
             f"En los autos caratulados: {car}, que se tramitan por ante "
             f"{trib}, con conocimiento e intervención de esta Oficina de Servicios "
             "Procesales – OSPRO –, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo "
-            f"resuelto por la Sentencia N° {sent_n} del {sent_f}, dictada por la Cámara mencionada, en virtud de la cual "
+            f"resuelto por la Sentencia N° {sent_n} del {sent_f}, dictada por el tribunal mencionado, en virtud de la cual "
             "se ordenó el DECOMISO de los siguientes objetos:\n\n"
             "Tipos de elementos\tUbicación actual\n"
-            "Automotores (RUV)\tDepósito de Automotores 1 (Bouwer)\n"
-            "Motovehículos (RUV)\tDepósito de Automotores 2 (Bouwer)\n\n"
+            f"{rodado}\t{deposito}\n"
             "Pongo en su conocimiento que la mencionada sentencia se encuentra firme, transcribiéndose a "
             "continuación la parte pertinente de la misma:\n"
             f"“SE RESUELVE: {res}”. "
             f"(Fdo.: {firm}).\n\n"
             f"Asimismo, se informa que en el día de la fecha se comunicó dicha resolución al Registro del Automotor "
-            f"donde está radicado el vehículo, Nº {registro}.\n\n"
+            f"donde está radicado el vehículo, Nº {regn}.\n\n"
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -975,9 +975,9 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        desc = "RUS/RUV: …………………….."                   # editable
-        ubic = "Cría. n°/Sub‑Destacamento/Comisaría …"    # editable
-
+        rodado = "…"  # tipo de rodado (auto, moto, etc.)
+        deposito = "…"  # editable
+        comisaria = "…"
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
@@ -987,8 +987,8 @@ class MainWindow(QMainWindow):
             f"- OSPRO -, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante Sentencia N° {sent_n} "
             f"de {sent_f}, dicho Tribunal resolvió ordenar el DECOMISO de los siguientes objetos:\n\n"
             "Descripción del objeto\tUbicación Actual\n"
-            f"{desc}\t{ubic}\n\n"
-            "Se hace saber a Ud. que el/los elemento/s referido/s se encuentra/n en la Cría. ………… de la Policía de Córdoba "
+            f"{rodado}\t{deposito}\n\n"
+            f"Se hace saber a Ud. que el/los elemento/s referido/s se encuentra/n en la Cría. {comisaria} de la Policía de Córdoba "
             "y en el día de la fecha se libró oficio a dicha dependencia policial a los fines de remitir al Depósito General "
             "de Efectos Secuestrados el/los objeto/s decomisado/s.\n\n"
             "Asimismo, informo que la sentencia referida se encuentra firme, transcribiéndose a continuación la parte "
@@ -1012,19 +1012,19 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        comi = "…"   # Nº Comisaría
-        objetos = "(descripción de los objetos a trasladar)"
+        comisaria = "…"   # Nº Comisaría
+        rodado = "…"
 
         cuerpo = (
             f"AL SR. TITULAR\n"
-            f"DE LA COMISARÍA N° {comi} DE LA POLICÍA DE CÓRDOBA\n"
+            f"DE LA COMISARÍA N° {comisaria} DE LA POLICÍA DE CÓRDOBA\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car}, que se tramitan por ante "
             f"{trib}, con intervención de esta Oficina de Servicios Procesales "
             "- OSPRO -, se ha dispuesto librar a Ud. el presente, a los fines de solicitarle que personal a su cargo "
             "traslade los efectos que a continuación se detallan al Depósito General de Efectos Secuestrados "
             "-sito en calle Abdel Taier n° 270, B° Comercial, de esta ciudad de Córdoba-, para que sean allí recibidos:\n\n"
-            f"{objetos}\n\n"
+            f"{rodado}\n\n"
             "Lo solicitado obedece a directivas generales impartidas por la Secretaría Penal del T.S.J, de la cual "
             "depende esta Oficina, para los casos en los que se haya dictado la pena de decomiso y los objetos aún "
             "estén en Comisarías, Subcomisarías y otras dependencias policiales.\n\n"
@@ -1050,7 +1050,8 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-
+        rodado = "…"  # tipo de rodado (auto, moto, etc.)
+        deposito = "…"  # editable, dónde están los elementos decomisados
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
@@ -1061,13 +1062,7 @@ class MainWindow(QMainWindow):
             f"por la Sentencia N° {sent_n} del {sent_f}, dictada por la Cámara mencionada, en virtud de la cual se ordenó el "
             "DECOMISO de los siguientes objetos:\n\n"
             "TIPOS DE ELEMENTOS\tUBICACIÓN ACTUAL\n"
-            "Objetos en general (RUS)\tDepósito General de Efectos Secuestrados\n"
-            "Estupefacientes y elementos secuestrados en causas de Narcotráfico (RUE)\tDepósito de la Unidad Judicial de Lucha c/ Narcotráfico\n"
-            "Armas, proyectiles, cartuchos, etc. (RUA)\tDepósito de Armas (Tribunales II)\n"
-            "Automotores (RUV)\tDepósito de Automotores 1 (Bouwer)\n"
-            "Motovehículos (RUV)\tDepósito de Automotores 2 (Bouwer)\n"
-            "Dinero (pesos argentinos y/o dólares) (N° de registro)\tDepositado en Cuenta Judicial del Banco de Córdoba\n"
-            "Otros billetes de moneda extranjera y/o dólares en mal estado (N° de registro)\tDepósito de Armas y elementos secuestrados (Tribunales II)\n\n"
+            f"{rodado}\t{deposito}\n"
             "Pongo en su conocimiento que la mencionada resolución se encuentra firme, transcribiéndose a continuación "
             f"la parte pertinente de la misma: “SE RESUELVE: {res}”. "
             f"(Fdo.: {firm}).\n\n"
@@ -1102,7 +1097,7 @@ class MainWindow(QMainWindow):
             "por intermedio de quien corresponda, se coloque a la orden y disposición del Tribunal señalado, el rodado "
             f"{rodado}, vehículo que se encuentra en el {deposito}.\n\n"
             "Se hace saber a Ud. que dicha petición obedece a que el Tribunal mencionado ha dispuesto la entrega del "
-            f"referido vehículo en carácter de {dep_def} a su titular registral {titular_veh}. Para mayor recaudo se "
+            f"referido vehículo en carácter {dep_def} a su titular registral {titular_veh}. Para mayor recaudo se "
             "adjunta en documento informático copia de la resolución que dispuso la medida.\n\n"
             "Finalmente, se informa que a dicho rodado, se le realizó el correspondiente Informe "
             f"Técnico de Identificación de Matrículas N° {numero_itim} de fecha {fecha_itim}, concluyendo que la unidad no "
