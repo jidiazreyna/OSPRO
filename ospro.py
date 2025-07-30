@@ -368,7 +368,7 @@ class MainWindow(QMainWindow):
 
         r1 = tabbar.tabRect(idx)
         r2 = tabbar.tabRect(idx2)
-        y = r1.bottom() + 1
+        y = r1.bottom() - 1
         start = QRect(r1.center().x(), y, 1, 2)
         end_x = min(r1.center().x(), r2.center().x())
         end_w = abs(r2.center().x() - r1.center().x())
