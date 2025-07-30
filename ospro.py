@@ -36,6 +36,8 @@ import openai                    # cliente oficial
 from pdfminer.high_level import extract_text              # PDF → texto
 import docx2txt                  # DOCX → texto
 import ast
+import subprocess
+import shutil
 
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
@@ -805,17 +807,35 @@ class MainWindow(QMainWindow):
     # ───────────────── Autocompletar ───────────────────────────
     def autocompletar_desde_sentencia(self):
         ruta, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar sentencia (PDF/DOCX)", "", "Documentos (*.pdf *.docx *.doc)"
+            self,
+            "Seleccionar sentencia (PDF/DOCX/DOC)",
+            "",
+            "Documentos (*.pdf *.docx *.doc)",
         )
         if not ruta:
             return
 
         try:
             # 1) Extraer texto
-            if ruta.lower().endswith(".pdf"):
+            ext = ruta.lower()
+            if ext.endswith(".pdf"):
                 texto = extract_text(ruta)
-            else:
+            elif ext.endswith(".docx"):
                 texto = docx2txt.process(ruta)
+            else:  # .doc
+                antiword = shutil.which("antiword")
+                if not antiword:
+                    raise RuntimeError(
+                        "No se encontró el programa 'antiword' para leer archivos .doc"
+                    )
+                res = subprocess.run(
+                    [antiword, ruta], capture_output=True, text=True, check=False
+                )
+                if res.returncode != 0:
+                    raise RuntimeError(
+                        f"antiword falló al leer {ruta}: {res.stderr.strip()}"
+                    )
+                texto = res.stdout
 
             # 2) Llamar a la API en JSON mode
             respuesta = openai.ChatCompletion.create(
