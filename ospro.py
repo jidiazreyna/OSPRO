@@ -161,7 +161,7 @@ def html_a_plano(html: str, mantener_saltos: bool = True) -> str:
 # y finalizada con las fórmulas de cierre habituales.
 _RESUELVO_REGEX = re.compile(
     r'''(?isx)
-        resuelv[ao]\s*:?                 # palabra clave introductoria
+        resuelv[eo]\s*:?                 # palabra clave introductoria
         (                                 # ── INICIO bloque a devolver ──
             (?:                           #   uno o más ítems "I) …"
                 \s*[IVXLCDM]+\)\s.*?     #   línea con número romano
