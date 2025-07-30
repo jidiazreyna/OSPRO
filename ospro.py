@@ -805,7 +805,7 @@ class MainWindow(QMainWindow):
     # ───────────────── Autocompletar ───────────────────────────
     def autocompletar_desde_sentencia(self):
         ruta, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar sentencia (PDF/DOCX)", "", "Documentos (*.pdf *.docx)"
+            self, "Seleccionar sentencia (PDF/DOCX)", "", "Documentos (*.pdf *.docx *.doc)"
         )
         if not ruta:
             return
