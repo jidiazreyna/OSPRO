@@ -262,6 +262,7 @@ class MainWindow(QMainWindow):
         self.entry_localidad = add_line('entry_localidad', "Localidad:")
         self.entry_caratula  = add_line ('entry_caratula',  "Carátula:")
         self.entry_tribunal  = add_combo('entry_tribunal',  "Tribunal:", TRIBUNALES, editable=True)
+        self.entry_consulado = add_line('entry_consulado', "Consulado de:")
 
         # ─── sentencia (número y fecha) ───
         label("Sentencia:")
@@ -587,6 +588,7 @@ class MainWindow(QMainWindow):
             'localidad' : self.entry_localidad.text(),
             'caratula'  : self.entry_caratula.text(),
             'tribunal'  : self.entry_tribunal.currentText(),
+            'consulado' : self.entry_consulado.text(),
 
             'resuelvo'  : self.entry_resuelvo.text(),
             'firmantes' : self.entry_firmantes.text(),
@@ -646,6 +648,7 @@ class MainWindow(QMainWindow):
             self.entry_localidad.setText(g.get("localidad", ""))
             self.entry_caratula.setText(g.get("caratula", ""))
             self.entry_tribunal.setCurrentText(g.get("tribunal", ""))
+            self.entry_consulado.setText(g.get("consulado", ""))
             self.entry_resuelvo.setText(g.get("resuelvo", ""))
             self.entry_firmantes.setText(g.get("firmantes", ""))
             self.entry_sent_num.setText(g.get("sent_num", ""))
@@ -1008,7 +1011,7 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
         car   = self.entry_caratula.text() or "“…”"
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        pais  = "…"   # cuando agregues un ComboBox para el país, usalo acá
+        pais  = self.entry_consulado.text() or "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         cuerpo = (
