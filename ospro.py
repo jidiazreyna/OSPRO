@@ -1215,28 +1215,28 @@ class MainWindow(QMainWindow):
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "rodado")
         deposito_a = self._field_anchor(self.entry_deposito, "edit_deposito", "depósito")
+        comisaria_a = self._field_anchor(self.entry_comisaria, "edit_comisaria", "comisaría")
 
-        comisaria = self.entry_comisaria.text() or "…"
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S/D:\n\n"
-            f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib}, con intervención de esta Oficina de Servicios Procesales "
-            f"- OSPRO -, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante Sentencia N° {sent_n} "
-            f"de {sent_f}, dicho Tribunal resolvió ordenar el DECOMISO de los siguientes objetos:\n\n"
+            f"En los autos caratulados: {car_a}, que se tramitan por ante "
+            f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
+            f"- OSPRO -, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante Sentencia N° {sent_n_a} "
+            f"de {sent_f_a}, dicho Tribunal resolvió ordenar el DECOMISO de los siguientes objetos:\n\n"
             "Descripción del objeto\tUbicación Actual\n"
-            f"{rodado}\t{deposito}\n\n"
-            f"Se hace saber a Ud. que el/los elemento/s referido/s se encuentra/n en la Cría. {comisaria} de la Policía de Córdoba "
+            f"{rodado_a}\t{deposito_a}\n\n"
+            f"Se hace saber a Ud. que el/los elemento/s referido/s se encuentra/n en la Cría. {comisaria_a} de la Policía de Córdoba "
             "y en el día de la fecha se libró oficio a dicha dependencia policial a los fines de remitir al Depósito General "
             "de Efectos Secuestrados el/los objeto/s decomisado/s.\n\n"
             "Asimismo, informo que la sentencia referida se encuentra firme, transcribiéndose a continuación la parte "
-            f"pertinente de la misma: “SE RESUELVE: {res}”. "
-            f"(Fdo.: {firm}).\n\n"
+            f"pertinente de la misma: “SE RESUELVE: {res_a}”. "
+            f"(Fdo.: {firm_a}).\n\n"
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_comisaria_traslado(self):
         te = self.text_edits["Oficio Comisaría Traslado"]
