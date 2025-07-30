@@ -34,18 +34,7 @@ from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
 import openai                    # cliente oficial
 from pdfminer.high_level import extract_text              # PDF → texto
 import docx2txt                  # DOCX → texto
-import ast             
-def main():
-    app = QApplication(sys.argv)
-
-    # ahora SÍ podés usar QMessageBox
-    if not os.getenv("OPENAI_API_KEY"):
-        QMessageBox.critical(None, "Error", "Falta la variable OPENAI_API_KEY")
-        sys.exit(1)
-
-    win = MainWindow()
-    win.show()
-    sys.exit(app.exec())
+import ast
 
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
@@ -1415,7 +1404,16 @@ class MainWindow(QMainWindow):
 # ──────────────────────────── main ───────────────────────────────
 def main():
     app = QApplication(sys.argv)
-    win = MainWindow(); win.show()
+
+    # ahora SÍ podés usar QMessageBox
+    if not os.getenv("OPENAI_API_KEY"):
+        QMessageBox.critical(
+            None, "Error", "Falta la variable OPENAI_API_KEY"
+        )
+        sys.exit(1)
+
+    win = MainWindow()
+    win.show()
     sys.exit(app.exec())
 
 if __name__ == "__main__":
