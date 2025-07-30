@@ -1087,14 +1087,10 @@ class MainWindow(QMainWindow):
         sent_f = self.entry_sent_date.text() or "…/…/…"
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
-        marca = "…"  # rellenar a mano
-        modelo = "…"
-        dominio = "…"
-        motor = "…"
-        chasis = "…"
-        color = "…"
-        ruv = "…"    # Nº RUV
+        rodado = "…"  # Rodado a entregar (marca, modelo, dominio)
         deposito = "…"  # Depósito actual
+        numero_itim = "…"  # N° de Informe Técnico de Identificación de Matrículas
+        fecha_itim = "…"  # Fecha del ITIM
 
         cuerpo = (
             "A LA OFICINA DE\n"
@@ -1104,13 +1100,12 @@ class MainWindow(QMainWindow):
             f"{trib}, con intervención de ésta Oficina de Servicios Procesales "
             "(OSPRO), se ha resuelto enviar a Ud. el presente a fines de solicitarle que establezca lo necesario para que, "
             "por intermedio de quien corresponda, se coloque a la orden y disposición del Tribunal señalado, el rodado "
-            f"MARCA: {marca}, MODELO: {modelo}, DOMINIO: {dominio}, MOTOR N°: {motor}, CHASIS N°: {chasis}, "
-            f"DE COLOR: {color}, RUV N° {ruv}, vehículo que se encuentra en el Depósito de {deposito}.\n\n"
+            f"{rodado}, vehículo que se encuentra en el Depósito de {deposito}.\n\n"
             "Se hace saber a Ud. que dicha petición obedece a que el Tribunal mencionado ha dispuesto la entrega del "
             "referido vehículo en carácter de ………… a su titular registral ………………... Para mayor recaudo se "
             "adjunta en documento informático copia de la resolución que dispuso la medida.\n\n"
-            "Finalmente, se informa que a dicho rodado, con fecha …/…/…, se le realizó el correspondiente Informe "
-            "Técnico de Identificación de Matrículas N° XXXXXX (Interno N° XXXXXXX), concluyendo que la unidad no "
+            "Finalmente, se informa que a dicho rodado, se le realizó el correspondiente Informe "
+            f"Técnico de Identificación de Matrículas N° {numero_itim} de fecha {fecha_itim}, concluyendo que la unidad no "
             "presenta adulteración en sus matrículas identificatorias. (Revisar en el informe y, de existir informe de "
             "dominio, remitirlo también; no es indispensable según la Oficina del T.S.J.).\n\n"
             "Saludo a Ud. muy atentamente."
