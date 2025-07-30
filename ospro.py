@@ -781,8 +781,10 @@ class MainWindow(QMainWindow):
                         "role": "system",
                         "content": (
                             "Extraé de la sentencia los siguientes campos y devolvé un JSON con: \
-                            generales (caratula, tribunal, sent_num, sent_fecha, resuelvo, firmantes) \
-                            e imputados (lista de datos_personales ‑incluí nombre, DNI, prontuario y el resto‑"
+                            generales (caratula, tribunal, sent_num, sent_fecha, resuelvo o parte resolutiva, firmantes) \
+                            e imputados (lista de datos_personales ‑incluí nombre, DNI, prontuario y el resto‑). \
+                            Si no hay datos, dejá el campo vacío. \
+                            No resumas ni sintetices, devolvé el texto tal cual, por más largo que sea."
                         ),
                     },
                     {"role": "user", "content": texto[:120000]},  # límite 128 k tokens
@@ -1194,7 +1196,7 @@ class MainWindow(QMainWindow):
         else:
             plano = self.entry_resuelvo.text()
         plano = " ".join(plano.splitlines())
-        pattern = r"\b([IVX]+|\d+)\.\s+([\s\S]*?)(?=(?:[IVX]+|\d+)\.\s+|$)"
+        pattern = r"\b([IVXLCDM]+|\d+)[\.\)]\s+([\s\S]*?)(?=\b(?:[IVXLCDM]+|\d+)[\.\)]\s+|$)"
         partes = []
         for m in re.finditer(pattern, plano, re.DOTALL | re.IGNORECASE):
             num, txt = m.group(1), m.group(2).strip()
