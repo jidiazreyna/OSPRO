@@ -811,7 +811,7 @@ class MainWindow(QMainWindow):
             self,
             "Seleccionar sentencia (PDF/DOCX/DOC)",
             "",
-            "Documentos (*.pdf *.docx *.doc)",
+            "Documentos (*.pdf *.docx)",
         )
         if not ruta:
             return
@@ -823,26 +823,6 @@ class MainWindow(QMainWindow):
                 texto = extract_text(ruta)
             elif ext.endswith(".docx"):
                 texto = docx2txt.process(ruta)
-            else:  # .doc
-                soffice = shutil.which("soffice") or shutil.which("libreoffice")
-                if not soffice:
-                    raise RuntimeError(
-                        "No se encontró LibreOffice ('soffice') para convertir archivos .doc a .docx. "
-                        "Instálelo o convierta el documento manualmente."
-                    )
-                with tempfile.TemporaryDirectory() as tmp:
-                    res = subprocess.run(
-                        [soffice, "--headless", "--convert-to", "docx", ruta, "--outdir", tmp],
-                        capture_output=True,
-                        text=True,
-                        check=False,
-                    )
-                    if res.returncode != 0:
-                        raise RuntimeError(
-                            f"LibreOffice falló al convertir {ruta}: {res.stderr.strip()}"
-                        )
-                    docx_path = Path(tmp) / (Path(ruta).stem + ".docx")
-                    texto = docx2txt.process(docx_path)
 
             # 2) Llamar a la API en JSON mode
             respuesta = openai.ChatCompletion.create(
