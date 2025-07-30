@@ -1091,6 +1091,8 @@ class MainWindow(QMainWindow):
         deposito = "…"  # Depósito actual
         numero_itim = "…"  # N° de Informe Técnico de Identificación de Matrículas
         fecha_itim = "…"  # Fecha del ITIM
+        titular_veh = "…"  # Titular registral del vehículo
+        dep_def = "…"  #
 
         cuerpo = (
             "A LA OFICINA DE\n"
@@ -1100,9 +1102,9 @@ class MainWindow(QMainWindow):
             f"{trib}, con intervención de ésta Oficina de Servicios Procesales "
             "(OSPRO), se ha resuelto enviar a Ud. el presente a fines de solicitarle que establezca lo necesario para que, "
             "por intermedio de quien corresponda, se coloque a la orden y disposición del Tribunal señalado, el rodado "
-            f"{rodado}, vehículo que se encuentra en el Depósito de {deposito}.\n\n"
+            f"{rodado}, vehículo que se encuentra en el {deposito}.\n\n"
             "Se hace saber a Ud. que dicha petición obedece a que el Tribunal mencionado ha dispuesto la entrega del "
-            "referido vehículo en carácter de ………… a su titular registral ………………... Para mayor recaudo se "
+            f"referido vehículo en carácter de {dep_def} a su titular registral {titular_veh}. Para mayor recaudo se "
             "adjunta en documento informático copia de la resolución que dispuso la medida.\n\n"
             "Finalmente, se informa que a dicho rodado, se le realizó el correspondiente Informe "
             f"Técnico de Identificación de Matrículas N° {numero_itim} de fecha {fecha_itim}, concluyendo que la unidad no "
