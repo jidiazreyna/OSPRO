@@ -6,7 +6,7 @@ Interfaz: datos generales + pestañas de imputados (sin plantillas)
 import sys, json, os
 from pathlib import Path
 from datetime import datetime
-from PySide6.QtCore import Qt, QRect, QPropertyAnimation
+from PySide6.QtCore import Qt, QRect, QPropertyAnimation, QEvent
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -285,16 +285,7 @@ class MainWindow(QMainWindow):
         ]
         self.tabs_txt.currentChanged.connect(self.update_related_indicator)
         bar = self.tabs_txt.tabBar()
-        orig_enter = bar.enterEvent
-
-        def _enter(ev):
-            idx = bar.tabAt(ev.position().toPoint())
-            if idx != -1:
-                self.update_related_indicator(idx)
-            if orig_enter:
-                orig_enter(ev)
-
-        bar.enterEvent = _enter
+        bar.installEventFilter(self)
 
         # pestañas de oficios
         self.text_edits = {}
@@ -380,6 +371,14 @@ class MainWindow(QMainWindow):
         anim.setStartValue(start)
         anim.setEndValue(end)
         anim.start(QPropertyAnimation.DeleteWhenStopped)
+
+    def eventFilter(self, obj, event):
+        bar = self.tabs_txt.tabBar()
+        if obj is bar and event.type() in (QEvent.Enter, QEvent.MouseMove):
+            idx = bar.tabAt(event.position().toPoint())
+            if idx != -1:
+                self.update_related_indicator(idx)
+        return super().eventFilter(obj, event)
 
     def rebuild_imputados(self):
         """Reconstruye las pestañas según la cantidad elegida, sin perder datos."""
