@@ -157,19 +157,19 @@ def html_a_plano(html: str, mantener_saltos: bool = True) -> str:
 # ── helper para capturar el bloque dispositvo (resuelvo) ─────────────
 
 # ── helper para capturar SIEMPRE el bloque dispositvo (resuelvo) ──────────
+# Busca la parte final de la sentencia iniciada con «RESUELVE» o «RESUELVO»
+# y finalizada con las fórmulas de cierre habituales.
 _RESUELVO_REGEX = re.compile(
-    r'''(?isx)                          # i = ignorecase, s = dotall, x = verbose
-        (                               # ── INICIO bloque a devolver ──
-            (?:                         #   uno o más ítems “I) …”
-                \s*[IVXLCDM]+\)\s.*?    #   línea con número romano
-                (?:\n(?!\s*[IVXLCDM]+\)).*?)*  #   líneas internas que NO
-            )+                          #   comienzan con otro número
-        )                               # ── FIN bloque ──
-        (?=                             # look‑ahead de cierre
-            \s*(?:Protocol[íi]?cese     #   fórmulas de estilo
-               |Notifíquese
-               |Hágase\s+saber
-               |Of[íi]ciese)
+    r'''(?isx)
+        resuelv[ao]\s*:?                 # palabra clave introductoria
+        (                                 # ── INICIO bloque a devolver ──
+            (?:                           #   uno o más ítems "I) …"
+                \s*[IVXLCDM]+\)\s.*?     #   línea con número romano
+                (?:\n(?!\s*[IVXLCDM]+\)).*?)*
+            )+                            #   líneas internas que no inician otro número
+        )                                 # ── FIN bloque ──
+        (?=                               # look‑ahead de cierre
+            \s*(?:Protocol[íi]?cese|Notifíquese|Hágase\s+saber|Of[íi]ciese)
         )
     ''',
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
