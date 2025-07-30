@@ -7,7 +7,7 @@ import sys, json, os
 from pathlib import Path
 from datetime import datetime
 import re
-from PySide6.QtCore import Qt, QRect, QPropertyAnimation, QEvent, QUrl
+from PySide6.QtCore import Qt, QRect, QPropertyAnimation, QEvent, QUrl, QMimeData
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -402,7 +402,9 @@ class MainWindow(QMainWindow):
             te.setOpenLinks(False)
             te.setOpenExternalLinks(False)
             te.anchorClicked.connect(self._on_anchor_clicked)
-            te.setFontFamily("Times New Roman"); te.setFontPointSize(12)
+            font = QFont("Times New Roman", 12)
+            te.setFont(font)
+            te.document().setDefaultFont(font)
             cont = QWidget(); lay = QVBoxLayout(cont)
             lay.addWidget(te)
             btn = QPushButton("Copiar")
@@ -1747,7 +1749,10 @@ class MainWindow(QMainWindow):
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def copy_to_clipboard(self, te: QTextEdit):
-        QApplication.clipboard().setText(te.toPlainText())
+        mime = QMimeData()
+        mime.setHtml(te.toHtml())
+        mime.setText(te.toPlainText())
+        QApplication.clipboard().setMimeData(mime)
 
     # ------- edición desde las anclas ---------------------------------
     def _editar_lineedit(self, widget: QLineEdit, titulo: str):
@@ -1775,6 +1780,9 @@ class MainWindow(QMainWindow):
         dlg.setWindowTitle(titulo)
         lay = QVBoxLayout(dlg)
         edit = QTextEdit()
+        font = QFont("Times New Roman", 12)
+        edit.setFont(font)
+        edit.document().setDefaultFont(font)
         edit.setHtml(html_inicial)
         lay.addWidget(edit)
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -1844,6 +1852,7 @@ class MainWindow(QMainWindow):
 # ──────────────────────────── main ───────────────────────────────
 def main():
     app = QApplication(sys.argv)
+    app.setFont(QFont("Times New Roman", 12))
 
     # ahora SÍ podés usar QMessageBox
     if not os.getenv("OPENAI_API_KEY"):
