@@ -7,7 +7,7 @@ import sys, json, os
 from pathlib import Path
 from datetime import datetime
 import re
-from PySide6.QtCore import Qt, QRect, QPropertyAnimation, QEvent
+from PySide6.QtCore import Qt, QRect, QPropertyAnimation, QEvent, QUrl
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -25,9 +25,14 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSplitter,
+    QTextBrowser,
     QTextEdit,
     QFrame,
     QHBoxLayout,
+    QDialog,
+    QDialogButtonBox,
+    QInputDialog,
+    QPlainTextEdit,
 )
 from PySide6.QtGui import QIcon, QTextCursor, QFont  # QIcon y QFont para más adelante
 from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
@@ -39,6 +44,7 @@ import ast
 import subprocess
 import shutil
 import tempfile
+from helpers import anchor, anchor_html
 
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
@@ -196,7 +202,8 @@ class MainWindow(QMainWindow):
                           align: Qt.AlignmentFlag = Qt.AlignJustify,
                           font_family: str = "Times New Roman",
                           point_size: int = 12,
-                          weight: int = QFont.Normal) -> None:
+                          weight: int = QFont.Normal,
+                          rich: bool = False) -> None:
         """
         Agrega uno o varios párrafos a `te` con la alineación indicada
         (Left, Right, Center o Justify).  Cada salto de línea en `text`
@@ -214,7 +221,10 @@ class MainWindow(QMainWindow):
         for linea in text.split("\n"):
             cursor.insertBlock(block)
             cursor.setCharFormat(char)
-            cursor.insertText(linea)
+            if rich:
+                cursor.insertHtml(linea)
+            else:
+                cursor.insertText(linea)
 
     def _insert_with_header(self, te: QTextEdit, text: str) -> None:
         """Inserta todo el texto justificado, sin convertir \n\n en encabezado."""
@@ -387,7 +397,11 @@ class MainWindow(QMainWindow):
                     "Oficio TSJ Sec. Penal (Elementos)",
                     ):
 
-            te = QTextEdit(); te.setReadOnly(True)
+            te = QTextBrowser();
+            te.setReadOnly(True)
+            te.setOpenLinks(False)
+            te.setOpenExternalLinks(False)
+            te.anchorClicked.connect(self._on_anchor_clicked)
             te.setFontFamily("Times New Roman"); te.setFontPointSize(12)
             cont = QWidget(); lay = QVBoxLayout(cont)
             lay.addWidget(te)
@@ -765,6 +779,12 @@ class MainWindow(QMainWindow):
 
         return self._format_datos_personales(raw)
 
+    def _imp_datos_anchor(self, idx=None):
+        if idx is None:
+            idx = self.selector_imp.currentIndex()
+        texto = self._imp_datos(idx)
+        return anchor(texto, f"edit_imp_datos_{idx}", "Datos personales")
+
     def _imp_computo(self, idx=None):
         if idx is None:
             idx = self.selector_imp.currentIndex()
@@ -790,6 +810,25 @@ class MainWindow(QMainWindow):
             data = widget.currentData()
             return data if data is not None else widget.currentText()
         return ""
+
+    def _imp_field_anchor(self, key, idx=None, placeholder: str = None):
+        if idx is None:
+            idx = self.selector_imp.currentIndex()
+        texto = self._imp_field(key, idx)
+        if placeholder is None:
+            placeholder = key
+        return anchor(texto, f"edit_imp_{key}_{idx}", placeholder)
+
+    def _field_anchor(self, widget, clave: str, placeholder: str = None):
+        if isinstance(widget, QLineEdit):
+            texto = widget.text()
+        elif isinstance(widget, QComboBox):
+            texto = widget.currentText()
+        elif isinstance(widget, QTextEdit):
+            texto = widget.toPlainText()
+        else:
+            texto = str(widget)
+        return anchor(texto, clave, placeholder)
 
     def _res_decomiso(self) -> str:
         """Extrae del resuelvo solo los puntos relacionados al decomiso."""
@@ -927,37 +966,44 @@ class MainWindow(QMainWindow):
         te.clear()
 
         # ─ datos básicos ─
-        loc = self.entry_localidad.text() or "Córdoba"
+        loc_txt = self.entry_localidad.text() or "Córdoba"
         hoy = datetime.now()
-        fecha = fecha_alineada(loc, hoy, punto=True)       # ← solo el texto
+        fecha = fecha_alineada(loc_txt, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
         firm = self.entry_firmantes.text() or "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
+        loc = self._field_anchor(self.entry_localidad, "edit_localidad", "Córdoba")
+        sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
+        sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
+        sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
         # 1) FECHA a la derecha
         self._insert_paragraph(te, fecha, Qt.AlignRight)
 
         # 2) CUERPO justificado
         car  = self.entry_caratula.text() or "“…”"
-        trib = self.entry_tribunal.currentText() or \
-            "la Cámara en lo Criminal y Correccional"
+        trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
+        car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
 
         cuerpo = (
             "Sr/a Director/a\n"
             "de la Dirección Nacional de Migraciones\n"
             "S/D:\n\n"
-            f"En los autos caratulados: {car}, que se tramitan "
-            f"por ante {trib}, se ha dispuesto librar a Ud. el presente oficio, "
+            f"En los autos caratulados: {car_a}, que se tramitan "
+            f"por ante {trib_a}, se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos personales se mencionan a continuación:\n\n"
-            f"{self._imp_datos()}\n\n"
-            f"“SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. Se Resuelve: {res}”\n\n"
-            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
+            f"{self._imp_datos_anchor()}\n\n"
+            f"“SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. Se Resuelve: {res_a}”\n\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
 
     def _plantilla_juez_electoral(self):
@@ -965,9 +1011,9 @@ class MainWindow(QMainWindow):
         te.clear()
 
         # ─ datos básicos ─
-        loc  = self.entry_localidad.text() or "Córdoba"
+        loc_txt = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
-        fecha = fecha_alineada(loc, hoy, punto=True)
+        fecha = fecha_alineada(loc_txt, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
@@ -976,35 +1022,41 @@ class MainWindow(QMainWindow):
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         nom   = "…"   # idem Nominación
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
+        car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
+        sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
+        sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
         cuerpo = (
             "SR. JUEZ ELECTORAL:\n"
             "S………………./………………D\n"
             "-Av. Concepción Arenales esq. Wenceslao Paunero, Bº Rogelio Martínez, Córdoba.\n"
             "Tribunales Federales de Córdoba-\n\n"
-            f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib} de {nom} , de la ciudad de Córdoba, Provincia de Córdoba, "
+            f"En los autos caratulados: {car_a}, que se tramitan por ante "
+            f"{trib_a} de {nom} , de la ciudad de Córdoba, Provincia de Córdoba, "
             "con la intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. "
             "el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos "
             "datos personales se mencionan a continuación:\n\n"
-            f"{self._imp_datos()}\n\n"
-            f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
-            f"Fdo.: {firm}\n\n"
-            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
+            f"{self._imp_datos_anchor()}\n\n"
+            f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}” "
+            f"Fdo.: {firm_a}\n\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
-
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_consulado(self):
         te = self.text_edits["Oficio Consulado"]
         te.clear()
 
         # ─ datos básicos ─
-        loc  = self.entry_localidad.text() or "Córdoba"
+        loc_txt  = self.entry_localidad.text() or "Córdoba"
         hoy  = datetime.now()
-        fecha = fecha_alineada(loc, hoy, punto=True)
+        fecha = fecha_alineada(loc_txt, hoy, punto=True)
         sent_n = self.entry_sent_num.text() or "…"
         sent_f = self.entry_sent_date.text() or "…/…/…"
         res = self.entry_resuelvo.text() or "…"
@@ -1013,24 +1065,32 @@ class MainWindow(QMainWindow):
         trib  = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         pais  = self.entry_consulado.text() or "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
+        car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        pais_a = self._field_anchor(self.entry_consulado, "edit_consulado", "país")
+        sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
+        sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
+        sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         cuerpo = (
-            "Al Sr. Titular del Consulado de " + pais + " S/D:\n\n"
-            f"En los autos caratulados: {car}, que se tramitan por ante "
-            f"{trib}, de la ciudad de Córdoba, Provincia de Córdoba, "
+            "Al Sr. Titular del Consulado de " + pais_a + " S/D:\n\n"
+            f"En los autos caratulados: {car_a}, que se tramitan por ante "
+            f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, "
             "con la intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a "
             "continuación:\n\n"
-            f"{self._imp_datos()}\n\n"
-            f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res}” "
-            f"Fdo.: {firm}\n\n"
-            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza}\n"
+            f"{self._imp_datos_anchor()}\n\n"
+            f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}” "
+            f"Fdo.: {firm_a}\n\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
 
         self._insert_paragraph(te, fecha, Qt.AlignRight)
-        self._insert_paragraph(te, cuerpo, Qt.AlignJustify)
+        self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_registro_automotor(self):
         te = self.text_edits["Oficio Registro Automotor"]
@@ -1525,6 +1585,85 @@ class MainWindow(QMainWindow):
 
     def copy_to_clipboard(self, te: QTextEdit):
         QApplication.clipboard().setText(te.toPlainText())
+
+    # ------- edición desde las anclas ---------------------------------
+    def _editar_lineedit(self, widget: QLineEdit, titulo: str):
+        texto, ok = QInputDialog.getText(self, titulo, titulo, text=widget.text())
+        if ok:
+            widget.setText(texto.strip())
+            self.update_templates()
+
+    def _editar_plaintext(self, widget: QPlainTextEdit, titulo: str):
+        texto, ok = QInputDialog.getMultiLineText(
+            self, titulo, titulo, widget.toPlainText()
+        )
+        if ok:
+            widget.setPlainText(texto.strip())
+            self.update_templates()
+
+    def _editar_combo(self, widget: QComboBox, titulo: str):
+        texto, ok = QInputDialog.getText(self, titulo, titulo, text=widget.currentText())
+        if ok:
+            widget.setCurrentText(texto.strip())
+            self.update_templates()
+
+    def _abrir_dialogo_rico(self, titulo: str, html_inicial: str, on_accept):
+        dlg = QDialog(self)
+        dlg.setWindowTitle(titulo)
+        lay = QVBoxLayout(dlg)
+        edit = QTextEdit()
+        edit.setHtml(html_inicial)
+        lay.addWidget(edit)
+        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        lay.addWidget(btns)
+
+        def aceptar():
+            on_accept(edit.toHtml())
+            dlg.accept()
+
+        btns.accepted.connect(aceptar)
+        btns.rejected.connect(dlg.reject)
+        dlg.exec()
+
+    def _on_anchor_clicked(self, url: QUrl) -> None:
+        clave = url.toString()
+
+        if clave == "edit_localidad":
+            self._editar_lineedit(self.entry_localidad, "Localidad")
+            return
+        if clave == "edit_caratula":
+            self._editar_lineedit(self.entry_caratula, "Carátula")
+            return
+        if clave == "edit_tribunal":
+            self._editar_combo(self.entry_tribunal, "Tribunal")
+            return
+        if clave == "edit_consulado":
+            self._editar_lineedit(self.entry_consulado, "Consulado")
+            return
+        if clave == "edit_sent_num":
+            self._editar_lineedit(self.entry_sent_num, "Sentencia N°")
+            return
+        if clave == "edit_sent_fecha":
+            self._editar_lineedit(self.entry_sent_date, "Fecha de sentencia")
+            return
+        if clave == "edit_sent_firmeza":
+            self._editar_lineedit(self.entry_sent_firmeza, "Firmeza de la sentencia")
+            return
+        if clave == "edit_resuelvo":
+            self._editar_lineedit(self.entry_resuelvo, "Resuelvo")
+            return
+        if clave == "edit_firmantes":
+            self._editar_lineedit(self.entry_firmantes, "Firmantes")
+            return
+
+        if clave.startswith("edit_imp_datos_"):
+            idx = int(clave.split("_")[-1])
+            self._editar_plaintext(
+                self.imputados_widgets[idx]["datos_personales"],
+                f"Datos personales #{idx+1}",
+            )
+            return
+
 
     def update_for_imp(self, idx: int):
         self.update_templates()
