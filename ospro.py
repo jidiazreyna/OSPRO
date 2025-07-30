@@ -1103,7 +1103,7 @@ class MainWindow(QMainWindow):
             f"En los autos caratulados: {car}, que se tramitan por ante "
             f"{trib}, con intervención de ésta Oficina de Servicios Procesales "
             "(OSPRO), se ha resuelto enviar a Ud. el presente a fines de solicitarle que establezca lo necesario para que, "
-            "por intermedio de quien corresponda, se coloque a la orden y disposición de la Cámara señalada, el rodado "
+            "por intermedio de quien corresponda, se coloque a la orden y disposición del Tribunal señalado, el rodado "
             f"MARCA: {marca}, MODELO: {modelo}, DOMINIO: {dominio}, MOTOR N°: {motor}, CHASIS N°: {chasis}, "
             f"DE COLOR: {color}, RUV N° {ruv}, vehículo que se encuentra en el Depósito de {deposito}.\n\n"
             "Se hace saber a Ud. que dicha petición obedece a que el Tribunal mencionado ha dispuesto la entrega del "
