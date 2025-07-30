@@ -238,9 +238,17 @@ class MainWindow(QMainWindow):
         self.entry_firmantes = add_line('entry_firmantes', "Firmantes de la sentencia:")
 
         self.entry_rodado = add_line('entry_rodado', "Objetos decomisados/secuestrados:")
-        self.entry_regn = add_line('entry_regn', "Registro del automotor N°:")
+        label("Registro del automotor / Comisaría:")
+        h_reg_com = QHBoxLayout()
+        self.entry_regn = QLineEdit(); self.entry_regn.setPlaceholderText("Reg. N°")
+        self.entry_comisaria = QLineEdit(); self.entry_comisaria.setPlaceholderText("Comisaría N°")
+        for w in (self.entry_regn, self.entry_comisaria):
+            w.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            w.textChanged.connect(self.update_templates)
+        h_reg_com.addWidget(self.entry_regn)
+        h_reg_com.addWidget(self.entry_comisaria)
+        self.form.addLayout(h_reg_com, self._row, 1); self._row += 1
         self.entry_deposito = add_combo('entry_deposito', "Depósito:", DEPOSITOS, editable=True)
-        self.entry_comisaria = add_line('entry_comisaria', "Comisaría N°:")
         self.entry_dep_def = add_combo('entry_dep_def', "Carácter de la entrega:", CARACTER_ENTREGA, editable=True)
         self.entry_titular_veh = add_line('entry_titular_veh', "Titular del vehículo:")
 
