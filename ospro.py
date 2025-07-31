@@ -7,7 +7,9 @@ import sys, json, os
 from pathlib import Path
 from datetime import datetime
 import re
-from PySide6.QtCore import Qt, QRect, QPropertyAnimation, QEvent, QUrl, QMimeData
+from PySide6.QtCore import (
+    Qt, QRect, QPropertyAnimation, QEvent, QUrl, QMimeData, QRegularExpression
+)
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -34,7 +36,12 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QPlainTextEdit,
 )
-from PySide6.QtGui import QIcon, QTextCursor, QFont  # QIcon y QFont para más adelante
+from PySide6.QtGui import (
+    QIcon,
+    QTextCursor,
+    QFont,
+    QRegularExpressionValidator,
+)
 from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
 # ── NUEVOS IMPORTS ──────────────────────────────────────────────
 import openai                    # cliente oficial
@@ -216,6 +223,25 @@ _FIRMAS_REGEX = re.compile(r'''
     (?= (?:[^\n]*\n){0,2}\s*Fecha\s*:\s*\d{4}[./-]\d{2}[./-]\d{2} )
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
 
+# ── validaciones de campos ─────────────────────────────────────────────
+# Carátula: debe incluir comillas y un número de expediente o SAC
+CARATULA_REGEX = QRegularExpression(
+    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*\d+\))?["”](?:\s*\((?:SAC|Expte\.?\s*)\s*N°\s*\d+\))?$'
+)
+# Tribunal: al menos una letra minúscula y empezar en mayúscula
+TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
+
+def capitalizar_frase(txt: str) -> str:
+    """Devuelve la frase en mayúsculas y minúsculas tipo título."""
+    minus = {"de", "del", "la", "las", "y", "en", "el", "los"}
+    palabras = txt.lower().split()
+    if not palabras:
+        return txt
+    for i, w in enumerate(palabras):
+        if i == 0 or w not in minus:
+            palabras[i] = w.capitalize()
+    return " ".join(palabras)
+
 
 
 def extraer_firmantes(texto: str) -> list[dict]:
@@ -312,6 +338,16 @@ class MainWindow(QMainWindow):
         self.entry_caratula  = add_line ('entry_caratula',  "Carátula:")
         self.entry_tribunal  = add_combo('entry_tribunal',  "Tribunal:", TRIBUNALES, editable=True)
         self.entry_consulado = add_line('entry_consulado', "Consulado de:")
+
+        # validadores de carátula y tribunal
+        self.entry_caratula.setValidator(QRegularExpressionValidator(CARATULA_REGEX))
+        self.entry_tribunal.setValidator(QRegularExpressionValidator(TRIBUNAL_REGEX))
+        if self.entry_tribunal.isEditable() and self.entry_tribunal.lineEdit():
+            self.entry_tribunal.lineEdit().editingFinished.connect(
+                lambda: self.entry_tribunal.setCurrentText(
+                    capitalizar_frase(self.entry_tribunal.currentText())
+                )
+            )
 
         # ─── sentencia (número y fecha) ───
         label("Sentencia:")
@@ -705,7 +741,9 @@ class MainWindow(QMainWindow):
             g = data.get("generales", {})
             self.entry_localidad.setText(g.get("localidad", ""))
             self.entry_caratula.setText(g.get("caratula", ""))
-            self.entry_tribunal.setCurrentText(g.get("tribunal", ""))
+            self.entry_tribunal.setCurrentText(
+                capitalizar_frase(g.get("tribunal", ""))
+            )
             self.entry_resuelvo.setText(g.get("resuelvo", ""))
             self.entry_firmantes.setText(g.get("firmantes", ""))
             self.entry_sent_num.setText(g.get("sent_num", ""))
@@ -966,7 +1004,9 @@ class MainWindow(QMainWindow):
             # ------------------ 1) Generales ------------------
             g = datos.get("generales", {})
             self.entry_caratula.setText(self._as_str(g.get("caratula")))
-            self.entry_tribunal.setCurrentText(self._as_str(g.get("tribunal")))
+            self.entry_tribunal.setCurrentText(
+                capitalizar_frase(self._as_str(g.get("tribunal")))
+            )
             self.entry_sent_num.setText(self._as_str(g.get("sent_num")))
             self.entry_sent_date.setText(self._as_str(g.get("sent_fecha")))
             self.entry_resuelvo.setText(self._as_str(g.get("resuelvo")))
