@@ -171,13 +171,13 @@ def html_a_plano(html: str, mantener_saltos: bool = True) -> str:
 _RESUELVO_REGEX = re.compile(
     r'''(?isx)
         resuelv[eo]\s*:?                 # palabra clave introductoria
-        (                                 # ── INICIO bloque a devolver ──
-            (?:                           #   uno o más ítems "I) …"
-                \s*[IVXLCDM]+\)\s.*?     #   línea con número romano
-                (?:\n(?!\s*[IVXLCDM]+\)).*?)*
-            )+                            #   líneas internas que no inician otro número
-        )                                 # ── FIN bloque ──
-        (?=                               # look‑ahead de cierre
+        (                                # ── INICIO bloque a devolver ──
+            (?:                          #   uno o más ítems "I) …" o "I. …"
+                \s*[IVXLCDM]+\s*[).]\s.*?   # <<-- antes pedía sólo ")" → ahora acepta ")" o "."
+                (?:\n(?!\s*[IVXLCDM]+\s*[).]).*?)*       # líneas internas
+            )+
+        )                                # ── FIN bloque ──
+        (?=
             \s*(?:Protocol[íi]?cese|Notifíquese|Hágase\s+saber|Of[íi]ciese)
         )
     ''',
@@ -718,6 +718,16 @@ class MainWindow(QMainWindow):
     def _as_str(value):
         """Convierte listas, números o None en str plano."""
         if isinstance(value, list):
+            # Lista de firmantes en forma de dicts
+            if value and all(isinstance(x, dict) for x in value):
+                partes = []
+                for d in value:
+                    nombre = d.get("nombre", "").strip()
+                    cargo  = d.get("cargo", "").strip()
+                    fecha  = d.get("fecha", "").strip()
+                    partes.append(", ".join(p for p in (nombre, cargo, fecha) if p))
+                return "; ".join(partes)
+            # Lista de strings normal
             return ", ".join(map(str, value))
         return str(value) if value is not None else ""
 
@@ -1430,10 +1440,10 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de la Oficina de Servicios Procesales "
-            "(OSPRO), se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a la "
-            "sentencia dictada en la causa de referencia, remitiendo los antecedentes obrantes en el expediente mencionado "
-            "a fin de investigar la posible comisión de un delito perseguible de oficio.\n\n"
-            f"Se transcribe a continuación la parte pertinente: “Se resuelve: {res_a}”. "
+            "(OSPRO), se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a lo resuelto en la "
+            "sentencia dictada en la causa de referencia, los antecedentes obrantes en el expediente mencionado, "
+            "a los fines de investigar la posible comisión de un delito perseguible de oficio.\n\n"
+            f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
             "Sin otro particular, saludo a Ud. atte."
         )
