@@ -1079,6 +1079,18 @@ class MainWindow(QMainWindow):
                 self.imputados_widgets[idx]["datos_personales"].setPlainText(
                     self._format_datos_personales(bruto)
                 )
+
+                # ③  Extraer nombre y DNI si vienen en datos_personales
+                nombre = ""
+                dni = ""
+                if isinstance(bruto, dict):
+                    nombre = self._as_str(bruto.get("nombre") or imp.get("nombre"))
+                    dni = self._as_str(bruto.get("dni") or imp.get("dni"))
+                else:
+                    nombre = self._as_str(imp.get("nombre"))
+                    dni = self._as_str(imp.get("dni"))
+                self.imputados_widgets[idx]["nombre"].setText(nombre)
+                self.imputados_widgets[idx]["dni"].setText(dni)
             self._refresh_imp_names_in_selector()
             # 4) Refrescar plantillas
             self.update_templates()
