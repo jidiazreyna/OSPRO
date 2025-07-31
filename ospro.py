@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QInputDialog,
     QPlainTextEdit,
+    QProgressDialog,
 )
 from PySide6.QtGui import (
     QIcon,
@@ -476,6 +477,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Generador base")
         self.resize(1100, 610)
+        self._wait_dialog = None
 
         # ───────── splitter horizontal ─────────
         splitter = QSplitter(Qt.Horizontal, self)
@@ -1127,6 +1129,14 @@ class MainWindow(QMainWindow):
 
         # feedback visual
         self.setCursor(Qt.WaitCursor)
+        self._wait_dialog = QProgressDialog(
+            "Procesando sentencia…", None, 0, 0, self
+        )
+        self._wait_dialog.setWindowTitle("Espere")
+        self._wait_dialog.setWindowModality(Qt.ApplicationModal)
+        self._wait_dialog.setCancelButton(None)
+        self._wait_dialog.setMinimumDuration(0)
+        self._wait_dialog.setValue(0)
 
         # hilo + worker
         self._thread = QThread(self)
@@ -1147,6 +1157,9 @@ class MainWindow(QMainWindow):
         self._thread.quit()
         self._thread.wait()
         self.unsetCursor()
+        if self._wait_dialog:
+            self._wait_dialog.close()
+            self._wait_dialog = None
 
         if err:
             QMessageBox.critical(self, "Error", err)
