@@ -2008,7 +2008,7 @@ class MainWindow(QMainWindow):
             "<b>DE ANTECEDENTES DE TRÁNSITO (RePAT)</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
-            f"{trib_a}, de esta ciudad de Córdoba, provincia de Córdoba, con intervención de esta Oficina de "
+            f"{trib_a}, de esta ciudad de Córdoba, provincia de Córdoba, con intervención de esta <b>Oficina de</b> "
             "<b>Servicios Procesales - OSPRO -</b>, se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por "
             "dicho Tribunal, respecto de la persona cuyos datos se detallan a continuación:\n\n"
             f"{self._imp_datos_anchor()}.\n\n"
