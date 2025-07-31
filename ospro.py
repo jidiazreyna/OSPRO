@@ -227,12 +227,20 @@ _RESUELVO_REGEX = re.compile(
         resuelv[eo]\s*:?                 # palabra clave introductoria
         (                                # ── INICIO bloque a devolver ──
             (?:                          #   uno o más ítems "I) …" o "I. …"
-                \s*[IVXLCDM]+\s*[).]\s.*?   # <<-- antes pedía sólo ")" → ahora acepta ")" o "."
-                (?:\n(?!\s*[IVXLCDM]+\s*[).]).*?)*       # líneas internas
+                \s*[IVXLCDM]+\s*[).]\s.*?
+                (?:\n(?!\s*[IVXLCDM]+\s*[).]).*?)*
             )+
         )                                # ── FIN bloque ──
-        (?=
-            \s*(?:Protocol[íi]?cese|Notifíquese|Hágase\s+saber|Of[íi]ciese)
+        (?=                              # look‑ahead de cierre al iniciar línea
+            \n                           #   debe iniciar nueva línea
+            (?!\s*[IVXLCDM]+\s*[).])    #   que no sea otro ítem numerado
+            \s*(?:
+                Protocol(?:iza|[íi]?cese)|
+                Notifica(?:r|[íi]?cese)?|
+                Hágase\s+saber|
+                Ofici(?:a|[íi]?ciese)|
+                Fdo\.|Firmad[oa]\s+digitalmente
+            )
         )
     ''',
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
