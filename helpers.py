@@ -6,11 +6,12 @@ def anchor(texto: str, clave: str, placeholder: str = None) -> str:
     if not texto.strip():
         texto = placeholder or f"[{clave}]"
     style = (
-        "color:blue;text-decoration:none;",
+            "color:black;text-decoration:none;",
         "font-family:'Times New Roman';font-size:12pt;",
     )
+    style_str = "".join(style)
     safe = html.escape(texto).replace("\n", "<br/>")
-    return f'<a href="{clave}" style="{style}">{safe}</a>'
+    return f'<a href="{clave}" style="{style_str}">{safe}</a>'
 
 
 def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
@@ -18,11 +19,12 @@ def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
     if not html_text.strip():
         return anchor("", clave, placeholder)
     style = (
-        "color:blue;text-decoration:none;",
+        "color:black;text-decoration:none;",
         "font-family:'Times New Roman';font-size:12pt;",
     )
+    style_str = "".join(style)
     safe = html_text.replace("\n", "<br/>")
-    return f'<a href="{clave}" style="{style}">{safe}</a>'
+    return f'<a href="{clave}" style="{style_str}">{safe}</a>'
 
 
 def strip_anchors(html_text: str) -> str:

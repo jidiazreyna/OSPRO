@@ -61,6 +61,23 @@ class NoWheelComboBox(QComboBox):
 class NoWheelSpinBox(QSpinBox):
     def wheelEvent(self, event): event.ignore()
 
+
+class PlainCopyTextBrowser(QTextBrowser):
+    """QTextBrowser that strips anchor styling when copying."""
+
+    def copy(self) -> None:
+        super().copy()
+        cb = QApplication.clipboard()
+        mime = cb.mimeData()
+        html = mime.html()
+        if html:
+            html = _strip_anchor_styles(html)
+            html = strip_anchors(html)
+            new_mime = QMimeData()
+            new_mime.setHtml(html)
+            new_mime.setText(mime.text())
+            cb.setMimeData(new_mime)
+
 CAUSAS_DIR = Path("causas_guardadas")
 CAUSAS_DIR.mkdir(exist_ok=True)
 
@@ -208,8 +225,13 @@ def strip_trailing_single_dot(text: str | None) -> str:
 
 # ── limpiar pies de página recurrentes ────────────────────────────────
 _FOOTER_REGEX = re.compile(
-    r"\s*Expediente\s+SAC\s+\d+\s*-\s*P[áa]g\.\s*\d+\s*/\s*\d+\s*-\s*N°?\s*Res\.\s*\d+\s*",
-    re.IGNORECASE,
+    r"""
+    \s*                                # espacios iniciales
+    Expediente\s+SAC\s+\d+\s*-\s*      # Expediente SAC 13393379 -
+    P[áa]g\.\s*\d+\s*/\s*\d+\s*-\s*    # Pág. 13 / 15 -
+    N(?:[°º]|ro\.?|o\.)?\s*Res\.\s*\d+\s*
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 
@@ -223,20 +245,24 @@ def limpiar_pies_de_pagina(texto: str) -> str:
 # Busca la parte final de la sentencia iniciada con «RESUELVE» o «RESUELVO»
 # y finalizada con las fórmulas de cierre habituales.
 _RESUELVO_REGEX = re.compile(
-    r'''(?isx)
-        resuelv[eo]\s*:?                 # palabra clave introductoria
-        (                                # ── INICIO bloque a devolver ──
-            (?:                          #   uno o más ítems "I) …" o "I. …"
-                \s*[IVXLCDM]+\s*[).]\s.*?   # <<-- antes pedía sólo ")" → ahora acepta ")" o "."
-                (?:\n(?!\s*[IVXLCDM]+\s*[).]).*?)*       # líneas internas
-            )+
-        )                                # ── FIN bloque ──
-        (?=
-            \s*(?:Protocol[íi]?cese|Notifíquese|Hágase\s+saber|Of[íi]ciese)
-        )
-    ''',
+    r"""
+    resuelv[eo]\s*:?\s*
+    (                                   # ---------- BLOQUE A CAPTURAR ----------
+        (?:\s*[IVXLCDM]+\s*[).]\s.*?     #  I) …   o   I. …
+            (?:\n(?!\s*[IVXLCDM]+\s*[).]).*?)*   #   líneas que siguen al mismo inciso
+    )+                                  # uno o más incisos
+    (?=                                  # ---------- CONDICIÓN DE CORTE ----------
+        \s*(?:\n|$)\s*                    #  debe empezar línea nueva (o fin de texto)
+        (?:Protocol[íi]?cese              #  fórmulas de cierre habituales
+          |Notifíquese
+          |Hágase\s+saber
+          |Of[íi]ciese
+          |Se\s+Protocoliza)              #  cubre “SE PROTOCOLIZA, NOTIFICA…”
+    )
+    """,
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
 )
+
 
 
 def extraer_resuelvo(texto: str) -> str:
@@ -552,7 +578,7 @@ class MainWindow(QMainWindow):
                     "Oficio TSJ Sec. Penal (Elementos)",
                     ):
 
-            te = QTextBrowser();
+            te = PlainCopyTextBrowser();
             te.setReadOnly(True)
             te.setOpenLinks(False)
             te.setOpenExternalLinks(False)
