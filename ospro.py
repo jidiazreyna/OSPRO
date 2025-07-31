@@ -589,6 +589,12 @@ class MainWindow(QMainWindow):
             btn = QPushButton("Copiar")
             btn.clicked.connect(lambda _=False, t=te: self.copy_to_clipboard(t))
             lay.addWidget(btn)
+
+            btn_html = QPushButton("Copiar HTML")
+            btn_html.clicked.connect(
+                lambda _=False, t=te: self.copy_html_source(t)
+            )
+            lay.addWidget(btn_html)
             self.tabs_txt.addTab(cont, name)
             idx = self.tabs_txt.indexOf(cont)
             self.tab_indices[name] = idx
@@ -2032,6 +2038,13 @@ class MainWindow(QMainWindow):
         mime.setHtml(html)
         mime.setText(te.toPlainText())
         QApplication.clipboard().setMimeData(mime)
+
+    def copy_html_source(self, te: QTextEdit):
+        """Copy raw HTML markup to the clipboard as plain text."""
+        html = _strip_anchor_styles(te.toHtml())
+        html = strip_anchors(html)
+        html = strip_color(html)
+        QApplication.clipboard().setText(html)
 
     # ------- edición desde las anclas ---------------------------------
     def _editar_lineedit(self, widget: QLineEdit, titulo: str):
