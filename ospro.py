@@ -1480,7 +1480,7 @@ class MainWindow(QMainWindow):
             "(OSPRO), se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a lo resuelto en la "
             "sentencia dictada en la causa de referencia, los antecedentes obrantes en el expediente mencionado, "
             "a los fines de investigar la posible comisión de un delito perseguible de oficio.\n\n"
-            f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res_a}”. "
+            f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res}”. "
             f"(Fdo.: {firm_a}).\n\n"
             "Sin otro particular, saludo a Ud. atte."
         )
