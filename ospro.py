@@ -1508,13 +1508,13 @@ class MainWindow(QMainWindow):
             if re.search(r"investig|esclarec|antecedente|instruc", txt, re.IGNORECASE):
                 partes.append(f"{num}. {txt}")
         res = " ".join(partes) if partes else (self.entry_resuelvo.text() or "…")
+        res_a = anchor(res, "edit_resuelvo", "resuelvo")
         firm = self.entry_firmantes.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         cuerpo = (
             "<b>Sr/a Fiscal de </b>\n"
@@ -1525,7 +1525,7 @@ class MainWindow(QMainWindow):
             "(OSPRO), se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a lo resuelto en la "
             "sentencia dictada en la causa de referencia, los antecedentes obrantes en el expediente mencionado, "
             "a los fines de investigar la posible comisión de un delito perseguible de oficio.\n\n"
-            f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res}”. "
+            f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
             "Sin otro particular, saludo a Ud. atte."
         )
