@@ -250,7 +250,7 @@ _RESUELVO_REGEX = re.compile(
     (                                   # ---------- BLOQUE A CAPTURAR ----------
         (?:\s*[IVXLCDM]+\s*[).]\s.*?     #  I) …   o   I. …
             (?:\n(?!\s*[IVXLCDM]+\s*[).]).*?)*   #   líneas que siguen al mismo inciso
-    )+                                  # uno o más incisos
+    )+)                                  # uno o más incisos
     (?=                                  # ---------- CONDICIÓN DE CORTE ----------
         \s*(?:\n|$)\s*                    #  debe empezar línea nueva (o fin de texto)
         (?:Protocol[íi]?cese              #  fórmulas de cierre habituales
