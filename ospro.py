@@ -1774,7 +1774,16 @@ class MainWindow(QMainWindow):
             self.update_templates()
 
     def _editar_combo(self, widget: QComboBox, titulo: str):
-        texto, ok = QInputDialog.getText(self, titulo, titulo, text=widget.currentText())
+        items = [widget.itemText(i) for i in range(widget.count())]
+        idx = widget.currentIndex()
+        texto, ok = QInputDialog.getItem(
+            self,
+            titulo,
+            titulo,
+            items,
+            idx,
+            editable=widget.isEditable(),
+        )
         if ok:
             widget.setCurrentText(texto.strip())
             self.update_templates()
