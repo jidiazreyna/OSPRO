@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 import re
 from PySide6.QtCore import (
-    Qt, QRect, QPropertyAnimation, QEvent, QUrl, QMimeData, QRegularExpression
+    Qt, QRect, QPropertyAnimation, QEvent, QUrl, QMimeData, QRegularExpression, QObject, Signal, QThread
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -361,6 +361,79 @@ def extraer_firmantes(texto: str) -> list[dict]:
             "doc"   : (m.group("doc") or "").strip(),
         })
     return firmas
+
+# ----------------------------------------------------------------------
+class Worker(QObject):
+    """
+    Convierte PDF / DOCX a texto, llama a la API de OpenAI, procesa
+    el JSON y devuelve el dict final listo para volcar en la GUI.
+    Trabaja en un hilo separado para no congelar la interfaz.
+    """
+    finished = Signal(dict, str)          # (datos, error)
+
+    def __init__(self, ruta: str):
+        super().__init__()
+        self.ruta = ruta
+
+    def run(self):
+        try:
+            # -------- 1) Extraer texto --------
+            ext = self.ruta.lower()
+            if ext.endswith(".pdf"):
+                texto = extract_text(self.ruta)
+            elif ext.endswith(".docx"):
+                texto = docx2txt.process(self.ruta)
+            else:
+                raise ValueError("Formato no soportado")
+
+            texto = limpiar_pies_de_pagina(texto)
+
+            # -------- 2) OpenAI JSON mode --------
+            respuesta = openai.ChatCompletion.create(
+                model="gpt-4o-mini",
+                temperature=0,
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Extraé de la sentencia los siguientes campos y devolvé un JSON con: "
+                            "generales (caratula, tribunal, sent_num, sent_fecha, resuelvo o parte resolutiva, firmantes) "
+                            "e imputados (lista de datos_personales -incluí nombre, DNI, prontuario y el resto-). "
+                            "Si no hay datos, dejá el campo vacío. "
+                            "La carátula incluye las comillas con el nombre de la causa dentro y el número de expediente posterior, "
+                            "ejemplo: \"DIAZ, Juan Pérez p.s.a. robo\" (SAC N° 12345678) "
+                            "o \"DIAZ, Juan Pérez p.s.a. robo (Expte. N° 12345678)\". "
+                            "El texto del resuelvo SIEMPRE está AL FINAL de la sentencia, precedido por “RESUELVE:” o “RESUELVO:”, "
+                            "considerá como parte resolutiva todo el bloque que comienza en la primera enumeración después de esas palabras, "
+                            "y termina con las fórmulas de estilo “Protocolícese / Hágase saber / Notifíquese (entre otras)”. "
+                            "No resumas ni sintetices, devolvé el texto tal cual."
+                        ),
+                    },
+                    {"role": "user", "content": texto[:120000]},
+                ],
+            )
+            datos = json.loads(respuesta.choices[0].message.content)
+
+            # -------- 3) Ajustes post-API --------
+            # a) resuelvo definitivo (siempre tomar el bloque final real)
+            g = datos.get("generales", {})
+            g["resuelvo"] = extraer_resuelvo(texto)
+            g["resuelvo"] = limpiar_pies_de_pagina(
+                re.sub(r"\s*\n\s*", " ", g["resuelvo"])
+            ).strip()
+
+            # b) firmantes de respaldo
+            firmas = extraer_firmantes(texto)
+            if firmas:
+                datos.setdefault("generales", {})["firmantes"] = firmas
+
+            # listo: emitimos
+            self.finished.emit(datos, "")          # sin error
+
+        except Exception as e:
+            self.finished.emit({}, str(e))          # devolvemos el error
+
 
 # ───────────────────────── MainWindow ────────────────────────
 class MainWindow(QMainWindow):
@@ -1041,128 +1114,83 @@ class MainWindow(QMainWindow):
                 partes.append(f"{num}. {txt}")
         return " ".join(partes) if partes else (self.entry_resuelvo.text() or "…")
 
-
-    # ───────────────── Autocompletar ───────────────────────────
     def autocompletar_desde_sentencia(self):
+        """Abre un archivo, procesa en segundo plano y actualiza la GUI."""
         ruta, _ = QFileDialog.getOpenFileName(
             self,
-            "Seleccionar sentencia (PDF/DOCX/DOC)",
+            "Seleccionar sentencia (PDF/DOCX)",
             "",
             "Documentos (*.pdf *.docx)",
         )
         if not ruta:
             return
 
-        try:
-            # 1) Extraer texto
-            ext = ruta.lower()
-            if ext.endswith(".pdf"):
-                texto = extract_text(ruta)
-            elif ext.endswith(".docx"):
-                texto = docx2txt.process(ruta)
+        # feedback visual
+        self.setCursor(Qt.WaitCursor)
 
-            texto = limpiar_pies_de_pagina(texto)
+        # hilo + worker
+        self._thread = QThread(self)
+        self._worker = Worker(ruta)
+        self._worker.moveToThread(self._thread)
 
-            # 2) Llamar a la API en JSON mode
-            respuesta = openai.ChatCompletion.create(
-                model="gpt-4o-mini",          # arranquemos barato
-                temperature=0,
-                response_format={"type": "json_object"},
-                messages=[
-                    {
-                    "role": "system",
-                    "content": (
-                        "Extraé de la sentencia los siguientes campos y devolvé un JSON con: "
-                        "generales (caratula, tribunal, sent_num, sent_fecha, resuelvo o parte resolutiva, firmantes) "
-                        "e imputados (lista de datos_personales ‑incluí nombre, DNI, prontuario y el resto‑). "
-                        "Si no hay datos, dejá el campo vacío. "
-                        "La carátula incluye las comillas con el nombre de la causa dentro y el número de expediente posterior,"
-                        "ejemplo: \"DIAZ, Juan Pérez p.s.a. robo\" (SAC N° 12345678) "
-                        "o \"DIAZ, Juan Pérez p.s.a. robo (Expte. N° 12345678)\". "
-                        "El texto del resuelvo SIEMPRE esta AL FINAL de la sentencia, precedido por “RESUELVE:” o “RESUELVO:”, "
-                        "considerá como parte resolutiva todo el bloque que comienza en la primera enumeración después de esas palabras, "
-                        "y termina con las fórmulas de estilo “Protocolícese / Hágase saber / Notifíquese (entre otras)”. "
-                        "No resumas ni sintetices, devolvé el texto tal cual."
-                    ),
-                    },
-                    {"role": "user", "content": texto[:120000]},  # límite 128 k tokens
-                ],
+        # señales
+        self._thread.started.connect(self._worker.run)
+        self._worker.finished.connect(self._on_autocomplete_done)
+
+        # arrancar
+        self._thread.start()
+
+# ----------------------------------------------------------------------
+    def _on_autocomplete_done(self, datos: dict, err: str):
+        """Señal del Worker: vuelca los datos o muestra el error."""
+        # limpiar hilo / cursor
+        self._thread.quit()
+        self._thread.wait()
+        self.unsetCursor()
+
+        if err:
+            QMessageBox.critical(self, "Error", err)
+            return
+
+        # ------- GENERALES -------
+        g = datos.get("generales", {})
+        self.entry_caratula.setText(
+            normalizar_caratula(self._as_str(g.get("caratula")))
+        )
+        self.entry_tribunal.setCurrentText(
+            capitalizar_frase(self._as_str(g.get("tribunal")))
+        )
+        self.entry_sent_num.setText(self._as_str(g.get("sent_num")))
+        self.entry_sent_date.setText(self._as_str(g.get("sent_fecha")))
+        self.entry_resuelvo.setText(self._as_str(g.get("resuelvo")))
+        self.entry_firmantes.setText(self._as_str(g.get("firmantes")))
+
+        # ------- IMPUTADOS -------
+        imps = datos.get("imputados", [])
+        self.combo_n.setCurrentText(str(max(1, len(imps))))
+        self.rebuild_imputados()
+
+        for idx, imp in enumerate(imps):
+            w     = self.imputados_widgets[idx]
+            bruto = imp.get("datos_personales", imp)
+
+            # línea formateada
+            w["datos_personales"].setPlainText(
+                self._format_datos_personales(bruto)
             )
 
-            datos = json.loads(respuesta.choices[0].message.content)
+            # nombre / DNI
+            nom = self._as_str(imp.get("nombre") or bruto.get("nombre"))
+            dni = self._as_str(imp.get("dni")    or bruto.get("dni"))
+            if not dni:
+                dni = extraer_dni(str(bruto))
+            w["nombre"].setText(nom)
+            w["dni"].setText(normalizar_dni(dni))
 
-# --------------- asegurar que 'resuelvo' tenga buen contenido ---------------
-            g = datos.get("generales", {})
-            # siempre priorizamos el bloque final de la sentencia
-            g["resuelvo"] = extraer_resuelvo(texto)
+        self._refresh_imp_names_in_selector()
+        self.update_templates()
+        QMessageBox.information(self, "Listo", "Campos cargados exitosamente.")
 
-            # normalizar saltos de línea (opcional pero recomendable)
-            g["resuelvo"] = re.sub(r"\s*\n\s*", " ", g["resuelvo"]).strip()
-            g["resuelvo"] = limpiar_pies_de_pagina(g["resuelvo"]).strip()
-# -----------------------------------------------------------------------------
-            # --------------- asegurar que 'firmantes' tenga buen contenido ---------------
-            firmas_detectadas = extraer_firmantes(texto)
-            if firmas_detectadas:                       # ⬅ si encontramos algo, lo pisamos
-                datos.setdefault("generales", {})
-                datos["generales"]["firmantes"] = firmas_detectadas
-            # ----------------------------------------------------------------------------- 
-
-            # ------------------ 1) Generales ------------------
-            g = datos.get("generales", {})
-            caratula = normalizar_caratula(self._as_str(g.get("caratula")))
-            self.entry_caratula.setText(caratula)
-            self.entry_tribunal.setCurrentText(
-                capitalizar_frase(self._as_str(g.get("tribunal")))
-            )
-            self.entry_sent_num.setText(self._as_str(g.get("sent_num")))
-            self.entry_sent_date.setText(self._as_str(g.get("sent_fecha")))
-            self.entry_resuelvo.setText(self._as_str(g.get("resuelvo")))
-            self.entry_firmantes.setText(self._as_str(g.get("firmantes")))
-
-            # ------------------ 2) Imputados ------------------
-            imps = datos.get("imputados", [])
-            self.combo_n.setCurrentText(str(max(1, len(imps))))  # ajusta N
-            self.rebuild_imputados()                             # fuerza recreación
-
-            for idx, imp in enumerate(imps):
-                # ── tomamos el bloque de datos personales ──
-                bruto = imp.get("datos_personales", imp)
-
-                # ①  Si el JSON vino con “prontuario” (o “pront/prio”) SUELTO,
-                #    lo metemos adentro del mismo dict para que el formateador lo vea.
-                if isinstance(bruto, dict):
-                    for key in ("prontuario", "pront", "prio"):
-                        if key in imp and key not in bruto and imp[key]:
-                            bruto["prontuario"] = imp[key]
-                            break
-
-                # ②  Ahora sí convertimos todo a la línea legible
-                self.imputados_widgets[idx]["datos_personales"].setPlainText(
-                    self._format_datos_personales(bruto)
-                )
-
-                # ③  Extraer nombre y DNI
-                if isinstance(bruto, dict):
-                    nombre = self._as_str(bruto.get("nombre") or imp.get("nombre"))
-                    dni = self._as_str(bruto.get("dni") or imp.get("dni"))
-                else:
-                    nombre = self._as_str(imp.get("nombre"))
-                    dni = self._as_str(imp.get("dni"))
-
-                # ── NUEVO: si aún no hay DNI, búscalo dentro del texto libre ──
-                if not dni:
-                    dni = extraer_dni(self._as_str(bruto))
-                dni = normalizar_dni(dni)
-                self.imputados_widgets[idx]["nombre"].setText(nombre)
-                self.imputados_widgets[idx]["dni"].setText(dni)
-            self._refresh_imp_names_in_selector()
-            # 4) Refrescar plantillas
-            self.update_templates()
-
-            QMessageBox.information(self, "Listo", "Campos cargados exitosamente.")
-
-        except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
 
     # ─────────────────── plantillas de oficios ────────────────────
     def update_templates(self):
