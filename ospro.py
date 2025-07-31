@@ -206,6 +206,17 @@ def strip_trailing_single_dot(text: str | None) -> str:
 
     return text
 
+# ── limpiar pies de página recurrentes ────────────────────────────────
+_FOOTER_REGEX = re.compile(
+    r"\s*Expediente\s+SAC\s+\d+\s*-\s*P[áa]g\.\s*\d+\s*/\s*\d+\s*-\s*N°?\s*Res\.\s*\d+\s*",
+    re.IGNORECASE,
+)
+
+
+def limpiar_pies_de_pagina(texto: str) -> str:
+    """Elimina de ``texto`` los pies de página estándar de las sentencias."""
+    return re.sub(_FOOTER_REGEX, " ", texto)
+
 # ── helper para capturar el bloque dispositvo (resuelvo) ─────────────
 
 # ── helper para capturar SIEMPRE el bloque dispositvo (resuelvo) ──────────
@@ -233,6 +244,7 @@ def extraer_resuelvo(texto: str) -> str:
     Devuelve el ÚLTIMO bloque dispositvo (resuelvo) de la sentencia.
     Si no hay coincidencias, devuelve cadena vacía.
     """
+    texto = limpiar_pies_de_pagina(texto)
     matches = list(_RESUELVO_REGEX.finditer(texto))
     return matches[-1].group(1).strip() if matches else ""
 
@@ -1010,6 +1022,8 @@ class MainWindow(QMainWindow):
             elif ext.endswith(".docx"):
                 texto = docx2txt.process(ruta)
 
+            texto = limpiar_pies_de_pagina(texto)
+
             # 2) Llamar a la API en JSON mode
             respuesta = openai.ChatCompletion.create(
                 model="gpt-4o-mini",          # arranquemos barato
@@ -1045,6 +1059,7 @@ class MainWindow(QMainWindow):
 
             # normalizar saltos de línea (opcional pero recomendable)
             g["resuelvo"] = re.sub(r"\s*\n\s*", " ", g["resuelvo"]).strip()
+            g["resuelvo"] = limpiar_pies_de_pagina(g["resuelvo"]).strip()
 # -----------------------------------------------------------------------------
             # --------------- asegurar que 'firmantes' tenga buen contenido ---------------
             firmas_detectadas = extraer_firmantes(texto)
