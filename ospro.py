@@ -195,12 +195,22 @@ def extraer_resuelvo(texto: str) -> str:
 
 # ── helper para capturar FIRMANTES ────────────────────────────
 _FIRMAS_REGEX = re.compile(r'''
-    ^\s*(?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s*   # cabecera
-    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s\.\-]+?)\s*,\s*      # nombre
-    (?P<cargo>[^\n,]+?)                                    # cargo
-    (?:,\s*(?:CUIL|DNI|ID)\s*(?P<doc>[\d\-\.]+))?          # doc opcional
-    \s*$                                                   # fin de línea
+    # Cabecera (puede faltar en los firmantes 2, 3, …)
+    (?:^\s*(?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s*)?
+    
+    # Nombre (hasta fin de línea o coma)
+    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s\.\-]+?)\s*
+    
+    # Separador flexible: coma, salto de línea o ambos
+    (?:,\s*|\s*\n\s*)
+    
+    # Cargo (una línea en mayúsculas habitualmente)
+    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)
+    
+    # Documento opcional, mismo o siguiente renglón
+    (?:[,\s]*\n?\s*(?:CUIL|DNI|ID)\s*(?P<doc>[\d\-\.]+))?
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
+
 
 def extraer_firmantes(texto: str) -> list[dict]:
     """
@@ -1160,7 +1170,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        res_a = anchor(res, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         regn_a = self._field_anchor(self.entry_regn, "edit_regn", "…")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
@@ -1203,7 +1213,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        res_a = anchor(res, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
@@ -1212,7 +1222,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        res_a = anchor(res, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         regn_a = self._field_anchor(self.entry_regn, "edit_regn", "…")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
@@ -1261,7 +1271,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        res_a = anchor(res, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
@@ -1310,7 +1320,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        res_a = anchor(res, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         comisaria_a = self._field_anchor(self.entry_comisaria, "edit_comisaria", "…")
@@ -1358,7 +1368,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
+        res_a = anchor(res, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
@@ -1470,7 +1480,7 @@ class MainWindow(QMainWindow):
             "(OSPRO), se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a lo resuelto en la "
             "sentencia dictada en la causa de referencia, los antecedentes obrantes en el expediente mencionado, "
             "a los fines de investigar la posible comisión de un delito perseguible de oficio.\n\n"
-            f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res_a}”. "
+            f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res}”. "
             f"(Fdo.: {firm_a}).\n\n"
             "Sin otro particular, saludo a Ud. atte."
         )
