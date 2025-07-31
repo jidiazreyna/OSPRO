@@ -121,24 +121,24 @@ CARACTER_ENTREGA = ["definitivo", "de depositario judicial"]
 
 # opciones de Juzgados de Niñez, Adolescencia, Violencia Familiar y de Género
 JUZ_NAVFYG = [
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n1ª Nom. – Sec.\u202fN°\u202f1",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n1ª Nom. – Sec.\u202fN°\u202f2",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n2ª Nom. – Sec.\u202fN°\u202f3",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n2ª Nom. – Sec.\u202fN°\u202f4",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n3ª Nom. – Sec.\u202fN°\u202f5",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n3ª Nom. – Sec.\u202fN°\u202f6",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n4ª Nom. – Sec.\u202fN°\u202f7",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n4ª Nom. – Sec.\u202fN°\u202f8",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n5ª Nom. – Sec.\u202fN°\u202f9",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n5ª Nom. – Sec.\u202fN°\u202f10",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n6ª Nom. – Sec.\u202fN°\u202f11",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n6ª Nom. – Sec.\u202fN°\u202f12",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n7ª Nom. – Sec.\u202fN°\u202f13",
-    "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n7ª Nom. – Sec.\u202fN°\u202f14",
-    "Juzgados de Violencia de Género, \nmodalidad doméstica -causas graves- de \n8ª Nom. – Sec.\u202fN°\u202f15",
-    "Juzgados de Violencia de Género, \nmodalidad doméstica -causas graves- de \n8ª Nom. – Sec.\u202fN°\u202f16",
-    "Juzgados de Violencia de Género, \nmodalidad doméstica -causas graves- de \n9ª Nom. – Sec.\u202fN°\u202f17",
-    "Juzgados de Violencia de Género, \nmodalidad doméstica -causas graves- de \n9ª Nom. – Sec.\u202fN°\u202f18",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 1ª Nom. – Sec.\u202fN°\u202f1",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 1ª Nom. – Sec.\u202fN°\u202f2",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 2ª Nom. – Sec.\u202fN°\u202f3",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 2ª Nom. – Sec.\u202fN°\u202f4",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 3ª Nom. – Sec.\u202fN°\u202f5",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 3ª Nom. – Sec.\u202fN°\u202f6",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 4ª Nom. – Sec.\u202fN°\u202f7",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 4ª Nom. – Sec.\u202fN°\u202f8",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 5ª Nom. – Sec.\u202fN°\u202f9",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 5ª Nom. – Sec.\u202fN°\u202f10",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 6ª Nom. – Sec.\u202fN°\u202f11",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 6ª Nom. – Sec.\u202fN°\u202f12",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 7ª Nom. – Sec.\u202fN°\u202f13",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 7ª Nom. – Sec.\u202fN°\u202f14",
+    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f15",
+    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f16",
+    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f17",
+    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f18",
 ]
 
 # texto acortado para mostrar en el combo: tomamos la última parte
@@ -1001,7 +1001,7 @@ class MainWindow(QMainWindow):
             "cuyos datos personales se mencionan a continuación:\n\n"
             f"{self._imp_datos_anchor()}\n\n"
             f"“SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. Se Resuelve: {res_a}”\n\n"
-            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -1044,7 +1044,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos_anchor()}\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}” "
             f"Fdo.: {firm_a}\n\n"
-            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -1077,9 +1077,7 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         cuerpo = (
-            "Al Sr. Titular del Consulado\n"
-            " de " + pais_a + "\n"
-            " S/D:\n\n"
+            "Al Sr. Titular del Consulado de " + pais_a + " S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, "
             "con la intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar el presente oficio, "
@@ -1088,7 +1086,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos_anchor()}\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}” "
             f"Fdo.: {firm_a}\n\n"
-            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -1175,7 +1173,7 @@ class MainWindow(QMainWindow):
         deposito_a = self._field_anchor(self.entry_deposito, "edit_deposito", "depósito")
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
-            "DEL TRIBUNAL SUPERIOR DE JUSTICIA \nDRA. MARIA PUEYRREDON DE MONFARRELL\n"
+            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S______/_______D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de esta Oficina de Servicios "
@@ -1223,7 +1221,7 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
-            "DEL TRIBUNAL SUPERIOR DE JUSTICIA \nDRA. MARIA PUEYRREDON DE MONFARRELL\n"
+            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
@@ -1269,7 +1267,7 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             f"AL SR. TITULAR\n"
-            f"DE LA COMISARÍA N° {comisaria_a} \nDE LA POLICÍA DE CÓRDOBA\n"
+            f"DE LA COMISARÍA N° {comisaria_a} DE LA POLICÍA DE CÓRDOBA\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
@@ -1316,7 +1314,7 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
-            "DEL TRIBUNAL SUPERIOR DE JUSTICIA \nDRA. MARIA PUEYRREDON DE MONFARRELL\n"
+            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S______/_______D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de ésta Oficina de Servicios "
@@ -1360,7 +1358,7 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             "A LA OFICINA DE\n"
-            "AUTOMOTORES SECUESTRADOS EN \nCAUSAS PENALES, TRIBUNAL SUPERIOR DE JUSTICIA.\n"
+            "AUTOMOTORES SECUESTRADOS EN CAUSAS PENALES, TRIBUNAL SUPERIOR DE JUSTICIA.\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de ésta Oficina de Servicios Procesales "
@@ -1411,7 +1409,7 @@ class MainWindow(QMainWindow):
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         cuerpo = (
-            "Sr/a Fiscal de \nInstrucción que por turno corresponda\n"
+            "Sr/a Fiscal de Instrucción que por turno corresponda\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de la Oficina de Servicios Procesales "
@@ -1474,7 +1472,7 @@ class MainWindow(QMainWindow):
         computo_a = anchor(computo, "edit_computo", "…") if computo else anchor("", "edit_computo", "…")
 
         cuerpo = (
-            "Sr. Titular de la División de \nDocumentación Personal \nPolicía de la Provincia de Córdoba\n"
+            "Sr. Titular de la División de Documentación Personal – Policía de la Provincia de Córdoba\n"
             "S ______/_______D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
@@ -1512,7 +1510,7 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         cuerpo = (
-            "Sr/a Director/a \nRegistro Civil y Capacidad de las Personas\n"
+            "Sr/a Director/a del Registro Civil y Capacidad de las Personas\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con "
@@ -1521,7 +1519,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos_anchor()}\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se Resuelve: {res_a}” "
             f"Fdo.: {firm_a}\n\n"
-            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -1564,27 +1562,27 @@ class MainWindow(QMainWindow):
         antecedentes_a = anchor(antecedentes, "edit_antecedentes", "…")
         tratamientos_a = anchor(tratamientos, "edit_tratamientos", "…")
         cuerpo = (
-            "Al Sr. Titular del \nRegistro Provincial de Personas Condenadas \npor Delitos contra la Integridad Sexual\n"
+            "Al Sr. Titular del Registro Provincial de Personas Condenadas por Delitos contra la Integridad Sexual\n"
             "S./D.\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de ésta Oficina de Servicios Procesales (OSPRO), "
             f"se ha resuelto librar el presente a fin de registrar en dicha dependencia lo resuelto por Sentencia N° {sent_n_a}, "
             f"de fecha {sent_f_a} dictada por el mencionado Tribunal.\n\n"
             "I. DATOS PERSONALES\n"
-            f"{self._imp_datos_anchor()}\n\n"
-            "II. IDENTIFICACIÓN DACTILAR (adjuntar ficha).\n\n"
+            f"{self._imp_datos_anchor()}\n"
+            "II. IDENTIFICACIÓN DACTILAR (adjuntar ficha).\n"
             "III. DATOS DE CONDENA Y LIBERACIÓN (adjuntar copia de la sentencia).\n"
             f"   • Condena impuesta: {condena_a}\n"
             f"   • Fecha firmeza: {sent_firmeza_a}\n"
             f"   • Fecha de extinción: {extincion_a}\n"
             f"   • Servicio Penitenciario: {servicio_a}\n"
             f"     Legajo: {legajo_a}\n"
-            f"   • Delito: {delitos_a}\n\n"
+            f"   • Delito: {delitos_a}\n"
             f"IV. HISTORIAL DE DELITOS Y CONDENAS ANTERIORES:\n"
-            f"   {antecedentes_a}\n\n"
+            f"   {antecedentes_a}\n"
             f"V. TRATAMIENTOS MÉDICOS Y PSICOLÓGICOS:\n"
-            f"   {tratamientos_a}\n\n"
-            "VI. OTROS DATOS DE INTERÉS:\n"
+            f"   {tratamientos_a}\n"
+            "VI. OTROS DATOS DE INTERÉS:\n\n"
             f"   Se le hace saber que {trib_a} resolvió mediante Sentencia N° {sent_n_a} de fecha {sent_f_a} lo siguiente “{res_a}.”.\n"
             f"   Fdo.: {firm_a}.\n\n"
             "Se adjuntan copias digitales de ficha RNR, sentencia firme y cómputo.\n\n"
@@ -1615,7 +1613,7 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         cuerpo = (
-            "Al Sr. Director del \nRegistro Nacional de Reincidencia\n"
+            "Al Sr. Director del Registro Nacional de Reincidencia\n"
             "S/D:\n\n"
             "De acuerdo a lo dispuesto por el art. 2º de la Ley 22.177, remito a Ud. testimonio de la parte dispositiva "
             "de la resolución dictada en los autos caratulados: "
@@ -1653,7 +1651,7 @@ class MainWindow(QMainWindow):
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
         cuerpo = (
-            "SR. DIRECTOR DEL REGISTRO PROVINCIAL \nDE ANTECEDENTES DE TRÁNSITO (RePAT)\n"
+            "SR. DIRECTOR DEL REGISTRO PROVINCIAL DE ANTECEDENTES DE TRÁNSITO (RePAT)\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de esta ciudad de Córdoba, con intervención de esta Oficina de "
@@ -1662,7 +1660,7 @@ class MainWindow(QMainWindow):
             f"{self._imp_datos_anchor()}\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se resuelve: {res_a}” "
             f"(Fdo.: {firm_a}).\n\n"
-            f"Asimismo, se informa que la sentencia condenatoria quedó firme con fecha {sent_firmeza_a}\n\n"
+            f"Asimismo, se informa que la sentencia condenatoria quedó firme con fecha {sent_firmeza_a}\n"
             "Se adjuntan copias digitales de la sentencia y del cómputo de pena respectivos.\n\n"
             "Saludo a Ud. atentamente."
         )
@@ -1682,7 +1680,7 @@ class MainWindow(QMainWindow):
         res = self.entry_resuelvo.text() or "…"
         firm = self.entry_firmantes.text() or "…"
         juz = self._imp_field('juz_navfyg') or (
-            "Juzgado de Niñez, Adolescencia, \nViolencia Familiar y de Género de \n"
+            "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de "
             "….. Nom. – Sec. N° ….."
         )
         ee_rel = self._imp_field('ee_relacionado') or "…………."
@@ -1739,7 +1737,7 @@ class MainWindow(QMainWindow):
         dni_a = anchor(dni, "edit_dni", "…")
 
         cuerpo = (
-            f"AL SEÑOR DIRECTOR \nDEL {establecimiento_a}\n"
+            f"AL SEÑOR DIRECTOR DEL {establecimiento_a}\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
@@ -1828,6 +1826,66 @@ class MainWindow(QMainWindow):
             return
         if clave == "edit_firmantes":
             self._editar_lineedit(self.entry_firmantes, "Firmantes")
+            return
+        if clave == "edit_rodado":
+            self._editar_lineedit(self.entry_rodado, "Decomisado/secuestrado")
+            return
+        if clave == "edit_regn":
+            self._editar_lineedit(self.entry_regn, "Reg. N°")
+            return
+        if clave == "edit_deposito":
+            self._editar_combo(self.entry_deposito, "Depósito")
+            return
+        if clave == "edit_comisaria":
+            self._editar_lineedit(self.entry_comisaria, "Comisaría")
+            return
+        if clave == "edit_dep_def":
+            self._editar_combo(self.entry_dep_def, "Carácter de la entrega")
+            return
+        if clave == "edit_titular_veh":
+            self._editar_lineedit(self.entry_titular_veh, "Titular del vehículo")
+            return
+        if clave == "edit_itim_num":
+            self._editar_lineedit(self.entry_itim_num, "ITIM Nº")
+            return
+        if clave == "edit_itim_fecha":
+            self._editar_lineedit(self.entry_itim_fecha, "Fecha ITIM")
+            return
+
+        # ---- campos del imputado seleccionado ----
+        idx_sel = self.selector_imp.currentIndex()
+        if clave == "edit_nombre" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['nombre'], "Nombre y apellido")
+            return
+        if clave == "edit_dni" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['dni'], "DNI")
+            return
+        if clave == "edit_legajo" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['legajo'], "Legajo")
+            return
+        if clave == "edit_condena" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['condena'], "Condena")
+            return
+        if clave == "edit_delitos" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['delitos'], "Delitos")
+            return
+        if clave == "edit_antecedentes" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['antecedentes'], "Antecedentes")
+            return
+        if clave == "edit_tratamientos" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['tratamientos'], "Tratamientos")
+            return
+        if clave == "edit_computo" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['computo'], "Cómputo")
+            return
+        if clave == "edit_servicio_penitenciario" and idx_sel >= 0:
+            self._editar_combo(self.imputados_widgets[idx_sel]['servicio_penitenciario'], "Servicio Penitenciario")
+            return
+        if clave == "edit_juz_navfyg" and idx_sel >= 0:
+            self._editar_combo(self.imputados_widgets[idx_sel]['juz_navfyg'], "Juzgado NAVFyG")
+            return
+        if clave == "edit_ee_relacionado" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['ee_relacionado'], "EE relacionado")
             return
 
         if clave.startswith("edit_imp_datos_"):
