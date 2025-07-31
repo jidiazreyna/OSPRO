@@ -241,28 +241,31 @@ def limpiar_pies_de_pagina(texto: str) -> str:
     """Elimina de ``texto`` los pies de página estándar de las sentencias."""
     return re.sub(_FOOTER_REGEX, " ", texto)
 
-# ── helper para capturar el bloque dispositvo (resuelvo) ─────────────
-
-# ── helper para capturar SIEMPRE el bloque dispositvo (resuelvo) ──────────
-# Busca la parte final de la sentencia iniciada con «RESUELVE» o «RESUELVO»
-# y finalizada con las fórmulas de cierre habituales.
+# ­­­ ---- bloque RESUELVE / RESUELVO ───────────────────────────────
 _RESUELVO_REGEX = re.compile(
     r"""
-    resuelv[eo]\s*:?\s*
-    (                                   # ---------- BLOQUE A CAPTURAR ----------
-        (?:\s*[IVXLCDM]+\s*[).]\s.*?     #  I) …   o   I. …
-            (?:\n(?!\s*[IVXLCDM]+\s*[).]).*?)*   #   líneas que siguen al mismo inciso
-    )+)                                  # uno o más incisos
-    (?=                                  # ---------- CONDICIÓN DE CORTE ----------
-        \s*(?:\n|$)\s*                    #  debe empezar línea nueva (o fin de texto)
-        (?:Protocol[íi]?cese              #  fórmulas de cierre habituales
-          |Notifíquese
-          |Hágase\s+saber
-          |Of[íi]ciese)        
+    resuelv[eo]\s*:?\s*                           # “RESUELVE:” / “RESUELVO:”
+    (?P<bloque>                                   # ← bloque que queremos extraer
+        (?:
+            (?:                                   # ─ un inciso: I) / 1. / II- …
+                \s*(?:[IVXLCDM]+|\d+)             #   núm. romano o arábigo
+                \s*[)\.\-‑]\s+                    #   ) . - ‑ como separador
+                .*?                               #   texto del inciso (lazy)
+                (?:                               #   líneas del mismo inciso
+                    \n(?!\s*(?:[IVXLCDM]+|\d+)\s*[)\.\-‑]).*?
+                )*
+            )
+        )+                                        # uno o más incisos
+    )
+    (?=                                           # -- corte del bloque --
+        \s*(?:Protocol[íi]?cese|Notifíquese|
+            Hágase\s+saber|Of[íi]ciese)           # fórmulas de cierre
+        |\Z                                       # o fin de texto
     )
     """,
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
 )
+
 
 def extraer_resuelvo(texto: str) -> str:
     """
