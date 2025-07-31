@@ -1270,10 +1270,11 @@ class MainWindow(QMainWindow):
             f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}”. Fdo.: {firm_a}.\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.\n\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
-            "Sin otro particular, saludo a Ud. atentamente."
-        )
+       )
+        saludo = "Sin otro particular, saludo a Ud. atentamente."
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
 
     def _plantilla_juez_electoral(self):
@@ -1314,11 +1315,12 @@ class MainWindow(QMainWindow):
             f"Fdo.: {firm_a}.\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.\n\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
-            "Sin otro particular, saludo a Ud. atentamente."
         )
+        saludo = "Sin otro particular, saludo a Ud. atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_consulado(self):
         te = self.text_edits["Oficio Consulado"]
@@ -1359,12 +1361,13 @@ class MainWindow(QMainWindow):
             f"Fdo.: {firm_a}.\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.\n\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
-            "Sin otro particular, saludo a Ud. atentamente."
         )
+        saludo = "Sin otro particular, saludo a Ud. atentamente."
 
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_registro_automotor(self):
         te = self.text_edits["Oficio Registro Automotor"]
@@ -1403,11 +1406,12 @@ class MainWindow(QMainWindow):
             "Se transcribe a continuación la parte pertinente de la misma:\n"
             f"“SE RESUELVE: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
-            "Sin otro particular, saludo a Ud. atte."
         )
+        saludo = "Sin otro particular, saludo a Ud. atte."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_tsj_secpenal(self):
         te = self.text_edits["Oficio TSJ Sec. Penal"]
@@ -1463,11 +1467,12 @@ class MainWindow(QMainWindow):
             f"(Fdo.: {firm_a}).\n\n"
             f"Asimismo, se informa que en el día de la fecha se comunicó dicha resolución al Registro del Automotor "
             f"donde está radicado el vehículo, Nº {regn_a}.\n\n"
-            "Sin otro particular, saludo a Ud. muy atentamente."
         )
+        saludo = "Sin otro particular, saludo a Ud. muy atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_tsj_secpenal_depositos(self):
         te = self.text_edits["Oficio TSJ Sec. Penal (Depósitos)"]
@@ -1513,11 +1518,12 @@ class MainWindow(QMainWindow):
             "Asimismo, informo que la sentencia referida se encuentra firme, transcribiéndose a continuación la parte "
             f"pertinente de la misma: “SE RESUELVE: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
-            "Sin otro particular, saludo a Ud. muy atentamente."
         )
+        saludo = "Sin otro particular, saludo a Ud. muy atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_comisaria_traslado(self):
         te = self.text_edits["Oficio Comisaría Traslado"]
@@ -1562,11 +1568,12 @@ class MainWindow(QMainWindow):
             f"Sentencia N° {sent_n_a} de fecha {sent_f_a}, “{res_a}”. "
             f"(Fdo.: {firm_a}), elemento/s que fuera/n secuestrado/s "
             "en las presentes actuaciones y que actualmente se encuentra/n en el Depósito de la Comisaría a su cargo.\n\n"
-            "Sin otro particular, saludo a Ud. muy atentamente."
         )
+        saludo = "Sin otro particular, saludo a Ud. muy atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_tsj_secpenal_elementos(self):
         te = self.text_edits["Oficio TSJ Sec. Penal (Elementos)"]
@@ -1609,11 +1616,12 @@ class MainWindow(QMainWindow):
             "Pongo en su conocimiento que la mencionada resolución se encuentra firme, transcribiéndose a continuación "
             f"la parte pertinente de la misma: “SE RESUELVE: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
-            "Sin otro particular, saludo a Ud. muy atentamente."
         )
+        saludo = "Sin otro particular, saludo a Ud. muy atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_automotores_secuestrados(self):
         te = self.text_edits["Oficio Automotores Secuestrados"]
@@ -1656,11 +1664,12 @@ class MainWindow(QMainWindow):
             "Finalmente, se informa que a dicho rodado, se le realizó el correspondiente Informe "
             f"Técnico de Identificación de Matrículas N° {numero_itim_a} de fecha {fecha_itim_a}, concluyendo el mismo que la unidad no "
             "presenta adulteración en sus matrículas identificatorias.\n\n"
-            "Saludo a Ud. muy atentamente."
         )
+        saludo = "Saludo a Ud. muy atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_fiscalia_instruccion(self):
         te = self.text_edits["Oficio Fiscalía Instrucción"]
@@ -1704,11 +1713,12 @@ class MainWindow(QMainWindow):
             "a los fines de investigar la posible comisión de un delito perseguible de oficio.\n\n"
             f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
-            "Sin otro particular, saludo a Ud. atte."
         )
+        saludo = "Sin otro particular, saludo a Ud. atte."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_policia_documentacion(self):
         te = self.text_edits["Oficio Policía Documentación"]
@@ -1771,11 +1781,12 @@ class MainWindow(QMainWindow):
             f"(Fdo.: {firm_a}).\n\n"
             f"Se transcribe a continuación {comp_label}: {computo_a}.\n"
             f"Fecha de firmeza de la Sentencia: {sent_firmeza_a}.\n\n"
-            "Saluda a Ud. atentamente."
         )
+        saludo = "Saluda a Ud. atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_registro_civil(self):
         te = self.text_edits["Oficio Registro Civil"]
@@ -1811,11 +1822,12 @@ class MainWindow(QMainWindow):
             f"Fdo.: {firm_a}.\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.\n\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
-            "Sin otro particular, saludo a Ud. atentamente."
         )
+        saludo = "Sin otro particular, saludo a Ud. atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_registro_condenados_sexuales(self):
         te = self.text_edits["Oficio Registro Condenados Sexuales"]
@@ -1883,11 +1895,12 @@ class MainWindow(QMainWindow):
             f"   Se le hace saber que {trib_a} resolvió mediante Sentencia N° {sent_n_a} de fecha {sent_f_a} lo siguiente “{res_a}.”.\n"
             f"   Fdo.: {firm_a}.\n\n"
             "Se adjuntan copias digitales de ficha RNR, sentencia firme y cómputo.\n\n"
-            "Saludo a Ud. atentamente."
         )
+        saludo = "Saludo a Ud. atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_registro_nacional_reincidencia(self):
         te = self.text_edits["Oficio Registro Nacional Reincidencia"]
@@ -1930,11 +1943,12 @@ class MainWindow(QMainWindow):
             f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “{res_a}.” (Fdo.: {firm_a}).\n\n"
             f"Se transcribe a continuación {comp_label}: {computo_a}.\n"
             f"Fecha de firmeza de la sentencia: {sent_firmeza_a}.\n\n"
-            "Saluda a Ud. atentamente."
         )
+        saludo = "Saluda a Ud. atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_repat(self):
         te = self.text_edits["Oficio RePAT"]
@@ -1969,11 +1983,12 @@ class MainWindow(QMainWindow):
             f"(Fdo.: {firm_a}).\n\n"
             f"Asimismo, se informa que la sentencia condenatoria antes referida quedó firme con fecha {sent_firmeza_a}.\n"
             "Se adjuntan al presente oficio copia digital Sentencia y de cómputo de pena respectivos.\n\n"
-            "Saludo a Ud. atentamente."
         )
+        saludo = "Saludo a Ud. atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_juzgado_ninez(self):
         te = self.text_edits["Oficio Juzgado Niñez‑Adolescencia"]
@@ -2021,11 +2036,12 @@ class MainWindow(QMainWindow):
             f"(Fdo.: {firm_a}).\n\n"
             "Se adjuntan al presente oficio copia digital de la sentencia y del cómputo de pena respectivo.\n\n"
             f"Expediente de V.F. relacionado al presente n° {ee_rel_a}\n\n"
-            "Sin otro particular, saludo a Ud. atentamente."
         )
+        saludo = "Sin otro particular, saludo a Ud. atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_complejo_carcelario(self):
         te = self.text_edits["Oficio Complejo Carcelario"]
@@ -2063,11 +2079,12 @@ class MainWindow(QMainWindow):
             f"me dirijo a Ud. a los fines de informar lo resuelto con relación a {nombre_a}, DNI {dni_a}, mediante Sentencia "
             f"N° {sent_n_a}, de fecha {sent_f_a}: \u201c{res_a}\u201d. "
             f"(Fdo.: {firm_a}).\n\n"
-            "Sin otro particular, lo saludo atentamente."
         )
+        saludo = "Sin otro particular, lo saludo atentamente."
         self._insert_paragraph(te, fecha, Qt.AlignRight)
         cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
+        self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def copy_to_clipboard(self, te: QTextEdit):
         html = _strip_anchor_styles(te.toHtml())
