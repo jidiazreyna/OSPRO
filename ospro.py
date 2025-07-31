@@ -989,7 +989,7 @@ class MainWindow(QMainWindow):
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
 
         cuerpo = (
             "Sr/a Director/a\n"
@@ -1025,7 +1025,7 @@ class MainWindow(QMainWindow):
         nom   = "…"   # idem Nominación
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1068,7 +1068,7 @@ class MainWindow(QMainWindow):
         pais  = self.entry_consulado.text() or "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         pais_a = self._field_anchor(self.entry_consulado, "edit_consulado", "país")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
@@ -1111,7 +1111,7 @@ class MainWindow(QMainWindow):
         rodado = self.entry_rodado.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1154,23 +1154,23 @@ class MainWindow(QMainWindow):
         deposito = self.entry_deposito.currentText() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "rodado")
-        deposito_a = self._field_anchor(self.entry_deposito, "edit_deposito", "depósito")
+        deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         regn_a = self._field_anchor(self.entry_regn, "edit_regn", "N°")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "rodado")
-        deposito_a = self._field_anchor(self.entry_deposito, "edit_deposito", "depósito")
+        deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
             "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
@@ -1210,13 +1210,13 @@ class MainWindow(QMainWindow):
         deposito = self.entry_deposito.currentText() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "rodado")
-        deposito_a = self._field_anchor(self.entry_deposito, "edit_deposito", "depósito")
+        deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
         comisaria_a = self._field_anchor(self.entry_comisaria, "edit_comisaria", "comisaría")
 
         cuerpo = (
@@ -1257,7 +1257,7 @@ class MainWindow(QMainWindow):
         rodado = self.entry_rodado.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1304,13 +1304,13 @@ class MainWindow(QMainWindow):
         deposito = self.entry_deposito.currentText() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "rodado")
-        deposito_a = self._field_anchor(self.entry_deposito, "edit_deposito", "depósito")
+        deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
 
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
@@ -1348,13 +1348,13 @@ class MainWindow(QMainWindow):
         dep_def = self.entry_dep_def.currentText() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "rodado")
-        deposito_a = self._field_anchor(self.entry_deposito, "edit_deposito", "depósito")
+        deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
         numero_itim_a = self._field_anchor(self.entry_itim_num, "edit_itim_num", "N°")
         fecha_itim_a = self._field_anchor(self.entry_itim_fecha, "edit_itim_fecha", "fecha")
         titular_veh_a = self._field_anchor(self.entry_titular_veh, "edit_titular_veh", "titular")
-        dep_def_a = self._field_anchor(self.entry_dep_def, "edit_dep_def", "carácter")
+        dep_def_a = self._field_anchor(self.entry_dep_def, "combo_dep_def", "carácter")
 
         cuerpo = (
             "A LA OFICINA DE\n"
@@ -1403,7 +1403,7 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1437,7 +1437,7 @@ class MainWindow(QMainWindow):
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1450,7 +1450,7 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1463,7 +1463,7 @@ class MainWindow(QMainWindow):
         else:
             comp_label = "la resolución que fija la fecha de cumplimiento de los arts. 27 y 27 bis del C.P."
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1502,7 +1502,7 @@ class MainWindow(QMainWindow):
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1548,7 +1548,7 @@ class MainWindow(QMainWindow):
         tratamientos = self._imp_field('tratamientos') or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1556,7 +1556,7 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
         extincion_a = anchor(extincion, "edit_computo", "…") if extincion else anchor("", "edit_computo", "…")
         condena_a = anchor(condena, "edit_condena", "…") if condena else anchor("", "edit_condena", "…")
-        servicio_a = anchor(servicio, "edit_servicio_penitenciario", "…")
+        servicio_a = anchor(servicio, "combo_servicio_penitenciario", "…")
         legajo_a = anchor(legajo, "edit_legajo", "…")
         delitos_a = anchor(delitos, "edit_delitos", "…")
         antecedentes_a = anchor(antecedentes, "edit_antecedentes", "…")
@@ -1605,7 +1605,7 @@ class MainWindow(QMainWindow):
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1644,7 +1644,7 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1683,15 +1683,18 @@ class MainWindow(QMainWindow):
             "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de "
             "….. Nom. – Sec. N° ….."
         )
+        if juz.startswith("Juzgado de Niñez,"):
+            juz = (juz.replace(", Violencia", ",\nViolencia")
+                      .replace("Género de ", "Género de \n"))
         ee_rel = self._imp_field('ee_relacionado') or "…………."
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
-        juz_a = anchor(juz, "edit_juz_navfyg", "juzgado")
+        juz_a = anchor(juz, "combo_juz_navfyg", "juzgado")
         ee_rel_a = anchor(ee_rel, "edit_ee_relacionado", "…")
         cuerpo = (
             f"{juz_a}\n"
@@ -1727,12 +1730,12 @@ class MainWindow(QMainWindow):
         dni = self._imp_field('dni') or "\u2026"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
-        trib_a = self._field_anchor(self.entry_tribunal, "edit_tribunal", "tribunal")
+        trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
-        establecimiento_a = anchor(establecimiento, "edit_servicio_penitenciario", "…")
+        establecimiento_a = anchor(establecimiento, "combo_servicio_penitenciario", "…")
         nombre_a = anchor(nombre, "edit_nombre", "…")
         dni_a = anchor(dni, "edit_dni", "…")
 
@@ -1806,7 +1809,7 @@ class MainWindow(QMainWindow):
         if clave == "edit_caratula":
             self._editar_lineedit(self.entry_caratula, "Carátula")
             return
-        if clave == "edit_tribunal":
+        if clave == "combo_tribunal":
             self._editar_combo(self.entry_tribunal, "Tribunal")
             return
         if clave == "edit_consulado":
@@ -1833,13 +1836,13 @@ class MainWindow(QMainWindow):
         if clave == "edit_regn":
             self._editar_lineedit(self.entry_regn, "Reg. N°")
             return
-        if clave == "edit_deposito":
+        if clave == "combo_deposito":
             self._editar_combo(self.entry_deposito, "Depósito")
             return
         if clave == "edit_comisaria":
             self._editar_lineedit(self.entry_comisaria, "Comisaría")
             return
-        if clave == "edit_dep_def":
+        if clave == "combo_dep_def":
             self._editar_combo(self.entry_dep_def, "Carácter de la entrega")
             return
         if clave == "edit_titular_veh":
@@ -1878,10 +1881,10 @@ class MainWindow(QMainWindow):
         if clave == "edit_computo" and idx_sel >= 0:
             self._editar_lineedit(self.imputados_widgets[idx_sel]['computo'], "Cómputo")
             return
-        if clave == "edit_servicio_penitenciario" and idx_sel >= 0:
+        if clave == "combo_servicio_penitenciario" and idx_sel >= 0:
             self._editar_combo(self.imputados_widgets[idx_sel]['servicio_penitenciario'], "Servicio Penitenciario")
             return
-        if clave == "edit_juz_navfyg" and idx_sel >= 0:
+        if clave == "combo_juz_navfyg" and idx_sel >= 0:
             self._editar_combo(self.imputados_widgets[idx_sel]['juz_navfyg'], "Juzgado NAVFyG")
             return
         if clave == "edit_ee_relacionado" and idx_sel >= 0:
