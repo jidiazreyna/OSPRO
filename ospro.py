@@ -311,7 +311,7 @@ class MainWindow(QMainWindow):
         self.entry_localidad = add_line('entry_localidad', "Localidad:")
         self.entry_caratula  = add_line ('entry_caratula',  "Carátula:")
         self.entry_tribunal  = add_combo('entry_tribunal',  "Tribunal:", TRIBUNALES, editable=True)
-        self.entry_consulado = add_line('entry_consulado', "Consulado de:")
+
 
         # ─── sentencia (número y fecha) ───
         label("Sentencia:")
@@ -332,7 +332,7 @@ class MainWindow(QMainWindow):
 
         self.entry_resuelvo = add_line('entry_resuelvo', "Resuelvo:")
         self.entry_firmantes = add_line('entry_firmantes', "Firmantes de la sentencia:")
-
+        self.entry_consulado = add_line('entry_consulado', "Consulado de:")
         self.entry_rodado = add_line('entry_rodado', "Decomisado/secuestrado:")
         label("Reg. automotor / Comisaría:")
         h_reg_com = QHBoxLayout()
@@ -646,7 +646,6 @@ class MainWindow(QMainWindow):
             'localidad' : self.entry_localidad.text(),
             'caratula'  : self.entry_caratula.text(),
             'tribunal'  : self.entry_tribunal.currentText(),
-            'consulado' : self.entry_consulado.text(),
 
             'resuelvo'  : self.entry_resuelvo.text(),
             'firmantes' : self.entry_firmantes.text(),
@@ -654,7 +653,7 @@ class MainWindow(QMainWindow):
             'sent_num'  : self.entry_sent_num.text(),
             'sent_fecha': self.entry_sent_date.text(),
             'sent_firmeza': self.entry_sent_firmeza.text(),
-
+            'consulado' : self.entry_consulado.text(),
             'rodado': self.entry_rodado.text(),
             'regn': self.entry_regn.text(),
             'deposito': self.entry_deposito.currentText(),
@@ -1914,9 +1913,6 @@ class MainWindow(QMainWindow):
         if clave == "combo_tribunal":
             self._editar_combo(self.entry_tribunal, "Tribunal")
             return
-        if clave == "edit_consulado":
-            self._editar_lineedit(self.entry_consulado, "Consulado")
-            return
         if clave == "edit_sent_num":
             self._editar_lineedit(self.entry_sent_num, "Sentencia N°")
             return
@@ -1931,6 +1927,9 @@ class MainWindow(QMainWindow):
             return
         if clave == "edit_firmantes":
             self._editar_lineedit(self.entry_firmantes, "Firmantes")
+            return
+        if clave == "edit_consulado":
+            self._editar_lineedit(self.entry_consulado, "Consulado")
             return
         if clave == "edit_rodado":
             self._editar_lineedit(self.entry_rodado, "Decomisado/secuestrado")
