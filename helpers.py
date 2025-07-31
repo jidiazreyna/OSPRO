@@ -29,3 +29,16 @@ def strip_anchors(html_text: str) -> str:
     """Return ``html_text`` without ``<a>`` tags but keeping their content."""
     import re
     return re.sub(r"<a[^>]*>(.*?)</a>", r"\1", html_text, flags=re.DOTALL)
+
+
+def _strip_anchor_styles(html: str) -> str:
+    """Remove style attributes and ``<u>`` tags from anchor elements."""
+    import re
+    html = re.sub(
+        r"(<a[^>]+?)\s+style=(\"[^\"]*\"|'[^']*')",
+        r"\1",
+        html,
+        flags=re.IGNORECASE,
+    )
+    html = re.sub(r'</?u[^>]*>', '', html, flags=re.IGNORECASE)
+    return html
