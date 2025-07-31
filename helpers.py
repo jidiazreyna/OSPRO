@@ -23,3 +23,9 @@ def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
     )
     safe = html_text.replace("\n", "<br/>")
     return f'<a href="{clave}" style="{style}">{safe}</a>'
+
+
+def strip_anchors(html_text: str) -> str:
+    """Return ``html_text`` without ``<a>`` tags but keeping their content."""
+    import re
+    return re.sub(r"<a[^>]*>(.*?)</a>", r"\1", html_text, flags=re.DOTALL)
