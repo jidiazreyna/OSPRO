@@ -1489,12 +1489,12 @@ class MainWindow(QMainWindow):
             f"En los autos caratulados: {car_a}, que se tramitan ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
             "se ha resuelto enviar el presente oficio a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
-            "cuyos datos se detallan a continuación:\n\n"
+            "cuyos datos se mencionan a continuación, a saber:\n\n"
             f"{self._imp_datos_anchor()}\n\n"
-            f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a} “Se resuelve: {res_a}. PROTOCOLÍCESE. NOTIFÍQUESE.” "
+            f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a} “Se resuelve: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
-            f"Se transcribe a continuación {comp_label}: {computo_a}\n"
-            f"Fecha de firmeza de la Sentencia: {sent_firmeza_a}\n\n"
+            f"Se transcribe a continuación {comp_label}: {computo_a}.\n"
+            f"Fecha de firmeza de la Sentencia: {sent_firmeza_a}.\n\n"
             "Saluda a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
