@@ -1281,7 +1281,7 @@ class MainWindow(QMainWindow):
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
-        comisaria_a = self._field_anchor(self.entry_comisaria, "edit_comisaria", "comisaría")
+        comisaria_a = self._field_anchor(self.entry_comisaria, "edit_comisaria", "…")
 
         cuerpo = (
             "<b>A LA SRA. SECRETARIA PENAL</b>\n"
@@ -1339,14 +1339,14 @@ class MainWindow(QMainWindow):
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
             "- OSPRO -, se ha dispuesto librar a Ud. el presente, a los fines de solicitarle que personal a su cargo "
-            "traslade los efectos que a continuación se detallan al Depósito General de Efectos Secuestrados "
+            "Traslade los efectos que a continuación se detallan al Depósito General de Efectos Secuestrados "
             "-sito en calle Abdel Taier n° 270, B° Comercial, de esta ciudad de Córdoba-, para que sean allí recibidos:\n\n"
             f"{rodado_a}\n\n"
             "Lo solicitado obedece a directivas generales impartidas por la Secretaría Penal del T.S.J, de la cual "
             "depende esta Oficina, para los casos en los que se haya dictado la pena de decomiso y los objetos aún "
-            "estén en Comisarías, Subcomisarías y otras dependencias policiales.\n\n"
+            "estén en las Comisarías, Subcomisarías y otras dependencias policiales.\n\n"
             "Se transcribe a continuación la parte pertinente de la Sentencia que así lo ordena:\n"
-            f"Sentencia N° {sent_n_a} de fecha {sent_f_a}, “{res_a}” "
+            f"Sentencia N° {sent_n_a} de fecha {sent_f_a}, “{res_a}”. "
             f"(Fdo.: {firm_a}), elemento/s que fuera/n secuestrado/s "
             "en las presentes actuaciones y que actualmente se encuentra/n en el Depósito de la Comisaría a su cargo.\n\n"
             "Sin otro particular, saludo a Ud. muy atentamente."
