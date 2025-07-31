@@ -194,22 +194,28 @@ def extraer_resuelvo(texto: str) -> str:
     return matches[-1].group(1).strip() if matches else ""
 
 # ── helper para capturar FIRMANTES ────────────────────────────
+# ── helper para capturar FIRMANTES ────────────────────────────
 _FIRMAS_REGEX = re.compile(r'''
-    # Cabecera (puede faltar en los firmantes 2, 3, …)
-    (?:^\s*(?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s*)?
-    
-    # Nombre (hasta fin de línea o coma)
-    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s\.\-]+?)\s*
-    
-    # Separador flexible: coma, salto de línea o ambos
-    (?:,\s*|\s*\n\s*)
-    
-    # Cargo (una línea en mayúsculas habitualmente)
-    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)
-    
-    # Documento opcional, mismo o siguiente renglón
-    (?:[,\s]*\n?\s*(?:CUIL|DNI|ID)\s*(?P<doc>[\d\-\.]+))?
+    # Cabecera opcional: "Firmado digitalmente por:" (con o sin "Texto")
+    (?:^|\n)\s*
+    (?: (?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s* )?      
+
+    # Nombre (mayúsculas con espacios, puntos o guiones)
+    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)\s*                
+
+    # Separador: coma o salto de línea
+    (?: ,\s* | \n\s* )
+
+    # Cargo (toma todo hasta salto de línea o coma)
+    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)                              
+
+    # Documento opcional en la misma línea o inmediata
+    (?: [,\s]* \n?\s* (?:CUIL|DNI|ID)\s* (?P<doc>[\d.\-]+) )?    
+
+    # Debe haber una línea "Fecha: aaaa.mm.dd" a ≤2 renglones
+    (?= (?:[^\n]*\n){0,2}\s*Fecha\s*:\s*\d{4}[./-]\d{2}[./-]\d{2} )
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
+
 
 
 def extraer_firmantes(texto: str) -> list[dict]:
