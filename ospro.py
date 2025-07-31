@@ -1827,6 +1827,66 @@ class MainWindow(QMainWindow):
         if clave == "edit_firmantes":
             self._editar_lineedit(self.entry_firmantes, "Firmantes")
             return
+        if clave == "edit_rodado":
+            self._editar_lineedit(self.entry_rodado, "Decomisado/secuestrado")
+            return
+        if clave == "edit_regn":
+            self._editar_lineedit(self.entry_regn, "Reg. N°")
+            return
+        if clave == "edit_deposito":
+            self._editar_combo(self.entry_deposito, "Depósito")
+            return
+        if clave == "edit_comisaria":
+            self._editar_lineedit(self.entry_comisaria, "Comisaría")
+            return
+        if clave == "edit_dep_def":
+            self._editar_combo(self.entry_dep_def, "Carácter de la entrega")
+            return
+        if clave == "edit_titular_veh":
+            self._editar_lineedit(self.entry_titular_veh, "Titular del vehículo")
+            return
+        if clave == "edit_itim_num":
+            self._editar_lineedit(self.entry_itim_num, "ITIM Nº")
+            return
+        if clave == "edit_itim_fecha":
+            self._editar_lineedit(self.entry_itim_fecha, "Fecha ITIM")
+            return
+
+        # ---- campos del imputado seleccionado ----
+        idx_sel = self.selector_imp.currentIndex()
+        if clave == "edit_nombre" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['nombre'], "Nombre y apellido")
+            return
+        if clave == "edit_dni" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['dni'], "DNI")
+            return
+        if clave == "edit_legajo" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['legajo'], "Legajo")
+            return
+        if clave == "edit_condena" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['condena'], "Condena")
+            return
+        if clave == "edit_delitos" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['delitos'], "Delitos")
+            return
+        if clave == "edit_antecedentes" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['antecedentes'], "Antecedentes")
+            return
+        if clave == "edit_tratamientos" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['tratamientos'], "Tratamientos")
+            return
+        if clave == "edit_computo" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['computo'], "Cómputo")
+            return
+        if clave == "edit_servicio_penitenciario" and idx_sel >= 0:
+            self._editar_combo(self.imputados_widgets[idx_sel]['servicio_penitenciario'], "Servicio Penitenciario")
+            return
+        if clave == "edit_juz_navfyg" and idx_sel >= 0:
+            self._editar_combo(self.imputados_widgets[idx_sel]['juz_navfyg'], "Juzgado NAVFyG")
+            return
+        if clave == "edit_ee_relacionado" and idx_sel >= 0:
+            self._editar_lineedit(self.imputados_widgets[idx_sel]['ee_relacionado'], "EE relacionado")
+            return
 
         if clave.startswith("edit_imp_datos_"):
             idx = int(clave.split("_")[-1])
