@@ -43,7 +43,7 @@ from PySide6.QtGui import (
     QFont,
     QRegularExpressionValidator,
 )
-from PySide6.QtGui import QTextBlockFormat, QTextCharFormat
+from PySide6.QtGui import QTextBlockFormat, QTextCharFormat, QTextDocument
 # ── NUEVOS IMPORTS ──────────────────────────────────────────────
 import openai                    # cliente oficial
 from pdfminer.high_level import extract_text              # PDF → texto
@@ -168,6 +168,14 @@ JUZ_NAVFYG = [
 ]
 
 # texto acortado para mostrar en el combo: tomamos la última parte
+_rx_bold      = re.compile(r'<span[^>]*font-weight:600[^>]*>(.*?)</span>', re.S)
+_rx_italic    = re.compile(r'<span[^>]*font-style:italic[^>]*>(.*?)</span>', re.S)
+_rx_bold_it   = re.compile(r'<span[^>]*font-weight:600[^>]*font-style:italic[^>]*>(.*?)</span>', re.S)
+_rx_spans     = re.compile(r'<span[^>]*>(.*?)</span>', re.S)
+_rx_p_cleanup = re.compile(r'<p style="[^"]*text-align:([^";]+)[^"]*">')
+_rx_tag       = re.compile(r'<(/?)(b|strong|i|em|u|p)(?:\s+[^>]*)?>', re.I)
+_rx_p_align   = re.compile(r'text-align\s*:\s*(left|right|center|justify)', re.I)
+
 def _abreviar_juzgado(nombre: str) -> str:
     idx = nombre.rfind(" de ")
     return nombre[idx + 4:] if idx != -1 else nombre
@@ -182,12 +190,99 @@ def html_a_plano(html: str, mantener_saltos: bool = True) -> str:
     """Convierte un fragmento HTML en texto simple."""
     if not html:
         return ""
-    text = re.sub(r"<br\s*/?>", "\n", html, flags=re.IGNORECASE)
-    text = re.sub(r"</p\s*>", "\n\n", text, flags=re.IGNORECASE)
-    text = re.sub(r"<[^>]+>", "", text)
+
+    doc = QTextDocument()
+    doc.setHtml(html)
+    texto = doc.toPlainText()
+
+    texto = texto.replace("\u00A0", " ").replace("\u202F", " ")
+
     if not mantener_saltos:
-        text = " ".join(text.splitlines())
-    return text.strip()
+        texto = texto.replace("\n", " ")
+
+    return texto.strip()
+
+def _sanitize_html(html_raw: str) -> str:
+    """Devuelve SOLO el fragmento de <body>, manteniendo <b>, <i>, <u> y quitando estilos."""
+    import html as html_mod
+    m = re.search(r'<body[^>]*>(.*?)</body>', html_raw, flags=re.I | re.S)
+    if m:
+        html_raw = m.group(1)
+
+    html_raw = re.sub(r'</?strong>', lambda m: '<b>' if m.group(0)[1] != '/' else '</b>', html_raw, flags=re.I)
+    html_raw = re.sub(r'</?em>',     lambda m: '<i>' if m.group(0)[1] != '/' else '</i>', html_raw, flags=re.I)
+
+    html_raw = re.sub(
+        r'<span[^>]*style="[^"]*font-weight\s*:\s*(?:bold|700)[^"]*"[^>]*>(.*?)</span>',
+        r'<b>\1</b>',
+        html_raw,
+        flags=re.I | re.S,
+    )
+
+    html_raw = re.sub(r'\s*(style|class|dir|lang)="[^"]*"', '', html_raw, flags=re.I)
+    html_raw = re.sub(r'</?span[^>]*>', '', html_raw, flags=re.I)
+    html_raw = re.sub(r'(?i)<br\s*/?>', ' ', html_raw)
+    html_raw = re.sub(
+        r'<p[^>]*-qt-paragraph-type:empty[^>]*>\s*(<br\s*/?>)?\s*</p>',
+        ' ',
+        html_raw,
+        flags=re.I,
+    )
+    html_raw = re.sub(r'(\r\n|\r|\n|&#10;|&#13;|\u2028|\u2029|&nbsp;)', ' ', html_raw)
+    html_raw = re.sub(r'\s+', ' ', html_raw).strip()
+    if html_raw.lower().startswith('<p') and html_raw.lower().endswith('</p>'):
+        html_raw = re.sub(r'^<p[^>]*>|</p>$', '', html_raw, flags=re.I).strip()
+    return html_mod.unescape(html_raw)
+
+
+def _html_to_rtf_fragment(html: str) -> str:
+    """Convierte un HTML muy sencillo (p, b/strong, i/em, u) a la secuencia RTF equivalente."""
+    rtf = []
+    pos = 0
+    for m in _rx_tag.finditer(html):
+        text = html[pos:m.start()]
+        text = (
+            text.replace('\\', r'\\')
+            .replace('{', r'\{')
+            .replace('}', r'\}')
+            .replace('&nbsp;', ' ')
+        )
+        rtf.append(text)
+        pos = m.end()
+        closing, tag = m.group(1), m.group(2).lower()
+        if tag == 'p':
+            if closing:
+                rtf.append(r'\par ')
+            else:
+                style = m.group(0)
+                alg = 'justify'
+                ma = _rx_p_align.search(style)
+                if ma:
+                    alg = ma.group(1).lower()
+                rtf.append(r'\pard')
+                rtf.append({
+                    'left': r'\ql ',
+                    'right': r'\qr ',
+                    'center': r'\qc ',
+                    'justify': r'\qj ',
+                }[alg])
+        elif tag in ('b', 'strong'):
+            rtf.append(r'\b0 ' if closing else r'\b ')
+        elif tag in ('i', 'em'):
+            rtf.append(r'\i0 ' if closing else r'\i ')
+        elif tag == 'u':
+            rtf.append(r'\ulnone ' if closing else r'\ul ')
+
+    tail = html[pos:]
+    tail = (
+        tail.replace('\\', r'\\')
+        .replace('{', r'\{')
+        .replace('}', r'\}')
+        .replace('&nbsp;', ' ')
+    )
+    rtf.append(tail)
+
+    return ''.join(rtf)
 
 def strip_trailing_single_dot(text: str | None) -> str:
     """
@@ -2123,13 +2218,52 @@ class MainWindow(QMainWindow):
         self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def copy_to_clipboard(self, te: QTextEdit):
-        html = _strip_anchor_styles(te.toHtml())
-        html = strip_anchors(html)
-        html = strip_color(html)
+        from PySide6.QtCore import QMimeData
+        from PySide6.QtWidgets import QApplication
+        from PySide6.QtGui import QClipboard
+
+        plain_text = te.toPlainText().strip()
+
+        basic_html = te.toHtml()
+        basic_html = _strip_anchor_styles(basic_html)
+        basic_html = strip_anchors(basic_html)
+        basic_html = strip_color(basic_html)
+        basic_html = re.sub(r"font-size\s*:[^;\"']+;?", '', basic_html, flags=re.I)
+        basic_html = re.sub(r'text-align\s*:\s*left\s*;?', '', basic_html, flags=re.I)
+        basic_html = re.sub(r'align="left"\s*', '', basic_html, flags=re.I)
+
+        def _ensure_justify(m):
+            tag = m.group(0)
+            if re.search(r'(text-align\s*:\s*(center|right))|(align="(center|right)")', tag, flags=re.I):
+                return tag
+            if 'style="' in tag:
+                return re.sub(r'style="([^"]*)"', lambda s: f'style="{s.group(1)}text-align:justify;"', tag)
+            return tag[:-1] + ' style="text-align:justify;">'
+
+        basic_html = re.sub(r'<p[^>]*>', _ensure_justify, basic_html)
+        basic_html = re.sub(r'style="\s*"', '', basic_html)
+
+        html_full = (
+            "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+            "<style>"
+            "body{font-family:'Times New Roman',serif;"
+            "font-size:12pt;line-height:1.0;margin:0;}"
+            "</style></head><body><!--StartFragment-->" + basic_html + "<!--EndFragment--></body></html>"
+        )
+
+        rtf_paragraphs = []
+        for para_html in re.findall(r'<p[^>]*>.*?</p>', basic_html, flags=re.S | re.I):
+            rtf_paragraphs.append(_html_to_rtf_fragment(para_html))
+
+        rtf_content = (
+            r"{\rtf1\ansi\deff0" r"{\fonttbl{\f0 Times New Roman;}}" r"\fs24 " + ''.join(rtf_paragraphs) + "}"
+        )
+
         mime = QMimeData()
-        mime.setHtml(html)
-        mime.setText(te.toPlainText())
-        QApplication.clipboard().setMimeData(mime)
+        mime.setText(plain_text)
+        mime.setData("text/rtf", rtf_content.encode("utf-8"))
+        mime.setHtml(html_full)
+        QApplication.clipboard().setMimeData(mime, QClipboard.Clipboard)
 
     # ------- edición desde las anclas ---------------------------------
     def _editar_lineedit(self, widget: QLineEdit, titulo: str):
