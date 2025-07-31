@@ -51,7 +51,7 @@ import ast
 import subprocess
 import shutil
 import tempfile
-from helpers import anchor, anchor_html, strip_anchors
+from helpers import anchor, anchor_html, _strip_anchor_styles
 
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
@@ -1961,7 +1961,7 @@ class MainWindow(QMainWindow):
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def copy_to_clipboard(self, te: QTextEdit):
-        html = strip_anchors(te.toHtml())
+        html = _strip_anchor_styles(te.toHtml())
         mime = QMimeData()
         mime.setHtml(html)
         mime.setText(te.toPlainText())
