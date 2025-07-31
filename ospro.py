@@ -1757,7 +1757,8 @@ class MainWindow(QMainWindow):
         dni_a = anchor(dni, "edit_dni", "…")
 
         cuerpo = (
-            f"<b>AL SEÑOR DIRECTOR DEL {establecimiento_a}</b>\n"
+            "<b>AL SEÑOR DIRECTOR </b>\n"
+            f"<b>DEL {establecimiento_a}</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
