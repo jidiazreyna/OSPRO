@@ -243,6 +243,16 @@ def capitalizar_frase(txt: str) -> str:
     return " ".join(palabras)
 
 
+def normalizar_caratula(txt: str) -> str:
+    """Reemplaza comillas simples por dobles y normaliza espacios."""
+    if txt is None:
+        return ""
+    txt = txt.strip()
+    txt = txt.replace("\u201c", '"').replace("\u201d", '"')
+    txt = txt.replace("'", '"')
+    return txt
+
+
 
 def extraer_firmantes(texto: str) -> list[dict]:
     """
@@ -252,8 +262,8 @@ def extraer_firmantes(texto: str) -> list[dict]:
     firmas = []
     for m in _FIRMAS_REGEX.finditer(texto):
         firmas.append({
-            "nombre": m.group("nombre").title().strip(),
-            "cargo" : m.group("cargo").title().strip(),
+            "nombre": capitalizar_frase(m.group("nombre")).strip(),
+            "cargo" : capitalizar_frase(m.group("cargo")).strip(),
             "doc"   : (m.group("doc") or "").strip(),
         })
     return firmas
@@ -680,7 +690,7 @@ class MainWindow(QMainWindow):
         """Devuelve un dict con los datos generales."""
         return {
             'localidad' : self.entry_localidad.text(),
-            'caratula'  : self.entry_caratula.text(),
+            'caratula'  : normalizar_caratula(self.entry_caratula.text()),
             'tribunal'  : self.entry_tribunal.currentText(),
 
             'resuelvo'  : self.entry_resuelvo.text(),
@@ -739,7 +749,7 @@ class MainWindow(QMainWindow):
             # --------- generales ---------
             g = data.get("generales", {})
             self.entry_localidad.setText(g.get("localidad", ""))
-            self.entry_caratula.setText(g.get("caratula", ""))
+            self.entry_caratula.setText(normalizar_caratula(g.get("caratula", "")))
             self.entry_tribunal.setCurrentText(
                 capitalizar_frase(g.get("tribunal", ""))
             )
@@ -970,9 +980,9 @@ class MainWindow(QMainWindow):
                         "generales (caratula, tribunal, sent_num, sent_fecha, resuelvo o parte resolutiva, firmantes) "
                         "e imputados (lista de datos_personales ‑incluí nombre, DNI, prontuario y el resto‑). "
                         "Si no hay datos, dejá el campo vacío. "
-                        "La caratula incluye tanto las comillas con el nombre de la causa dentro y el numero de expediente posterior,"
-                        "ejemplo: 'DIAZ, Juan Pérez p.s.a. robo' (SAC N° 12345678) "
-                        "o 'DIAZ, Juan Pérez p.s.a. robo (Expte. N° 12345678)'. "
+                        "La carátula incluye las comillas con el nombre de la causa dentro y el número de expediente posterior,"
+                        "ejemplo: \"DIAZ, Juan Pérez p.s.a. robo\" (SAC N° 12345678) "
+                        "o \"DIAZ, Juan Pérez p.s.a. robo (Expte. N° 12345678)\". "
                         "El texto del resuelvo SIEMPRE esta AL FINAL de la sentencia, precedido por “RESUELVE:” o “RESUELVO:”, "
                         "considerá como parte resolutiva todo el bloque que comienza en la primera enumeración después de esas palabras, "
                         "y termina con las fórmulas de estilo “Protocolícese / Hágase saber / Notifíquese (entre otras)”. "
@@ -1002,7 +1012,8 @@ class MainWindow(QMainWindow):
 
             # ------------------ 1) Generales ------------------
             g = datos.get("generales", {})
-            self.entry_caratula.setText(self._as_str(g.get("caratula")))
+            caratula = normalizar_caratula(self._as_str(g.get("caratula")))
+            self.entry_caratula.setText(caratula)
             self.entry_tribunal.setCurrentText(
                 capitalizar_frase(self._as_str(g.get("tribunal")))
             )
