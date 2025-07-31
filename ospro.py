@@ -1485,6 +1485,7 @@ class MainWindow(QMainWindow):
             f"Fecha de firmeza de la Sentencia: {sent_firmeza_a}\n\n"
             "Saluda a Ud. atentamente."
         )
+        self._insert_paragraph(te, fecha, Qt.AlignRight)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_registro_civil(self):
