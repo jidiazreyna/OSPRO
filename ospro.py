@@ -510,6 +510,7 @@ class MainWindow(QMainWindow):
                 'servicio_penitenciario': NoWheelComboBox(),
                 'legajo': QLineEdit(),
                 'delitos': QLineEdit(),
+                'liberacion': QLineEdit(),
                 'antecedentes': QLineEdit(),
                 'tratamientos': QLineEdit(),
                 'juz_navfyg': NoWheelComboBox(),
@@ -527,6 +528,7 @@ class MainWindow(QMainWindow):
             w['servicio_penitenciario'].currentIndexChanged.connect(self.update_templates)
             w['legajo'].textChanged.connect(self.update_templates)
             w['delitos'].textChanged.connect(self.update_templates)
+            w['liberacion'].textChanged.connect(self.update_templates)
             w['antecedentes'].textChanged.connect(self.update_templates)
             w['tratamientos'].textChanged.connect(self.update_templates)
             w['juz_navfyg'].currentIndexChanged.connect(self.update_templates)
@@ -541,6 +543,7 @@ class MainWindow(QMainWindow):
             pair("Servicio Penitenciario:", w['servicio_penitenciario'])
             pair("Legajo:", w['legajo'])
             pair("Delitos:", w['delitos'])
+            pair("Liberación:", w['liberacion'])
             pair("Antecedentes:", w['antecedentes'])
             pair("Tratamientos:", w['tratamientos'])
 
@@ -1527,12 +1530,12 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con "
-            "intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente oficio, "
+            "intervención de esta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos se mencionan a continuación:\n\n"
             f"{self._imp_datos_anchor()}\n\n"
-            f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se Resuelve: {res_a}” "
-            f"Fdo.: {firm_a}\n\n"
-            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}\n\n"
+            f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se Resuelve: {res_a}”. "
+            f"Fdo.: {firm_a}.\n\n"
+            f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.\n\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
@@ -1557,6 +1560,7 @@ class MainWindow(QMainWindow):
         servicio = self._imp_field('servicio_penitenciario') or "…"
         legajo = self._imp_field('legajo') or "…"
         delitos = self._imp_field('delitos') or "…"
+        liberacion = self._imp_field('liberacion') or "…"
         antecedentes = self._imp_field('antecedentes') or "…"
         tratamientos = self._imp_field('tratamientos') or "…"
 
@@ -1572,6 +1576,7 @@ class MainWindow(QMainWindow):
         servicio_a = anchor(servicio, "combo_servicio_penitenciario", "…")
         legajo_a = anchor(legajo, "edit_legajo", "…")
         delitos_a = anchor(delitos, "edit_delitos", "…")
+        liberacion_a = anchor(liberacion, "edit_liberacion", "…")
         antecedentes_a = anchor(antecedentes, "edit_antecedentes", "…")
         tratamientos_a = anchor(tratamientos, "edit_tratamientos", "…")
         cuerpo = (
@@ -1580,22 +1585,24 @@ class MainWindow(QMainWindow):
             "<b>por Delitos contra la Integridad Sexual</b>\n"
             "<b>S./D.</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
-            f"{trib_a}, con intervención de ésta Oficina de Servicios Procesales (OSPRO), "
+            f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
             f"se ha resuelto librar el presente a fin de registrar en dicha dependencia lo resuelto por Sentencia N° {sent_n_a}, "
             f"de fecha {sent_f_a} dictada por el mencionado Tribunal.\n\n"
             "I. DATOS PERSONALES\n"
             f"{self._imp_datos_anchor()}\n\n"
-            "II. IDENTIFICACIÓN DACTILAR (adjuntar ficha).\n\n"
+            "II. IDENTIFICACIÓN DACTILAR (Adjuntar Ficha Dactiloscópica).\n\n"
             "III. DATOS DE CONDENA Y LIBERACIÓN (adjuntar copia de la sentencia).\n"
             f"   • Condena impuesta: {condena_a}\n"
-            f"   • Fecha firmeza: {sent_firmeza_a}\n"
-            f"   • Fecha de extinción: {extincion_a}\n"
-            f"   • Servicio Penitenciario: {servicio_a}\n"
-            f"     Legajo: {legajo_a}\n"
-            f"   • Delito: {delitos_a}\n\n"
+            f"   • Fecha en que la sentencia quedó firme: {sent_firmeza_a}, Legajo: {legajo_a}.\n"
+            f"   • Fecha de extinción de la pena: {extincion_a}\n"
+            f"   • Servicio Correccional o Penitenciario: {servicio_a}\n"
+            f"   • Delito (con el tipo de delito y la fecha): {delitos_a}\n"
+            f"   • Liberación (fecha y motivo): {liberacion_a}\n\n"
             f"IV. HISTORIAL DE DELITOS Y CONDENAS ANTERIORES:\n"
+            "(consignar monto y fecha de la pena, tipo de delito y descripción, correccional o penitenciario y fecha de liberación)\n"
             f"   {antecedentes_a}\n\n"
             f"V. TRATAMIENTOS MÉDICOS Y PSICOLÓGICOS:\n"
+            "(adjuntar copia de documentación respaldatoria y consignar fecha aproximada, descripción y tipo de tratamiento, hospital o institución e indicar duración de internación)"
             f"   {tratamientos_a}\n\n"
             "VI. OTROS DATOS DE INTERÉS:\n\n"
             f"   Se le hace saber que {trib_a} resolvió mediante Sentencia N° {sent_n_a} de fecha {sent_f_a} lo siguiente “{res_a}.”.\n"
