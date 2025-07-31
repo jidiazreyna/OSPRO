@@ -1173,7 +1173,7 @@ class MainWindow(QMainWindow):
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
-            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
+            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  \nDRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S______/_______D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de esta Oficina de Servicios "
@@ -1221,7 +1221,7 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
-            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
+            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  \nDRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
@@ -1267,7 +1267,7 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             f"AL SR. TITULAR\n"
-            f"DE LA COMISARÍA N° {comisaria_a} DE LA POLICÍA DE CÓRDOBA\n"
+            f"DE LA COMISARÍA N° {comisaria_a} \nDE LA POLICÍA DE CÓRDOBA\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
@@ -1314,7 +1314,7 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             "A LA SRA. SECRETARIA PENAL\n"
-            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  DRA. MARIA PUEYRREDON DE MONFARRELL\n"
+            "DEL TRIBUNAL SUPERIOR DE JUSTICIA  \nDRA. MARIA PUEYRREDON DE MONFARRELL\n"
             "S______/_______D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de ésta Oficina de Servicios "
@@ -1358,7 +1358,7 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             "A LA OFICINA DE\n"
-            "AUTOMOTORES SECUESTRADOS EN CAUSAS PENALES, TRIBUNAL SUPERIOR DE JUSTICIA.\n"
+            "AUTOMOTORES SECUESTRADOS EN \nCAUSAS PENALES, TRIBUNAL SUPERIOR DE JUSTICIA.\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de ésta Oficina de Servicios Procesales "
@@ -1409,7 +1409,7 @@ class MainWindow(QMainWindow):
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         cuerpo = (
-            "Sr/a Fiscal de Instrucción que por turno corresponda\n"
+            "Sr/a Fiscal de \nInstrucción que por turno corresponda\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de la Oficina de Servicios Procesales "
@@ -1472,7 +1472,7 @@ class MainWindow(QMainWindow):
         computo_a = anchor(computo, "edit_computo", "…") if computo else anchor("", "edit_computo", "…")
 
         cuerpo = (
-            "Sr. Titular de la División de Documentación Personal – Policía de la Provincia de Córdoba\n"
+            "Sr. Titular de la División de Documentación Personal \nPolicía de la Provincia de Córdoba\n"
             "S ______/_______D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
@@ -1510,7 +1510,7 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         cuerpo = (
-            "Sr/a Director/a del Registro Civil y Capacidad de las Personas\n"
+            "Sr/a Director/a del \nRegistro Civil y Capacidad de las Personas\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con "
@@ -1562,7 +1562,7 @@ class MainWindow(QMainWindow):
         antecedentes_a = anchor(antecedentes, "edit_antecedentes", "…")
         tratamientos_a = anchor(tratamientos, "edit_tratamientos", "…")
         cuerpo = (
-            "Al Sr. Titular del Registro Provincial de Personas Condenadas por Delitos contra la Integridad Sexual\n"
+            "Al Sr. Titular del \nRegistro Provincial de Personas Condenadas \npor Delitos contra la Integridad Sexual\n"
             "S./D.\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de ésta Oficina de Servicios Procesales (OSPRO), "
@@ -1613,7 +1613,7 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         cuerpo = (
-            "Al Sr. Director del Registro Nacional de Reincidencia\n"
+            "Al Sr. Director del \nRegistro Nacional de Reincidencia\n"
             "S/D:\n\n"
             "De acuerdo a lo dispuesto por el art. 2º de la Ley 22.177, remito a Ud. testimonio de la parte dispositiva "
             "de la resolución dictada en los autos caratulados: "
@@ -1651,7 +1651,7 @@ class MainWindow(QMainWindow):
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
         cuerpo = (
-            "SR. DIRECTOR DEL REGISTRO PROVINCIAL DE ANTECEDENTES DE TRÁNSITO (RePAT)\n"
+            "SR. DIRECTOR DEL REGISTRO PROVINCIAL \nDE ANTECEDENTES DE TRÁNSITO (RePAT)\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de esta ciudad de Córdoba, con intervención de esta Oficina de "
@@ -1740,7 +1740,7 @@ class MainWindow(QMainWindow):
         dni_a = anchor(dni, "edit_dni", "…")
 
         cuerpo = (
-            f"AL SEÑOR DIRECTOR DEL {establecimiento_a}\n"
+            f"AL SEÑOR DIRECTOR DEL \n{establecimiento_a}\n"
             "S/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
@@ -1774,16 +1774,7 @@ class MainWindow(QMainWindow):
             self.update_templates()
 
     def _editar_combo(self, widget: QComboBox, titulo: str):
-        items = [widget.itemText(i) for i in range(widget.count())]
-        idx = widget.currentIndex()
-        texto, ok = QInputDialog.getItem(
-            self,
-            titulo,
-            titulo,
-            items,
-            idx,
-            editable=widget.isEditable(),
-        )
+        texto, ok = QInputDialog.getText(self, titulo, titulo, text=widget.currentText())
         if ok:
             widget.setCurrentText(texto.strip())
             self.update_templates()
