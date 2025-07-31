@@ -44,3 +44,9 @@ def _strip_anchor_styles(html: str) -> str:
     )
     html = re.sub(r'</?u[^>]*>', '', html, flags=re.IGNORECASE)
     return html
+
+
+def strip_color(html: str) -> str:
+    """Remove CSS ``color`` declarations so text defaults to black."""
+    import re
+    return re.sub(r"(?<!-)color\s*:[^;\"']*;?", '', html, flags=re.IGNORECASE)
