@@ -289,6 +289,13 @@ def normalizar_caratula(txt: str) -> str:
     return txt
 
 
+def normalizar_dni(txt: str) -> str:
+    """Devuelve solo los dígitos del DNI."""
+    if txt is None:
+        return ""
+    return re.sub(r"\D", "", str(txt))
+
+
 
 def extraer_firmantes(texto: str) -> list[dict]:
     """
@@ -1089,6 +1096,8 @@ class MainWindow(QMainWindow):
                 else:
                     nombre = self._as_str(imp.get("nombre"))
                     dni = self._as_str(imp.get("dni"))
+
+                dni = normalizar_dni(dni)
                 self.imputados_widgets[idx]["nombre"].setText(nombre)
                 self.imputados_widgets[idx]["dni"].setText(dni)
             self._refresh_imp_names_in_selector()
