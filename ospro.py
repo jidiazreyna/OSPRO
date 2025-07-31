@@ -1116,7 +1116,7 @@ class MainWindow(QMainWindow):
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
-        regn_a = self._field_anchor(self.entry_regn, "edit_regn", "N°")
+        regn_a = self._field_anchor(self.entry_regn, "edit_regn", "…")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
 
         cuerpo = (
@@ -1168,7 +1168,7 @@ class MainWindow(QMainWindow):
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
-        regn_a = self._field_anchor(self.entry_regn, "edit_regn", "N°")
+        regn_a = self._field_anchor(self.entry_regn, "edit_regn", "…")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
         cuerpo = (
@@ -1265,7 +1265,7 @@ class MainWindow(QMainWindow):
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
-        comisaria_a = self._field_anchor(self.entry_comisaria, "edit_comisaria", "comisaría")
+        comisaria_a = self._field_anchor(self.entry_comisaria, "edit_comisaria", "…")
 
         cuerpo = (
             f"AL SR. TITULAR\n"
@@ -1354,9 +1354,9 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
-        numero_itim_a = self._field_anchor(self.entry_itim_num, "edit_itim_num", "N°")
-        fecha_itim_a = self._field_anchor(self.entry_itim_fecha, "edit_itim_fecha", "fecha")
-        titular_veh_a = self._field_anchor(self.entry_titular_veh, "edit_titular_veh", "titular")
+        numero_itim_a = self._field_anchor(self.entry_itim_num, "edit_itim_num", "…")
+        fecha_itim_a = self._field_anchor(self.entry_itim_fecha, "edit_itim_fecha", "…")
+        titular_veh_a = self._field_anchor(self.entry_titular_veh, "edit_titular_veh", "…")
         dep_def_a = self._field_anchor(self.entry_dep_def, "combo_dep_def", "carácter")
 
         cuerpo = (
