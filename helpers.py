@@ -6,7 +6,7 @@ def anchor(texto: str, clave: str, placeholder: str = None) -> str:
     if not texto.strip():
         texto = placeholder or f"[{clave}]"
     style = (
-            "color:black;text-decoration:none;",
+        "color:blue;text-decoration:none;",
         "font-family:'Times New Roman';font-size:12pt;",
     )
     style_str = "".join(style)
@@ -19,7 +19,7 @@ def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
     if not html_text.strip():
         return anchor("", clave, placeholder)
     style = (
-        "color:black;text-decoration:none;",
+        "color:blue;text-decoration:none;",
         "font-family:'Times New Roman';font-size:12pt;",
     )
     style_str = "".join(style)
