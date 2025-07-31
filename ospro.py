@@ -267,6 +267,21 @@ CARATULA_REGEX = QRegularExpression(
 # Tribunal: al menos una letra minúscula y empezar en mayúscula
 TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
 
+# ── NUEVO BLOQUE ─────────────────────────────────────────────
+DNI_REGEX = re.compile(
+    r'\b(?:\d{1,3}\.){2}\d{3}\b'   # 12.345.678 con puntos
+    r'|\b\d{7,8}\b'                # 12345678 sin puntos
+)
+
+def extraer_dni(texto: str) -> str:
+    """Devuelve sólo los dígitos del primer DNI hallado en `texto`."""
+    if not texto:
+        return ""
+    m = DNI_REGEX.search(texto)
+    return normalizar_dni(m.group(0)) if m else ""
+# ─────────────────────────────────────────────────────────────
+
+
 def capitalizar_frase(txt: str) -> str:
     """Devuelve la frase en mayúsculas y minúsculas tipo título."""
     minus = {"de", "del", "la", "las", "y", "en", "el", "los"}
@@ -1087,9 +1102,7 @@ class MainWindow(QMainWindow):
                     self._format_datos_personales(bruto)
                 )
 
-                # ③  Extraer nombre y DNI si vienen en datos_personales
-                nombre = ""
-                dni = ""
+                # ③  Extraer nombre y DNI
                 if isinstance(bruto, dict):
                     nombre = self._as_str(bruto.get("nombre") or imp.get("nombre"))
                     dni = self._as_str(bruto.get("dni") or imp.get("dni"))
@@ -1097,6 +1110,9 @@ class MainWindow(QMainWindow):
                     nombre = self._as_str(imp.get("nombre"))
                     dni = self._as_str(imp.get("dni"))
 
+                # ── NUEVO: si aún no hay DNI, búscalo dentro del texto libre ──
+                if not dni:
+                    dni = extraer_dni(self._as_str(bruto))
                 dni = normalizar_dni(dni)
                 self.imputados_widgets[idx]["nombre"].setText(nombre)
                 self.imputados_widgets[idx]["dni"].setText(dni)
