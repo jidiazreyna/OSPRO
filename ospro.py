@@ -256,14 +256,11 @@ _RESUELVO_REGEX = re.compile(
         (?:Protocol[íi]?cese              #  fórmulas de cierre habituales
           |Notifíquese
           |Hágase\s+saber
-          |Of[íi]ciese
-          |Se\s+Protocoliza)              #  cubre “SE PROTOCOLIZA, NOTIFICA…”
+          |Of[íi]ciese)        
     )
     """,
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
 )
-
-
 
 def extraer_resuelvo(texto: str) -> str:
     """
