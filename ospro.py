@@ -51,7 +51,14 @@ import ast
 import subprocess
 import shutil
 import tempfile
-from helpers import anchor, anchor_html, strip_anchors, _strip_anchor_styles, strip_color
+from helpers import (
+    anchor,
+    anchor_html,
+    strip_anchors,
+    _strip_anchor_styles,
+    strip_color,
+    create_clipboard_html,
+)
 
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
@@ -2034,9 +2041,29 @@ class MainWindow(QMainWindow):
         html = _strip_anchor_styles(te.toHtml())
         html = strip_anchors(html)
         html = strip_color(html)
+        text = te.toPlainText()
+
+        if sys.platform.startswith("win"):
+            try:
+                import win32clipboard
+                import win32con
+            except Exception:
+                pass
+            else:
+                CF_HTML = win32clipboard.RegisterClipboardFormat("HTML Format")
+                clip_html = create_clipboard_html(html)
+                win32clipboard.OpenClipboard()
+                try:
+                    win32clipboard.EmptyClipboard()
+                    win32clipboard.SetClipboardData(win32con.CF_UNICODETEXT, text)
+                    win32clipboard.SetClipboardData(CF_HTML, clip_html.encode("utf-8"))
+                finally:
+                    win32clipboard.CloseClipboard()
+                return
+
         mime = QMimeData()
         mime.setHtml(html)
-        mime.setText(te.toPlainText())
+        mime.setText(text)
         QApplication.clipboard().setMimeData(mime)
 
     def copy_html_source(self, te: QTextEdit):
