@@ -518,9 +518,10 @@ class MainWindow(QMainWindow):
         self.entry_tribunal  = add_combo('entry_tribunal',  "Tribunal:", TRIBUNALES, editable=True)
 
 
-        # validadores de carátula y tribunal
-        self.entry_caratula.setValidator(QRegularExpressionValidator(CARATULA_REGEX))
+        # validadores de tribunal y revisión de carátula al terminar de editar
         self.entry_tribunal.setValidator(QRegularExpressionValidator(TRIBUNAL_REGEX))
+        self.entry_caratula.editingFinished.connect(self._check_caratula)
+        self.entry_caratula.setPlaceholderText('"Imputado…" (SAC N° …)')
         if self.entry_tribunal.isEditable() and self.entry_tribunal.lineEdit():
             self.entry_tribunal.lineEdit().editingFinished.connect(
                 lambda: self.entry_tribunal.setCurrentText(
@@ -2103,6 +2104,17 @@ class MainWindow(QMainWindow):
         if ok:
             widget.setCurrentText(texto.strip())
             self.update_templates()
+
+    def _check_caratula(self) -> None:
+        """Valida el formato de la carátula al finalizar la edición."""
+        txt = normalizar_caratula(self.entry_caratula.text())
+        self.entry_caratula.setText(txt)
+        if txt and not CARATULA_REGEX.match(txt):
+            QMessageBox.warning(
+                self,
+                "Carátula inválida",
+                "La carátula debe ir entre comillas y contener el número de expediente o SAC.",
+            )
 
     def _abrir_dialogo_rico(self, titulo: str, html_inicial: str, on_accept):
         dlg = QDialog(self)
