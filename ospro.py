@@ -1256,14 +1256,16 @@ class MainWindow(QMainWindow):
         car  = self.entry_caratula.text() or "“…”"
         trib = self.entry_tribunal.currentText() or "la Cámara en lo Criminal y Correccional"
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
 
         cuerpo = (
             "<b>Sr/a Director/a</b>\n"
             "<b>de la Dirección Nacional de Migraciones</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan "
-            f"por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de esta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente oficio, "
+            f"por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos personales se mencionan a continuación:\n\n"
             f"{self._imp_datos_anchor()}.\n\n"
@@ -1293,7 +1295,9 @@ class MainWindow(QMainWindow):
         nom   = "…"   # idem Nominación
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1306,7 +1310,7 @@ class MainWindow(QMainWindow):
             "<b>Tribunales Federales de Córdoba-</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, "
-            "con la intervención de esta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. "
+            "con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. "
             "el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos "
             "datos personales se mencionan a continuación:\n\n"
             f"{self._imp_datos_anchor()}.\n\n"
@@ -1337,7 +1341,9 @@ class MainWindow(QMainWindow):
         pais  = self.entry_consulado.text() or "…"
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         pais_a = self._field_anchor(self.entry_consulado, "edit_consulado", "país")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
@@ -1351,7 +1357,7 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, "
-            "con la intervención de esta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar el presente oficio, "
+            "con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a "
             "continuación:\n\n"
             f"{self._imp_datos_anchor()}.\n\n"
@@ -1383,7 +1389,9 @@ class MainWindow(QMainWindow):
         rodado = self.entry_rodado.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = anchor(res, "edit_resuelvo", "resuelvo")
@@ -1397,7 +1405,7 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"\tEn los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios "
-            "Procesales – OSPRO –, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante "
+            "<b>Procesales – OSPRO –</b>, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante "
             f"Sentencia N° {sent_n_a} de fecha {sent_f_a}, dicho Tribunal resolvió ordenar el Decomiso del "
             f"{rodado_a}.\n\n"
             "Se transcribe a continuación la parte pertinente de la misma:\n"
@@ -1427,7 +1435,9 @@ class MainWindow(QMainWindow):
         deposito = self.entry_deposito.currentText() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = anchor(res, "edit_resuelvo", "resuelvo")
@@ -1436,7 +1446,9 @@ class MainWindow(QMainWindow):
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = anchor(res, "edit_resuelvo", "resuelvo")
@@ -1451,7 +1463,7 @@ class MainWindow(QMainWindow):
             "<b>S______/_______D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de esta Oficina de Servicios "
-            "Procesales – OSPRO –, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo "
+            "<b>Procesales – OSPRO –</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo "
             f"resuelto por la Sentencia N° {sent_n_a} del {sent_f_a}, dictada por el tribunal mencionado, en virtud de la cual "
             "se ordenó el DECOMISO de los siguientes objetos:\n\n"
             f"<table border='1' cellspacing='0' cellpadding='2'>"
@@ -1486,7 +1498,9 @@ class MainWindow(QMainWindow):
         deposito = self.entry_deposito.currentText() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = anchor(res, "edit_resuelvo", "resuelvo")
@@ -1502,7 +1516,7 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
-            f"- OSPRO -, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante Sentencia N° {sent_n_a} "
+            f"<b>- OSPRO -</b>, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante Sentencia N° {sent_n_a} "
             f"de {sent_f_a}, dicho Tribunal resolvió ordenar el DECOMISO de los siguientes objetos:\n\n"
             f"<table border='1' cellspacing='0' cellpadding='2'>"
             f"<tr><th>Descripción del objeto</th><th>Ubicación Actual</th></tr>"
@@ -1536,7 +1550,9 @@ class MainWindow(QMainWindow):
         rodado = self.entry_rodado.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = anchor(res, "edit_resuelvo", "resuelvo")
@@ -1551,7 +1567,7 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
-            "- OSPRO -, se ha dispuesto librar a Ud. el presente, a los fines de solicitarle que personal a su cargo "
+            "<b>- OSPRO -</b>, se ha dispuesto librar a Ud. el presente, a los fines de solicitarle que personal a su cargo "
             "Traslade los efectos que a continuación se detallan al Depósito General de Efectos Secuestrados "
             "-sito en calle Abdel Taier n° 270, B° Comercial, de esta ciudad de Córdoba-, para que sean allí recibidos:\n\n"
             f"{rodado_a}\n\n"
@@ -1585,7 +1601,9 @@ class MainWindow(QMainWindow):
         deposito = self.entry_deposito.currentText() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = anchor(res, "edit_resuelvo", "resuelvo")
@@ -1600,7 +1618,7 @@ class MainWindow(QMainWindow):
             "<b>S______/_______D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de esta Oficina de Servicios "
-            "Procesales ‑ OSPRO‑, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto "
+            "<b>Procesales ‑ OSPRO‑</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto "
             f"por la Sentencia N° {sent_n_a} del {sent_f_a}, dictada por la Cámara mencionada, en virtud de la cual se ordenó el "
             "DECOMISO de los siguientes objetos:\n\n"
             f"<table border='1' cellspacing='0' cellpadding='2'>"
@@ -1632,7 +1650,9 @@ class MainWindow(QMainWindow):
         dep_def = self.entry_dep_def.currentText() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
         numero_itim_a = self._field_anchor(self.entry_itim_num, "edit_itim_num", "…")
@@ -1646,8 +1666,7 @@ class MainWindow(QMainWindow):
             "<b>CAUSAS PENALES, TRIBUNAL SUPERIOR DE JUSTICIA.</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
-            f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
-            "(OSPRO), se ha resuelto enviar a Ud. el presente a fines de solicitarle que establezca lo necesario para que, "
+            f"{trib_a}, con intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha resuelto enviar a Ud. el presente a fines de solicitarle que establezca lo necesario para que, "
             "por intermedio de quien corresponda, se coloque a la orden y disposición del Tribunal señalado, el rodado "
             f"{rodado_a}, vehículo que se encuentra en el {deposito_a}.\n\n"
             "Se hace saber a Ud. que dicha petición obedece a que el Tribunal mencionado ha dispuesto la entrega del "
@@ -1689,7 +1708,9 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
@@ -1698,8 +1719,7 @@ class MainWindow(QMainWindow):
             "<b>Instrucción que por turno corresponda</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
-            f"{trib_a}, con intervención de la Oficina de Servicios Procesales "
-            "(OSPRO), se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a lo resuelto en la "
+            f"{trib_a}, con intervención de la <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a lo resuelto en la "
             "sentencia dictada en la causa de referencia, los antecedentes obrantes en el expediente mencionado, "
             "a los fines de investigar la posible comisión de un delito perseguible de oficio.\n\n"
             f"Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res_a}”. "
@@ -1724,7 +1744,9 @@ class MainWindow(QMainWindow):
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1737,7 +1759,9 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1750,7 +1774,9 @@ class MainWindow(QMainWindow):
         else:
             comp_label = "la resolución que fija la fecha de cumplimiento de los arts. 27 y 27 bis del C.P."
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1763,7 +1789,7 @@ class MainWindow(QMainWindow):
             "<b>Policía de la Provincia de Córdoba</b>\n"
             "<b>S ______/_______D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan ante "
-            f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
+            f"{trib_a}, con intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, "
             "se ha resuelto enviar el presente oficio a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos se mencionan a continuación, a saber:\n\n"
             f"{self._imp_datos_anchor()}.\n\n"
@@ -1791,7 +1817,9 @@ class MainWindow(QMainWindow):
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1804,7 +1832,7 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con "
-            "intervención de esta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente oficio, "
+            "intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos se mencionan a continuación:\n\n"
             f"{self._imp_datos_anchor()}.\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se Resuelve: {res_a}”. "
@@ -1840,7 +1868,9 @@ class MainWindow(QMainWindow):
         tratamientos = self._imp_field('tratamientos') or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1860,7 +1890,7 @@ class MainWindow(QMainWindow):
             "<b>por Delitos contra la Integridad Sexual</b>\n"
             "<b>S./D.</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
-            f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
+            f"{trib_a}, con intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, "
             f"se ha resuelto librar el presente a fin de registrar en dicha dependencia lo resuelto por Sentencia N° {sent_n_a}, "
             f"de fecha {sent_f_a} dictada por el mencionado Tribunal.\n\n"
             "I. DATOS PERSONALES\n"
@@ -1903,7 +1933,9 @@ class MainWindow(QMainWindow):
         sent_firmeza = self.entry_sent_firmeza.text() or "…/…/…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1924,8 +1956,7 @@ class MainWindow(QMainWindow):
             "De acuerdo a lo dispuesto por el art. 2º de la Ley 22.177, remito a Ud. testimonio de la parte dispositiva "
             "de la resolución dictada en los autos caratulados: "
             f"{car_a}, que se tramitan por ante "
-            f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con intervención de esta "
-            "Oficina de Servicios Procesales (OSPRO), en contra de:\n\n"
+            f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, en contra de:\n\n"
             f"{self._imp_datos_anchor()}.\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “{res_a}.” (Fdo.: {firm_a}).\n\n"
             f"Se transcribe a continuación {comp_label}: {computo_a}.\n"
@@ -1950,7 +1981,9 @@ class MainWindow(QMainWindow):
         firm = self.entry_firmantes.text() or "…"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -1962,7 +1995,7 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de esta ciudad de Córdoba, provincia de Córdoba, con intervención de esta Oficina de "
-            "Servicios Procesales - OSPRO -, se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por "
+            "<b>Servicios Procesales - OSPRO -</b>, se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por "
             "dicho Tribunal, respecto de la persona cuyos datos se detallan a continuación:\n\n"
             f"{self._imp_datos_anchor()}.\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se resuelve: {res_a}”. "
@@ -1999,7 +2032,9 @@ class MainWindow(QMainWindow):
         dni = self._imp_field('dni') or "\u2026"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -2014,8 +2049,7 @@ class MainWindow(QMainWindow):
             f"<b>{juz_a}</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
-            f"{trib_a}, con conocimiento e intervención de esta Oficina de Servicios Procesales "
-            "(OSPRO), se ha dispuesto librar a Ud. el presente, a fin de comunicarle lo resuelto por el mencionado Tribunal con relación a "
+            f"{trib_a}, con conocimiento e intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente, a fin de comunicarle lo resuelto por el mencionado Tribunal con relación a "
             f"{nombre_a}, DNI {dni_a}, mediante "
             f"Sentencia N° {sent_n_a}, de fecha {sent_f_a}: “Se Resuelve: {res_a}” "
             f"(Fdo.: {firm_a}).\n\n"
@@ -2045,7 +2079,9 @@ class MainWindow(QMainWindow):
         dni = self._imp_field('dni') or "\u2026"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
+        car_a = f"<b>{car_a}</b>"
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
+        trib_a = f"<b>{trib_a}</b>"
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
@@ -2059,7 +2095,7 @@ class MainWindow(QMainWindow):
             f"<b>DEL {establecimiento_a}</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
-            f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
+            f"{trib_a}, con intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, "
             f"me dirijo a Ud. a los fines de informar lo resuelto con relación a {nombre_a}, DNI {dni_a}, mediante Sentencia "
             f"N° {sent_n_a}, de fecha {sent_f_a}: \u201c{res_a}\u201d. "
             f"(Fdo.: {firm_a}).\n\n"
