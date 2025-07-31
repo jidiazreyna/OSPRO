@@ -1144,7 +1144,7 @@ class MainWindow(QMainWindow):
             f"\tEn los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios "
             "Procesales – OSPRO –, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante "
-            f"Sentencia N° {sent_n_a} de fecha {sent_f_a}, dicho Tribunal resolvió ordenar el DECOMISO del "
+            f"Sentencia N° {sent_n_a} de fecha {sent_f_a}, dicho Tribunal resolvió ordenar el Decomiso del "
             f"{rodado_a}.\n\n"
             "Se transcribe a continuación la parte pertinente de la misma:\n"
             f"“SE RESUELVE: {res_a}”. "
@@ -1393,11 +1393,10 @@ class MainWindow(QMainWindow):
             f"{rodado_a}, vehículo que se encuentra en el {deposito_a}.\n\n"
             "Se hace saber a Ud. que dicha petición obedece a que el Tribunal mencionado ha dispuesto la entrega del "
             f"referido vehículo en carácter {dep_def_a} a su titular registral {titular_veh_a}. Para mayor recaudo se "
-            "adjunta en documento informático copia de la resolución que dispuso la medida.\n\n"
+            "adjunta al presente, en documento informático, copia de la resolución que dispuso la medida.\n\n"
             "Finalmente, se informa que a dicho rodado, se le realizó el correspondiente Informe "
-            f"Técnico de Identificación de Matrículas N° {numero_itim_a} de fecha {fecha_itim_a}, concluyendo que la unidad no "
-            "presenta adulteración en sus matrículas identificatorias. (Revisar en el informe y, de existir informe de "
-            "dominio, remitirlo también; no es indispensable según la Oficina del T.S.J.).\n\n"
+            f"Técnico de Identificación de Matrículas N° {numero_itim_a} de fecha {fecha_itim_a}, concluyendo el mismo que la unidad no "
+            "presenta adulteración en sus matrículas identificatorias.\n\n"
             "Saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
