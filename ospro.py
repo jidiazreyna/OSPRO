@@ -1077,7 +1077,7 @@ class MainWindow(QMainWindow):
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
 
         cuerpo = (
-            "Al Sr. Titular del Consulado de " + pais_a + " S/D:\n\n"
+            "Al Sr. Titular del Consulado \nde " + pais_a + " \nS/D:\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, "
             "con la intervención de ésta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar el presente oficio, "
