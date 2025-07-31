@@ -1175,7 +1175,8 @@ class MainWindow(QMainWindow):
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
         cuerpo = (
             "<b>A LA SRA. SECRETARIA PENAL</b>\n"
-            "<b>DEL TRIBUNAL SUPERIOR DE JUSTICIA  \nDRA. MARIA PUEYRREDON DE MONFARRELL</b>\n"
+            "<b>DEL TRIBUNAL SUPERIOR DE JUSTICIA</b>\n"
+            "<b>DRA. MARIA PUEYRREDON DE MONFARRELL</b>\n"
             "<b>S______/_______D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de esta Oficina de Servicios "
@@ -1224,7 +1225,8 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             "<b>A LA SRA. SECRETARIA PENAL</b>\n"
-            "<b>DEL TRIBUNAL SUPERIOR DE JUSTICIA  \nDRA. MARIA PUEYRREDON DE MONFARRELL</b>\n"
+            "<b>DEL TRIBUNAL SUPERIOR DE JUSTICIA</b>\n"
+            "<b>DRA. MARIA PUEYRREDON DE MONFARRELL</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales "
@@ -1319,7 +1321,8 @@ class MainWindow(QMainWindow):
 
         cuerpo = (
             "<b>A LA SRA. SECRETARIA PENAL</b>\n"
-            "<b>DEL TRIBUNAL SUPERIOR DE JUSTICIA  \nDRA. MARIA PUEYRREDON DE MONFARRELL</b>\n"
+            "<b>DEL TRIBUNAL SUPERIOR DE JUSTICIA</b>\n"
+            "<b>DRA. MARIA PUEYRREDON DE MONFARRELL</b>\n"
             "<b>S______/_______D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de ésta Oficina de Servicios "
