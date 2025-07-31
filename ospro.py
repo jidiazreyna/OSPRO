@@ -170,6 +170,42 @@ def html_a_plano(html: str, mantener_saltos: bool = True) -> str:
         text = " ".join(text.splitlines())
     return text.strip()
 
+def strip_trailing_single_dot(text: str | None) -> str:
+    """
+    Elimina puntos redundantes sin romper las elipsis.
+
+    • Convierte cada ".." aislado (no precedido ni seguido por otro punto)
+      en un único ".", aun cuando los dos puntos estén separados sólo por
+      etiquetas de cierre HTML (</a>, </b>…), espacios o saltos de línea.
+    • Si aún quedasen dos o más puntos al final, los reduce a:
+        – "…"   → se mantiene (puntos suspensivos)
+        – "."   → un solo punto
+    """
+    if not text:
+        return ""
+
+    # ── 1)  ".." directos → "."  (como antes)
+    text = re.sub(r"(?<!\.)\.\.(?!\.)", ".", text)
+
+    # ── 2)  ".</tag>."   ó   ".</tag></b> ."  → sólo un punto
+    #        (punto  + etiquetas de cierre/espacios  + punto)
+    text = re.sub(
+        r"(?<!\.)"  # el char anterior NO es punto
+        r"\."  # un punto
+        r"(?:\s*</[^>]+>\s*)+"  # ≥1 etiquetas de cierre con posible white-space
+        r"\."  # otro punto
+        r"(?!\.)",  # el siguiente char NO es punto
+        lambda m: m.group(0)[:-1],  # suprime el último punto
+        text,
+    )
+
+    # ── 3)  Normalizar la cola ("….." → "…" | ".." → ".")
+    tail = re.search(r"\.*$", text).group(0)  # todos los puntos del final
+    if tail and tail not in ("...", "…"):
+        text = text[: -len(tail)] + "."
+
+    return text
+
 # ── helper para capturar el bloque dispositvo (resuelvo) ─────────────
 
 # ── helper para capturar SIEMPRE el bloque dispositvo (resuelvo) ──────────
@@ -1115,6 +1151,7 @@ class MainWindow(QMainWindow):
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
             "Sin otro particular, saludo a Ud. atentamente."
         )
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
 
@@ -1159,6 +1196,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_consulado(self):
@@ -1204,6 +1242,7 @@ class MainWindow(QMainWindow):
         )
 
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_registro_automotor(self):
@@ -1246,6 +1285,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atte."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_tsj_secpenal(self):
@@ -1305,6 +1345,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_tsj_secpenal_depositos(self):
@@ -1354,6 +1395,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_comisaria_traslado(self):
@@ -1402,6 +1444,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_tsj_secpenal_elementos(self):
@@ -1448,6 +1491,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_automotores_secuestrados(self):
@@ -1494,6 +1538,7 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. muy atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_fiscalia_instruccion(self):
@@ -1541,6 +1586,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atte."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_policia_documentacion(self):
@@ -1607,6 +1653,7 @@ class MainWindow(QMainWindow):
             "Saluda a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_registro_civil(self):
@@ -1646,6 +1693,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_registro_condenados_sexuales(self):
@@ -1717,6 +1765,7 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_registro_nacional_reincidencia(self):
@@ -1763,6 +1812,7 @@ class MainWindow(QMainWindow):
             "Saluda a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_repat(self):
@@ -1801,6 +1851,7 @@ class MainWindow(QMainWindow):
             "Saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_juzgado_ninez(self):
@@ -1852,6 +1903,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def _plantilla_complejo_carcelario(self):
@@ -1893,6 +1945,7 @@ class MainWindow(QMainWindow):
             "Sin otro particular, lo saludo atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
+        cuerpo = strip_trailing_single_dot(cuerpo)
         self._insert_paragraph(te, cuerpo, Qt.AlignJustify, rich=True)
 
     def copy_to_clipboard(self, te: QTextEdit):
