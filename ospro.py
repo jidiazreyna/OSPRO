@@ -193,6 +193,29 @@ def extraer_resuelvo(texto: str) -> str:
     matches = list(_RESUELVO_REGEX.finditer(texto))
     return matches[-1].group(1).strip() if matches else ""
 
+# ── helper para capturar FIRMANTES ────────────────────────────
+_FIRMAS_REGEX = re.compile(r'''
+    ^\s*(?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s*   # cabecera
+    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s\.\-]+?)\s*,\s*      # nombre
+    (?P<cargo>[^\n,]+?)                                    # cargo
+    (?:,\s*(?:CUIL|DNI|ID)\s*(?P<doc>[\d\-\.]+))?          # doc opcional
+    \s*$                                                   # fin de línea
+''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
+
+def extraer_firmantes(texto: str) -> list[dict]:
+    """
+    Devuelve [{'nombre':…, 'cargo':…, 'doc':…}, …] con cada
+    firma hallada en el texto de la sentencia.
+    """
+    firmas = []
+    for m in _FIRMAS_REGEX.finditer(texto):
+        firmas.append({
+            "nombre": m.group("nombre").title().strip(),
+            "cargo" : m.group("cargo").title().strip(),
+            "doc"   : (m.group("doc") or "").strip(),
+        })
+    return firmas
+
 # ───────────────────────── MainWindow ────────────────────────
 class MainWindow(QMainWindow):
     FIELD_WIDTH = 140        # ancho preferido de los campos cortos
@@ -909,7 +932,6 @@ class MainWindow(QMainWindow):
 
             datos = json.loads(respuesta.choices[0].message.content)
 
-            # --------------- asegurar que 'resuelvo' tenga contenido ---------------
 # --------------- asegurar que 'resuelvo' tenga buen contenido ---------------
             g = datos.get("generales", {})
             # siempre priorizamos el bloque final de la sentencia
@@ -918,6 +940,12 @@ class MainWindow(QMainWindow):
             # normalizar saltos de línea (opcional pero recomendable)
             g["resuelvo"] = re.sub(r"\s*\n\s*", " ", g["resuelvo"]).strip()
 # -----------------------------------------------------------------------------
+            # --------------- asegurar que 'firmantes' tenga buen contenido ---------------
+            firmas_detectadas = extraer_firmantes(texto)
+            if firmas_detectadas:                       # ⬅ si encontramos algo, lo pisamos
+                datos.setdefault("generales", {})
+                datos["generales"]["firmantes"] = firmas_detectadas
+            # ----------------------------------------------------------------------------- 
 
             # ------------------ 1) Generales ------------------
             g = datos.get("generales", {})
@@ -1132,7 +1160,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = anchor(res, "edit_resuelvo", "resuelvo")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         regn_a = self._field_anchor(self.entry_regn, "edit_regn", "…")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
@@ -1175,7 +1203,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = anchor(res, "edit_resuelvo", "resuelvo")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
@@ -1184,7 +1212,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = anchor(res, "edit_resuelvo", "resuelvo")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         regn_a = self._field_anchor(self.entry_regn, "edit_regn", "…")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
@@ -1233,7 +1261,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = anchor(res, "edit_resuelvo", "resuelvo")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
@@ -1282,7 +1310,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = anchor(res, "edit_resuelvo", "resuelvo")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         comisaria_a = self._field_anchor(self.entry_comisaria, "edit_comisaria", "…")
@@ -1330,7 +1358,7 @@ class MainWindow(QMainWindow):
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
         sent_n_a = self._field_anchor(self.entry_sent_num, "edit_sent_num", "…")
         sent_f_a = self._field_anchor(self.entry_sent_date, "edit_sent_fecha", "…/…/…")
-        res_a = anchor(res, "edit_resuelvo", "resuelvo")
+        res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         rodado_a = self._field_anchor(self.entry_rodado, "edit_rodado", "objeto secuestrado/decomisado")
         deposito_a = self._field_anchor(self.entry_deposito, "combo_deposito", "depósito")
