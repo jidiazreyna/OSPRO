@@ -9,7 +9,8 @@ def anchor(texto: str, clave: str, placeholder: str = None) -> str:
         "color:blue;text-decoration:none;"
         "font-family:'Times New Roman';font-size:12pt;"
     )
-    return f'<a href="{clave}" style="{style}">{html.escape(texto)}</a>'
+    safe = html.escape(texto).replace("\n", "<br/>")
+    return f'<a href="{clave}" style="{style}">{safe}</a>'
 
 
 def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
@@ -20,4 +21,5 @@ def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
         "color:blue;text-decoration:none;"
         "font-family:'Times New Roman';font-size:12pt;"
     )
-    return f'<a href="{clave}" style="{style}">{html_text}</a>'
+    safe = html_text.replace("\n", "<br/>")
+    return f'<a href="{clave}" style="{style}">{safe}</a>'
