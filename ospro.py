@@ -1002,7 +1002,7 @@ class MainWindow(QMainWindow):
             f"por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de esta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos personales se mencionan a continuación:\n\n"
-            f"{self._imp_datos_anchor()}\n\n"
+            f"{self._imp_datos_anchor()}.\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}”. Fdo.: {firm_a}.\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.\n\n"
             "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.\n\n"
@@ -1044,7 +1044,7 @@ class MainWindow(QMainWindow):
             "con la intervención de esta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. "
             "el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos "
             "datos personales se mencionan a continuación:\n\n"
-            f"{self._imp_datos_anchor()}\n\n"
+            f"{self._imp_datos_anchor()}.\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}”. "
             f"Fdo.: {firm_a}.\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.\n\n"
@@ -1493,7 +1493,7 @@ class MainWindow(QMainWindow):
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
             "se ha resuelto enviar el presente oficio a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
             "cuyos datos se mencionan a continuación, a saber:\n\n"
-            f"{self._imp_datos_anchor()}\n\n"
+            f"{self._imp_datos_anchor()}.\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a} “Se resuelve: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
             f"Se transcribe a continuación {comp_label}: {computo_a}.\n"
@@ -1532,7 +1532,7 @@ class MainWindow(QMainWindow):
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con "
             "intervención de esta Oficina de Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente oficio, "
             "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos se mencionan a continuación:\n\n"
-            f"{self._imp_datos_anchor()}\n\n"
+            f"{self._imp_datos_anchor()}.\n\n"
             f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se Resuelve: {res_a}”. "
             f"Fdo.: {firm_a}.\n\n"
             f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.\n\n"
@@ -1589,7 +1589,7 @@ class MainWindow(QMainWindow):
             f"se ha resuelto librar el presente a fin de registrar en dicha dependencia lo resuelto por Sentencia N° {sent_n_a}, "
             f"de fecha {sent_f_a} dictada por el mencionado Tribunal.\n\n"
             "I. DATOS PERSONALES\n"
-            f"{self._imp_datos_anchor()}\n\n"
+            f"{self._imp_datos_anchor()}.\n\n"
             "II. IDENTIFICACIÓN DACTILAR (Adjuntar Ficha Dactiloscópica).\n\n"
             "III. DATOS DE CONDENA Y LIBERACIÓN (adjuntar copia de la sentencia).\n"
             f"   • Condena impuesta: {condena_a}\n"
@@ -1633,6 +1633,13 @@ class MainWindow(QMainWindow):
         res_a = self._field_anchor(self.entry_resuelvo, "edit_resuelvo", "resuelvo")
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         sent_firmeza_a = self._field_anchor(self.entry_sent_firmeza, "edit_sent_firmeza", "…/…/…")
+        computo, tipo = self._imp_computo()
+        computo = computo or "…"
+        if tipo.startswith("Efec"):
+            comp_label = "el cómputo de pena respectivo"
+        else:
+            comp_label = "la resolución que fija la fecha de cumplimiento de los arts. 27 y 27 bis del C.P."
+        computo_a = anchor(computo, "edit_computo", "…") if computo else anchor("", "edit_computo", "…")
 
         cuerpo = (
             "<b>Al Sr. Director del </b>\n"
@@ -1642,12 +1649,11 @@ class MainWindow(QMainWindow):
             "de la resolución dictada en los autos caratulados: "
             f"{car_a}, que se tramitan por ante "
             f"{trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con intervención de ésta "
-            "Oficina de Servicios Procesales (OSPRO), respecto de:\n\n"
-            f"{self._imp_datos_anchor()}\n\n"
-            f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “{res_a} PROTOCOLÍCESE. NOTIFÍQUESE.” (Fdo.: {firm_a}).\n\n"
-            "Se transcribe a continuación el cómputo de pena respectivo / la resolución que fija la fecha de cumplimiento "
-            "de los arts. 27 y 27 bis del C.P.\n"
-            f"Fecha de firmeza de la sentencia: {sent_firmeza_a}\n\n"
+            "Oficina de Servicios Procesales (OSPRO), en contra de:\n\n"
+            f"{self._imp_datos_anchor()}.\n\n"
+            f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “{res_a}.” (Fdo.: {firm_a}).\n\n"
+            f"Se transcribe a continuación {comp_label}: {computo_a}.\n"
+            f"Fecha de firmeza de la sentencia: {sent_firmeza_a}.\n\n"
             "Saluda a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -1678,14 +1684,14 @@ class MainWindow(QMainWindow):
             "<b>DE ANTECEDENTES DE TRÁNSITO (RePAT)</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
-            f"{trib_a}, de esta ciudad de Córdoba, con intervención de esta Oficina de "
-            "Servicios Procesales (OSPRO), se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por "
-            "dicho Tribunal respecto de la persona cuyos datos se detallan a continuación:\n\n"
-            f"{self._imp_datos_anchor()}\n\n"
-            f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se resuelve: {res_a}” "
+            f"{trib_a}, de esta ciudad de Córdoba, provincia de Córdoba, con intervención de esta Oficina de "
+            "Servicios Procesales - OSPRO -, se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por "
+            "dicho Tribunal, respecto de la persona cuyos datos se detallan a continuación:\n\n"
+            f"{self._imp_datos_anchor()}.\n\n"
+            f"SENTENCIA N° {sent_n_a}, DE FECHA {sent_f_a}: “Se resuelve: {res_a}”. "
             f"(Fdo.: {firm_a}).\n\n"
-            f"Asimismo, se informa que la sentencia condenatoria quedó firme con fecha {sent_firmeza_a}\n"
-            "Se adjuntan copias digitales de la sentencia y del cómputo de pena respectivos.\n\n"
+            f"Asimismo, se informa que la sentencia condenatoria antes referida quedó firme con fecha {sent_firmeza_a}.\n"
+            "Se adjuntan al presente oficio copia digital Sentencia y de cómputo de pena respectivos.\n\n"
             "Saludo a Ud. atentamente."
         )
         self._insert_paragraph(te, fecha, Qt.AlignRight)
@@ -1711,6 +1717,8 @@ class MainWindow(QMainWindow):
             juz = (juz.replace(", Violencia", ",\nViolencia")
                       .replace("Género de ", "Género de \n"))
         ee_rel = self._imp_field('ee_relacionado') or "…………."
+        nombre = self._imp_field('nombre') or "\u2026"
+        dni = self._imp_field('dni') or "\u2026"
 
         car_a = self._field_anchor(self.entry_caratula, "edit_caratula", "carátula")
         trib_a = self._field_anchor(self.entry_tribunal, "combo_tribunal", "tribunal")
@@ -1720,13 +1728,17 @@ class MainWindow(QMainWindow):
         firm_a = self._field_anchor(self.entry_firmantes, "edit_firmantes", "firmantes")
         juz_a = anchor(juz, "combo_juz_navfyg", "juzgado")
         ee_rel_a = anchor(ee_rel, "edit_ee_relacionado", "…")
+        nombre_a = anchor(nombre, "edit_nombre", "…")
+        dni_a = anchor(dni, "edit_dni", "…")
+
+        
         cuerpo = (
             f"<b>{juz_a}</b>\n"
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de esta Oficina de Servicios Procesales "
             "(OSPRO), se ha dispuesto librar a Ud. el presente, a fin de comunicarle lo resuelto por el mencionado Tribunal con relación a "
-            f"{self._imp_datos_anchor()} mediante"
+            f"{nombre_a}, DNI {dni_a}, mediante "
             f"Sentencia N° {sent_n_a}, de fecha {sent_f_a}: “Se Resuelve: {res_a}” "
             f"(Fdo.: {firm_a}).\n\n"
             "Se adjuntan al presente oficio copia digital de la sentencia y del cómputo de pena respectivo.\n\n"
@@ -1769,8 +1781,8 @@ class MainWindow(QMainWindow):
             "<b>S/D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con intervención de esta Oficina de Servicios Procesales (OSPRO), "
-            f"me dirijo a Ud. a fin de informar lo resuelto respecto de {nombre_a} – D.N.I. {dni_a} mediante Sentencia "
-            f"N\u202f{sent_n_a}, de fecha {sent_f_a}: \u201c{res_a}\u201d "
+            f"me dirijo a Ud. a los fines de informar lo resuelto con relación a {nombre_a}, DNI {dni_a}, mediante Sentencia "
+            f"N° {sent_n_a}, de fecha {sent_f_a}: \u201c{res_a}\u201d. "
             f"(Fdo.: {firm_a}).\n\n"
             "Sin otro particular, lo saludo atentamente."
         )
