@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QPlainTextEdit,
     QProgressDialog,
+    QProgressBar,
 )
 from PySide6.QtGui import (
     QIcon,
@@ -730,8 +731,8 @@ class MainWindow(QMainWindow):
         # Pares de pestañas cuyo vínculo se destaca con una animación
         # cuando el usuario cambia u observa las tabs.
         self.related_pairs = [
-            ("Oficio Registro Automotor", "Oficio TSJ Sec. Penal"),
-            ("Oficio TSJ Sec. Penal (Depósitos)", "Oficio Comisaría Traslado"),
+            ("Oficio Registro Automotor", "Oficio Decomiso (Reg. Automotor)"),
+            ("Oficio Decomiso Con Traslado", "Oficio Comisaría Traslado"),
         ]
         self.tabs_txt.currentChanged.connect(self.update_related_indicator)
         bar = self.tabs_txt.tabBar()
@@ -753,10 +754,10 @@ class MainWindow(QMainWindow):
                     "Oficio Fiscalía Instrucción",
                     "Oficio Automotores Secuestrados",
                     "Oficio Registro Automotor",
-                    "Oficio TSJ Sec. Penal",
-                    "Oficio TSJ Sec. Penal (Depósitos)",  
+                    "Oficio Decomiso (Reg. Automotor)",
+                    "Oficio Decomiso Con Traslado",  
                     "Oficio Comisaría Traslado",
-                    "Oficio TSJ Sec. Penal (Elementos)",
+                    "Oficio Decomiso Sin Traslado",
                     ):
 
             te = PlainCopyTextBrowser();
@@ -1223,6 +1224,7 @@ class MainWindow(QMainWindow):
             if re.search(r"decomis", txt, re.IGNORECASE):
                 partes.append(f"{num}. {txt}")
         return " ".join(partes) if partes else (self.entry_resuelvo.text() or "…")
+        
 
     def autocompletar_desde_sentencia(self):
         """Abre un archivo, procesa en segundo plano y actualiza la GUI."""
@@ -1235,27 +1237,41 @@ class MainWindow(QMainWindow):
         if not ruta:
             return
 
-        # feedback visual
+        # ───── feedback visual ──────────────────────────────────
         self.setCursor(Qt.WaitCursor)
-        self._wait_dialog = QProgressDialog(
-            "Procesando sentencia…", None, 0, 0, self
-        )
+
+        self._wait_dialog = QProgressDialog("Procesando sentencia…", None, 0, 0, self)
         self._wait_dialog.setWindowTitle("Espere")
         self._wait_dialog.setWindowModality(Qt.ApplicationModal)
         self._wait_dialog.setCancelButton(None)
         self._wait_dialog.setMinimumDuration(0)
         self._wait_dialog.setValue(0)
 
-        # hilo + worker
+        # ── centramos texto y barra ─────────────────────────────
+        label = self._wait_dialog.findChild(QLabel)
+        bar   = self._wait_dialog.findChild(QProgressBar)
+
+        if label:
+            label.setAlignment(Qt.AlignCenter)
+
+        if bar:
+            bar.setTextVisible(False)
+            bar.setRange(0, 0)
+            bar.setFixedWidth(160)
+            bar.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+
+            lay = self._wait_dialog.layout()      # puede ser None si aún no existe
+            if lay is not None:
+                lay.setAlignment(bar, Qt.AlignHCenter)
+
+        # ───── hilo + worker ───────────────────────────────────
         self._thread = QThread(self)
         self._worker = Worker(ruta)
         self._worker.moveToThread(self._thread)
 
-        # señales
         self._thread.started.connect(self._worker.run)
         self._worker.finished.connect(self._on_autocomplete_done)
 
-        # arrancar
         self._thread.start()
 
 # ----------------------------------------------------------------------
@@ -1526,7 +1542,7 @@ class MainWindow(QMainWindow):
         self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_tsj_secpenal(self):
-        te = self.text_edits["Oficio TSJ Sec. Penal"]
+        te = self.text_edits["Oficio Decomiso (Reg. Automotor)"]
         te.clear()
 
         loc  = self.entry_localidad.text() or "Córdoba"
@@ -1591,7 +1607,7 @@ class MainWindow(QMainWindow):
         self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_tsj_secpenal_depositos(self):
-        te = self.text_edits["Oficio TSJ Sec. Penal (Depósitos)"]
+        te = self.text_edits["Oficio Decomiso Con Traslado"]
         te.clear()
 
         loc  = self.entry_localidad.text() or "Córdoba"
@@ -1629,7 +1645,7 @@ class MainWindow(QMainWindow):
             f"de {sent_f_a}, dicho Tribunal resolvió ordenar el <b>DECOMISO</b> de los siguientes objetos:\n\n"
             f"<table border='1' cellspacing='0' cellpadding='2'>"
             f"<tr><th>Descripción del objeto</th><th>Ubicación Actual</th></tr>"
-            f"<tr><td>{rodado_a}</td><td>{deposito_a}</td></tr></table>\n\n"
+            f"<tr><td>{rodado_a}</td><td>Comisaría {comisaria_a}</td></tr></table>\n\n"
             f"Se hace saber a Ud. que el/los elemento/s referido/s se encuentra/n en la Cría. {comisaria_a} de la Policía de Córdoba "
             "y en el día de la fecha se libró oficio a dicha dependencia policial a los fines de remitir al Depósito General "
             "de Efectos Secuestrados el/los objeto/s decomisado/s.\n\n"
@@ -1696,7 +1712,7 @@ class MainWindow(QMainWindow):
         self._insert_paragraph(te, saludo, Qt.AlignCenter)
 
     def _plantilla_tsj_secpenal_elementos(self):
-        te = self.text_edits["Oficio TSJ Sec. Penal (Elementos)"]
+        te = self.text_edits["Oficio Decomiso Sin Traslado"]
         te.clear()
 
         loc  = self.entry_localidad.text() or "Córdoba"
