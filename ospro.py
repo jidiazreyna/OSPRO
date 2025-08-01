@@ -54,6 +54,15 @@ import shutil
 import tempfile
 from helpers import anchor, anchor_html, strip_anchors, _strip_anchor_styles, strip_color
 
+# util para obtener ruta de recursos (útil con PyInstaller)
+def resource_path(relative_path: str) -> str:
+    """Devuelve la ruta absoluta a un recurso incluido junto al script."""
+    try:
+        base_path = sys._MEIPASS  # type: ignore[attr-defined]
+    except AttributeError:
+        base_path = Path(__file__).resolve().parent
+    return str(Path(base_path) / relative_path)
+
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
     """Evita que la rueda del mouse cambie accidentalmente la opción."""
@@ -2443,6 +2452,7 @@ class MainWindow(QMainWindow):
 # ──────────────────────────── main ───────────────────────────────
 def main():
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(resource_path("icono4.ico")))
 
     # ahora SÍ podés usar QMessageBox
     if not os.getenv("OPENAI_API_KEY"):
