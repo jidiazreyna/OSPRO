@@ -352,12 +352,13 @@ _RESUELVO_REGEX = re.compile(
     resuelv[eo]\s*:?\s*                           # “RESUELVE:” / “RESUELVO:”
     (?P<bloque>                                   # ← bloque que queremos extraer
         (?:
-            (?:                                   # ─ un inciso: I) / 1. / II- …
+            (?:                                   # ─ un inciso: I) / 1. / II.- …
                 \s*(?:[IVXLCDM]+|\d+)             #   núm. romano o arábigo
-                \s*[)\.\-‑]\s+                    #   ) . - ‑ como separador
+                \s*(?:\)|\.-|\.|-|-)              #   )  .  -  -  o .-   ← ¡cambio!
+                \s+
                 .*?                               #   texto del inciso (lazy)
                 (?:                               #   líneas del mismo inciso
-                    \n(?!\s*(?:[IVXLCDM]+|\d+)\s*[)\.\-‑]).*?
+                    \n(?!\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-|-)).*?
                 )*
             )
         )+                                        # uno o más incisos
@@ -370,6 +371,92 @@ _RESUELVO_REGEX = re.compile(
     """,
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
 )
+
+# ── CARÁTULA ──────────────────────────────────────────────────────────
+_PAT_CARAT_1 = re.compile(          # 1) entre comillas
+    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)\s*\)', re.I)
+
+_PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
+    r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
+    r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?', re.I)
+
+_PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …”
+    r'EXPEDIENTE\s+(?:SAC|Expte\.?)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
+
+def extraer_caratula(txt: str) -> str:
+    """
+    Devuelve la carátula formal “…” (SAC N° …) o '' si no encuentra nada creíble.
+    Se prueban, en orden, tres patrones:
+      1. Entre comillas + (SAC/Expte N° …)
+      2. Frase “… autos caratulados ‘X’ …”
+      3. Encabezado “EXPEDIENTE SAC: 123 – X – …”
+    """
+    # normalizo blancos para evitar saltos de línea entre tokens
+    plano = re.sub(r'\s+', ' ', txt)
+
+    m = _PAT_CARAT_1.search(plano)
+    if m:
+        titulo, nro = m.groups()
+        return f'“{titulo.strip()}” (SAC N° {nro})'
+
+    m = _PAT_CARAT_2.search(plano)
+    if m:
+        titulo = m.group(1).strip()
+        # intento buscar el número SAC/Expte más próximo
+        mnum = re.search(r'(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)', plano)
+        nro  = mnum.group(1) if mnum else '…'
+        return f'“{titulo}” (SAC N° {nro})'
+
+    # El encabezado suele estar en la primera página; me quedo con la 1ª coincidencia
+    encabezados = _PAT_CARAT_3.findall(plano[:5000])
+    if encabezados:
+        nro, resto = encabezados[0]
+        titulo = resto.split(' - ')[0].strip()
+        return f'“{titulo}” (SAC N° {nro})'
+    return ""
+
+# ── TRIBUNAL ──────────────────────────────────────────────────────────
+# Lista de palabras clave válidas al inicio de la descripción
+_CLAVES_TRIB = (
+    r'Cámara|Juzgado|Tribunal|Sala|Corte'  # extensible
+)
+
+# 1) “… en esta Cámara / en el Juzgado …”
+_PAT_TRIB_1 = re.compile(
+    rf'en\s+(?:esta|este|el|la)\s+({_CLAVES_TRIB}[^,;.]+)', re.I)
+
+# 2) encabezado en versales: “CAMARA EN LO CRIMINAL Y CORRECCIONAL 3ª NOM.”
+_PAT_TRIB_2 = re.compile(
+    r'(CAMARA\s+EN\s+LO\s+CRIMINAL[^/]+NOM\.)', re.I)
+
+def _formatea_tribunal(raw: str) -> str:
+    """Pasa a minúsculas y respeta mayúsculas iniciales."""
+    raw = raw.lower()
+    return capitalizar_frase(raw)
+
+def extraer_tribunal(txt: str) -> str:
+    """Devuelve la mención al órgano: 'la Cámara …' / 'el Juzgado …'."""
+    plano = re.sub(r'\s+', ' ', txt)
+
+    m = _PAT_TRIB_1.search(plano)
+    if m:
+        t = _formatea_tribunal(m.group(1))
+        if not re.match(r'^(el|la)\s', t, re.I):
+            t = 'la ' + t
+        return t.strip(' .')
+
+    m = _PAT_TRIB_2.search(plano[:2000])  # suele estar arriba de todo
+    if m:
+        nom = m.group(1)
+        nom = (nom
+               .replace('CAMARA', 'la Cámara')
+               .replace('NOM.-', 'Nominación')
+               .replace('NOM.',  'Nominación')
+               .title())        # Cámara En Lo…
+        return nom
+    return ""
+
+
 
 
 def extraer_resuelvo(texto: str) -> str:
@@ -506,17 +593,19 @@ class Worker(QObject):
                     {
                         "role": "system",
                         "content": (
-                            "Extraé de la sentencia los siguientes campos y devolvé un JSON con: "
-                            "generales (caratula, tribunal, sent_num, sent_fecha, resuelvo o parte resolutiva, firmantes) "
-                            "e imputados (lista de datos_personales -incluí nombre, DNI, prontuario y el resto-). "
-                            "Si no hay datos, dejá el campo vacío. "
-                            "La carátula incluye las comillas con el nombre de la causa dentro y el número de expediente posterior, "
-                            "ejemplo: \"DIAZ, Juan Pérez p.s.a. robo\" (SAC N° 12345678) "
-                            "o \"DIAZ, Juan Pérez p.s.a. robo (Expte. N° 12345678)\". "
-                            "El texto del resuelvo SIEMPRE está AL FINAL de la sentencia, precedido por “RESUELVE:” o “RESUELVO:”, "
-                            "considerá como parte resolutiva todo el bloque que comienza en la primera enumeración después de esas palabras, "
-                            "y termina con las fórmulas de estilo “Protocolícese / Hágase saber / Notifíquese (entre otras)”. "
-                            "No resumas ni sintetices, devolvé el texto tal cual."
+                            "Devolvé un JSON con: "
+                            "generales (caratula, tribunal, sent_num, sent_fecha, resuelvo, firmantes) "
+                            "e imputados (lista).  Cada imputado debe traer un objeto "
+                            "`datos_personales` **con TODAS ESTAS CLAVES**:\n"
+                            "nombre, dni, nacionalidad, fecha_nacimiento, lugar_nacimiento, edad, "
+                            "estado_civil, domicilio, instruccion, ocupacion, padres, "
+                            "prontuario, seccion_prontuario.\n"
+                            "La **caratula** es la denominación de la causa, generalmente entre comillas "
+                            "y con “(SAC N° …)”, “(Expte. N° …)”, “(EE N° …)”, “(SAC …)”, “(Expte. …)”, “(EE …)”, etc..  Nunca debe contener la palabra "
+                            "Cámara, Juzgado ni Tribunal."
+                            " “tribunal” es el órgano que dictó la sentencia, empieza con "
+                            "‘la Cámara’, ‘el Juzgado’, etc. "
+                            "Si un dato falta, dejá la clave vacía."
                         ),
                     },
                     {"role": "user", "content": texto[:120000]},
@@ -536,7 +625,32 @@ class Worker(QObject):
             firmas = extraer_firmantes(texto)
             if firmas:
                 datos.setdefault("generales", {})["firmantes"] = firmas
+            # c) verificar / completar carátula y tribunal
+            carat_raw = g.get("caratula", "").strip()
+            trib_raw  = g.get("tribunal", "").strip()
 
+            # ¿La IA trajo algo plausible?
+            carat_ok = CARATULA_REGEX.match(carat_raw)
+            trib_ok  = TRIBUNAL_REGEX.match(trib_raw)
+
+            # Heurística de “campos invertidos”
+            if not carat_ok and ('cámara' in carat_raw.lower() or 'juzgado' in carat_raw.lower()):
+                # probablemente los invirtió
+                carat_raw, trib_raw = "", carat_raw    # fuerza re‑extracción abajo
+
+            if not trib_ok and trib_raw.lower().startswith('dr'):
+                trib_raw = ""                          # forzamos re‑extracción
+
+            # Relleno / corrección
+            if not carat_ok:
+                nueva_carat = extraer_caratula(texto)
+                if nueva_carat:
+                    g['caratula'] = nueva_carat
+
+            if not trib_ok:
+                nuevo_trib = extraer_tribunal(texto)
+                if nuevo_trib:
+                    g['tribunal'] = nuevo_trib
             # listo: emitimos
             self.finished.emit(datos, "")          # sin error
 
@@ -583,7 +697,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Generador base")
+        self.setWindowTitle("OSPRO - Oficios post sentencias")
         self.resize(1100, 610)
         self._wait_dialog = None
 
