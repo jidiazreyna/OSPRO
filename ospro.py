@@ -457,16 +457,47 @@ def extraer_tribunal(txt: str) -> str:
     return ""
 
 
-
+_FIRMA_FIN_PAT = re.compile(
+    r'''
+        ^\s*(?:                  # comienzo de línea + posibles firmas o meta‑datos
+            Firmad[oa]           # Firmado / Firmada
+          | Firma\s+digital      # Firma digital
+          | Texto\s+Firmado      # Texto Firmado digitalmente
+          | Fdo\.?               # Fdo.:
+          | Fecha\s*:\s*\d{4}    # Fecha: 2025‑08‑02
+          | Expediente\s+SAC     # Expediente SAC …
+        )
+    ''', re.I | re.M | re.X)
 
 def extraer_resuelvo(texto: str) -> str:
     """
-    Devuelve el ÚLTIMO bloque dispositvo (resuelvo) de la sentencia.
-    Si no hay coincidencias, devuelve cadena vacía.
+    Devuelve el ÚLTIMO bloque dispositvo completo (incluidas las fórmulas
+    'Protocolícese', 'Notifíquese', 'Ofíciese', etc.).  Algoritmo:
+
+    1.  Quita pies de página repetitivos.
+    2.  Busca la última aparición de 'RESUELVE' / 'RESUELVO'.
+    3.  Toma desde allí hasta la primera línea que parezca una firma
+        o meta‑dato (o hasta el final del documento si no hay nada).
     """
     texto = limpiar_pies_de_pagina(texto)
-    matches = list(_RESUELVO_REGEX.finditer(texto))
-    return matches[-1].group(1).strip() if matches else ""
+
+    # 1) posición de la última palabra RESUELVE / RESUELVO
+    idx = max(texto.lower().rfind("resuelve"),
+              texto.lower().rfind("resuelvo"))
+    if idx == -1:
+        return ""
+
+    frag = texto[idx:]                        # desde RESUELVE hasta el final
+
+    # 2) cortar justo antes de firmas / fechas
+    m_fin = _FIRMA_FIN_PAT.search(frag)
+    if m_fin:
+        frag = frag[:m_fin.start()]
+
+    # 3) prolijo
+    frag = frag.strip()
+    return frag
+
 
 # ── helper para capturar FIRMANTES ────────────────────────────
 # ── helper para capturar FIRMANTES ────────────────────────────
