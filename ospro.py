@@ -90,8 +90,6 @@ class PlainCopyTextBrowser(QTextBrowser):
             new_mime.setText(mime.text())
             cb.setMimeData(new_mime)
 
-CAUSAS_DIR = Path("causas_guardadas")
-CAUSAS_DIR.mkdir(exist_ok=True)
 
 # meses en español para las fechas
 MESES_ES = [
@@ -841,12 +839,7 @@ class MainWindow(QMainWindow):
         self.tabs_imp = QTabWidget()
         self.form.addWidget(self.tabs_imp, self._row, 0, 1, 2); self._row += 1
 
-        # botones archivo
-        for txt, slot in (("Guardar causa",  self.guardar_causa),
-                        ("Abrir causa",    self.cargar_causa),
-                        ("Eliminar causa", self.eliminar_causa)):
-            btn = QPushButton(txt); btn.clicked.connect(slot)
-            self.form.addWidget(btn, self._row, 0, 1, 2); self._row += 1
+        # botón para autocompletar datos desde una sentencia
         btn_auto = QPushButton("Cargar sentencia y autocompletar")
         btn_auto.clicked.connect(self.autocompletar_desde_sentencia)
         self.form.addWidget(btn_auto, self._row, 0, 1, 2)
@@ -1106,121 +1099,6 @@ class MainWindow(QMainWindow):
             nom = w['nombre'].text().strip()
             txt = f"Imputado {i+1}" + (f" – {nom}" if nom else "")
             self.selector_imp.setItemText(i, txt)
-
-
-    # —————————————————— persistencia ——————————————————
-    def _generales_dict(self):
-        """Devuelve un dict con los datos generales."""
-        return {
-            'localidad' : self.entry_localidad.text(),
-            'caratula'  : normalizar_caratula(self.entry_caratula.text()),
-            'tribunal'  : self.entry_tribunal.currentText(),
-
-            'resuelvo'  : self.entry_resuelvo.text(),
-            'firmantes' : self.entry_firmantes.text(),
-
-            'sent_num'  : self.entry_sent_num.text(),
-            'sent_fecha': self.entry_sent_date.text(),
-            'sent_firmeza': self.entry_sent_firmeza.text(),
-            'consulado' : self.entry_consulado.text(),
-            'rodado': self.entry_rodado.text(),
-            'regn': self.entry_regn.text(),
-            'deposito': self.entry_deposito.currentText(),
-            'comisaria': self.entry_comisaria.text(),
-            'dep_def': self.entry_dep_def.currentText(),
-            'titular_veh': self.entry_titular_veh.text(),
-            'itim_num': self.entry_itim_num.text(),
-            'itim_fecha': self.entry_itim_fecha.text(),
-        }
-
-    def _imputados_list(self):
-        """Devuelve una lista de dicts con TODOS los campos de cada imputado."""
-        li = []
-        for w in self.imputados_widgets:
-            datos = {}
-            for k, widget in w.items():
-                if isinstance(widget, QLineEdit):
-                    datos[k] = widget.text()
-                elif isinstance(widget, QTextEdit):
-                    datos[k] = widget.toPlainText()
-                elif isinstance(widget, QComboBox):
-                    data = widget.currentData()
-                    datos[k] = data if data is not None else widget.currentText()
-                else:
-                    datos[k] = ""
-            li.append(datos)
-        return li
-
-    def guardar_causa(self):
-        ruta, _ = QFileDialog.getSaveFileName(self, "Guardar causa", str(CAUSAS_DIR), "JSON (*.json)")
-        if not ruta: return
-        with open(ruta, "w", encoding="utf-8") as f:
-            json.dump({'generales': self._generales_dict(),
-                       'imputados': self._imputados_list()}, f, ensure_ascii=False, indent=2)
-        QMessageBox.information(self, "OK", "Causa guardada correctamente.")
-
-    def cargar_causa(self):
-        ruta, _ = QFileDialog.getOpenFileName(
-            self, "Abrir causa", str(CAUSAS_DIR), "JSON (*.json)"
-        )
-        if not ruta:
-            return
-        try:
-            with open(ruta, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            # --------- generales ---------
-            g = data.get("generales", {})
-            self.entry_localidad.setText(g.get("localidad", ""))
-            self.entry_caratula.setText(normalizar_caratula(g.get("caratula", "")))
-            self.entry_tribunal.setCurrentText(
-                capitalizar_frase(g.get("tribunal", ""))
-            )
-            self.entry_resuelvo.setText(g.get("resuelvo", ""))
-            self.entry_firmantes.setText(g.get("firmantes", ""))
-            self.entry_sent_num.setText(g.get("sent_num", ""))
-            self.entry_sent_date.setText(g.get("sent_fecha", ""))
-            self.entry_sent_firmeza.setText(g.get("sent_firmeza", ""))
-            self.entry_consulado.setText(g.get("consulado", ""))
-            self.entry_rodado.setText(g.get("rodado", ""))
-            self.entry_regn.setText(g.get("regn", ""))
-            self.entry_deposito.setCurrentText(g.get("deposito", ""))
-            self.entry_comisaria.setText(g.get("comisaria", ""))
-            self.entry_dep_def.setCurrentText(g.get("dep_def", ""))
-            self.entry_titular_veh.setText(g.get("titular_veh", ""))
-            self.entry_itim_num.setText(g.get("itim_num", ""))
-            self.entry_itim_fecha.setText(g.get("itim_fecha", ""))
-
-            # --------- imputados ---------
-            imps = data.get("imputados", [])
-            self.combo_n.setCurrentText(str(max(1, len(imps))))
-            # rebuild_imputados() será llamado por la señal currentIndexChanged,
-            # así que los widgets ya existen cuando entremos al for.
-            for idx, imp in enumerate(imps):
-                w = self.imputados_widgets[idx]
-                for k, v in imp.items():
-                    widget = w[k]
-                    if isinstance(widget, QLineEdit):
-                        widget.setText(v)
-                    elif isinstance(widget, QTextEdit):
-                        widget.setPlainText(v)
-                    elif isinstance(widget, QComboBox):
-                        idx = widget.findData(v)
-                        if idx != -1:
-                            widget.setCurrentIndex(idx)
-                        else:
-                            widget.setCurrentText(v)
-            self._refresh_imp_names_in_selector()
-            self.update_templates()
-        except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
-
-    def eliminar_causa(self):
-        ruta, _ = QFileDialog.getOpenFileName(self, "Eliminar causa", str(CAUSAS_DIR), "JSON (*.json)")
-        if ruta and QMessageBox.question(self, "Confirmar",
-                                         f"¿Eliminar {Path(ruta).name}?",
-                                         QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            Path(ruta).unlink(missing_ok=True)
 
     # ───────── helper: asegura string ──────────
     @staticmethod
