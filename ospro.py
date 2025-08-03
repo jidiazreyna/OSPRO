@@ -2307,6 +2307,9 @@ class MainWindow(QMainWindow):
         if juz.startswith("Juzgado de Niñez,"):
             juz = (juz.replace(", Violencia", ",\nViolencia")
                       .replace("Género de ", "Género de \n"))
+        elif "modalidad doméstica -causas graves-" in juz:
+            juz = (juz.replace(", modalidad", ",\nmodalidad")
+                      .replace("-causas graves- de", "-causas graves-\nde"))
         ee_rel = self._imp_field('ee_relacionado') or "…………."
         nombre = self._imp_field('nombre') or "\u2026"
         dni = self._imp_field('dni') or "\u2026"
