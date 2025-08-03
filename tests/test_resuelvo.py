@@ -74,4 +74,13 @@ def test_extraer_resuelvo_removes_digital_signature():
     )
     res = ospro.extraer_resuelvo(texto)
     assert "Firmado digitalmente" not in res
-    assert res == "RESUELVO:\n1) Ordenar algo.\n2) Otra cosa."
+    assert res == "1) Ordenar algo.\n2) Otra cosa."
+
+
+def test_extraer_resuelvo_strips_heading():
+    texto = (
+        "Texto previo\n"
+        "Se RESUELVE: Primero. Algo. Segundo. Otra cosa.\n"
+    )
+    res = ospro.extraer_resuelvo(texto)
+    assert res == "Primero. Algo. Segundo. Otra cosa."
