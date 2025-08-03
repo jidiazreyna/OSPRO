@@ -2462,7 +2462,18 @@ class MainWindow(QMainWindow):
             editable=widget.isEditable(),
         )
         if ok:
-            widget.setCurrentText(texto.strip())
+            texto = texto.strip()
+            # ``QInputDialog`` may normalize spaces (e.g. replace narrow no-break
+            # spaces with regular ones) which prevents ``setCurrentText`` from
+            # matching the existing combo item and updating its current data.
+            # Map normalized item texts to their indices to ensure we select the
+            # correct entry when possible.
+            norm_map = {it.replace("\u202f", " "): i for i, it in enumerate(items)}
+            idx_new = norm_map.get(texto.replace("\u202f", " "), -1)
+            if idx_new >= 0:
+                widget.setCurrentIndex(idx_new)
+            else:
+                widget.setCurrentText(texto)
             self.update_templates()
 
     def _check_caratula(self) -> None:
