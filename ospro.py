@@ -457,13 +457,15 @@ def extraer_tribunal(txt: str) -> str:
 
 _FIRMA_FIN_PAT = re.compile(
     r'''
-        ^\s*(?:                  # comienzo de línea + posibles firmas o meta‑datos
-            Firmad[oa]           # Firmado / Firmada
-          | Firma\s+digital      # Firma digital
-          | Texto\s+Firmado      # Texto Firmado digitalmente
-          | Fdo\.?               # Fdo.:
-          | Fecha\s*:\s*\d{4}    # Fecha: 2025‑08‑02
-          | Expediente\s+SAC     # Expediente SAC …
+        ^\s*(?:[\-\u2022*·]\s*)?   # posible viñeta o puntuación inicial
+        (?:
+            (?:Texto\s+)?Firmad[oa]\s+digitalmente(?:\s+por:)?  # "Firmado digitalmente por:"
+          | Firmad[oa]                                 # Firmado / Firmada
+          | Firma\s+digital                            # Firma digital
+          | Texto\s+Firmado                            # Texto Firmado digitalmente
+          | Fdo\.?                                     # Fdo.:
+          | Fecha\s*:\s*\d{4}                         # Fecha: 2025‑08‑02
+          | Expediente\s+SAC                           # Expediente SAC …
         )
     ''', re.I | re.M | re.X)
 
@@ -648,6 +650,11 @@ class Worker(QObject):
             g["resuelvo"] = extraer_resuelvo(texto)
             g["resuelvo"] = limpiar_pies_de_pagina(
                 re.sub(r"\s*\n\s*", " ", g["resuelvo"])
+            ).strip()
+            g["resuelvo"] = re.sub(
+                r"(?i)\s*(?:texto\s+)?firmad[oa]\s+digitalmente.*",
+                "",
+                g["resuelvo"],
             ).strip()
 
             # b) firmantes de respaldo
