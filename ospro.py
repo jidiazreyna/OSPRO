@@ -496,6 +496,10 @@ def extraer_resuelvo(texto: str) -> str:
 
     # 3) prolijo
     frag = frag.strip()
+
+    # quitar encabezado "RESUELVE:" / "RESUELVO:" si quedó incluido
+    frag = re.sub(r"^resuelv[eo]\s*:?\s*", "", frag, flags=re.I)
+
     return frag
 
 
