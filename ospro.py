@@ -171,10 +171,10 @@ JUZ_NAVFYG = [
     "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 6ª Nom. – Sec.\u202fN°\u202f12",
     "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 7ª Nom. – Sec.\u202fN°\u202f13",
     "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 7ª Nom. – Sec.\u202fN°\u202f14",
-    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f15",
-    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f16",
-    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f17",
-    "Juzgados de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f18",
+    "Juzgado de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f15",
+    "Juzgado de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f16",
+    "Juzgado de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f17",
+    "Juzgado de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f18",
 ]
 
 # texto acortado para mostrar en el combo: tomamos la última parte
@@ -2307,9 +2307,6 @@ class MainWindow(QMainWindow):
         if juz.startswith("Juzgado de Niñez,"):
             juz = (juz.replace(", Violencia", ",\nViolencia")
                       .replace("Género de ", "Género de \n"))
-        elif "modalidad doméstica -causas graves-" in juz:
-            juz = (juz.replace(", modalidad", ",\nmodalidad")
-                      .replace("-causas graves- de", "-causas graves-\nde"))
         ee_rel = self._imp_field('ee_relacionado') or "…………."
         nombre = self._imp_field('nombre') or "\u2026"
         dni = self._imp_field('dni') or "\u2026"
