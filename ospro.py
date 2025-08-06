@@ -49,6 +49,10 @@ from PySide6.QtGui import QTextBlockFormat, QTextCharFormat, QTextDocument
 import openai                    # cliente oficial
 from pdfminer.high_level import extract_text              # PDF → texto
 import docx2txt                  # DOCX → texto
+try:
+    import requests                  # manejar conexiones a través de proxy
+except ImportError:
+    requests = None  # type: ignore
 import ast
 import subprocess
 import shutil
@@ -56,6 +60,8 @@ import tempfile
 from helpers import anchor, anchor_html, strip_anchors, _strip_anchor_styles, strip_color
 # API key de OpenAI incorporada para evitar solicitarla al usuario
 OPENAI_API_KEY_DEFAULT = "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"
+# URL del proxy para entornos con autenticación. Editar según corresponda.
+PROXY_URL_DEFAULT = "http://usuario:contraseña@host:puerto"
 # util para obtener ruta de recursos (útil con PyInstaller)
 def resource_path(relative_path: str) -> str:
     """Devuelve la ruta absoluta a un recurso incluido junto al script."""
@@ -2520,12 +2526,21 @@ def _obtener_api_key() -> str:
     """Devuelve la API key incorporada."""
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY_DEFAULT
     return OPENAI_API_KEY_DEFAULT
+
+def _configurar_proxy() -> None:
+    """Configura la sesión de requests para usar un proxy si está definido."""
+    if PROXY_URL_DEFAULT and requests:
+        session = requests.Session()
+        session.proxies.update({"http": PROXY_URL_DEFAULT, "https": PROXY_URL_DEFAULT})
+        openai.requestssession = session
+
     
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path("icono4.ico")))
     # ahora SÍ podés usar QMessageBox
     openai.api_key = _obtener_api_key()
+    _configurar_proxy()
 
 
     win = MainWindow()
