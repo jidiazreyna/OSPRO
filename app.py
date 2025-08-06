@@ -1,7 +1,9 @@
 # app.py  – versión resumida
 import streamlit as st
+import streamlit.components.v1 as components
 from core import autocompletar, generar_oficios   # ← mismas funciones
 from datetime import datetime
+import json
 from helpers import anchor, strip_anchors
 
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
@@ -192,3 +194,39 @@ with tabs[2]:
     if st.button("Copiar", key="copy_electoral"):
         texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
         st.experimental_copy(texto)
+
+# ——————————— enlaces interactivos ———————————
+_ANCHOR_MAP = {
+    "caratula": "Carátula",
+    "tribunal": "Tribunal",
+    "imp0_datos": "Datos personales",
+    "snum": "Sentencia Nº",
+    "sfecha": "Fecha sentencia",
+    "sfirmeza": "Firmeza sentencia",
+    "sres": "Resuelvo",
+    "sfirmaza": "Firmantes",
+    "consulado": "Consulado",
+}
+
+components.html(
+    f"""
+<script>
+const anchorMap = {json.dumps(_ANCHOR_MAP)};
+document.addEventListener('click', function(e) {{
+  const a = e.target.closest('a[data-anchor]');
+  if (!a) return;
+  e.preventDefault();
+  const key = a.getAttribute('data-anchor');
+  const label = anchorMap[key];
+  if (!label) return;
+  const doc = window.parent.document;
+  const el = doc.querySelector(`[aria-label="${{label}}"]`);
+  if (el) {{
+    el.scrollIntoView({{behavior: 'smooth', block: 'center'}});
+    el.focus({{preventScroll: true}});
+  }}
+}});
+</script>
+""",
+    height=0,
+)
