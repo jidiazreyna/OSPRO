@@ -133,7 +133,7 @@ def _mostrar_dialogo(clave: str) -> None:
         titulo, tipo, estado = campo
 
     valor_actual = st.session_state.get(estado, "")
-    with st.modal(titulo):
+    with st.dialog(titulo):
         if tipo == "text":
             nuevo = st.text_input(titulo, valor_actual, key=f"dlg_{estado}")
         elif tipo == "textarea":
