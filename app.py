@@ -1,6 +1,5 @@
 # app.py  – versión resumida
 import streamlit as st
-import streamlit.components.v1 as components
 from core import autocompletar   # ← función principal
 from datetime import datetime
 from helpers import anchor, strip_anchors
@@ -26,6 +25,26 @@ def copy_to_clipboard(texto: str) -> None:
         st.warning("No se pudo copiar automáticamente. Copie el texto manualmente.")
 
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
+
+# Inject JavaScript to handle anchor clicks once
+if "_js_injected" not in st.session_state:
+    st.markdown(
+        """
+        <script>
+        document.addEventListener('click', function (e) {
+          const a = e.target.closest('a[data-anchor]');
+          if (a) {
+            e.preventDefault();
+            const params = new URLSearchParams(window.location.search);
+            params.set('anchor', a.getAttribute('data-anchor'));
+            window.location.search = params.toString();
+          }
+        }, true);
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.session_state._js_injected = True
 
 # ───────── helpers comunes ──────────────────────────────────────────
 MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
@@ -287,19 +306,3 @@ with tabs[2]:
         copy_to_clipboard(texto)
 
 
-# ───────── manejo de clics en anchors ───────────────────────────────
-ANCHOR_JS = """
-<script>
-const doc = window.parent.document;
-doc.addEventListener('click', function(e) {
-  const a = e.target.closest('a[data-anchor]');
-  if (a) {
-    e.preventDefault();
-    const params = new URLSearchParams(window.parent.location.search);
-    params.set('anchor', a.getAttribute('data-anchor'));
-    window.parent.location.search = params.toString();
-  }
-}, true);
-</script>
-"""
-components.html(ANCHOR_JS, height=0, width=0)
