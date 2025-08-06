@@ -17,7 +17,8 @@ def anchor(texto: str, clave: str, placeholder: str = None) -> str:
     )
     style_str = "".join(style)
     safe = html.escape(texto).replace("\n", "<br/>")
-    html_link = f'<a href="#" data-anchor="{clave}" onclick="return false;" style="{style_str}">{safe}</a>'
+    # Eliminamos el manejador inline ``onclick`` para delegar por JS global
+    html_link = f'<a href="#" data-anchor="{clave}" style="{style_str}">{safe}</a>'
     print("HTML anchor:", html_link)
     return html_link
 
@@ -32,7 +33,7 @@ def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
     )
     style_str = "".join(style)
     safe = html_text.replace("\n", "<br/>")
-    return f'<a href="#" data-anchor="{clave}" onclick="return false;" style="{style_str}">{safe}</a>'
+    return f'<a href="#" data-anchor="{clave}" style="{style_str}">{safe}</a>'
 
 
 def strip_anchors(html_text: str) -> str:
