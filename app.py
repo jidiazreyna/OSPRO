@@ -28,6 +28,28 @@ def copy_to_clipboard(texto: str) -> None:
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 
 
+if "_js_injected" not in st.session_state:
+    st.markdown(
+        """
+        <script>
+        document.addEventListener('click', function (e) {
+          const a = e.target.closest('a[data-anchor]');
+          if (!a) return;
+
+          e.preventDefault();
+          const params = new URLSearchParams(window.location.search);
+          params.set('anchor', a.dataset.anchor);
+          history.pushState({}, '', '?' + params.toString());
+
+          window.parent.postMessage({type: 'streamlit:rerun'}, '*');
+        }, true);
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.session_state._js_injected = True
+
+
 # ───────── helpers comunes ──────────────────────────────────────────
 MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
             "julio","agosto","septiembre","octubre","noviembre","diciembre"]
