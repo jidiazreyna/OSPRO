@@ -4,6 +4,7 @@ import streamlit.components.v1 as components
 from core import autocompletar   # ← función principal
 from datetime import datetime
 from helpers import anchor, strip_anchors
+import re
 
 
 def copy_to_clipboard(texto: str) -> None:
@@ -60,25 +61,45 @@ TRIBUNALES = [
 ]
 
 
-# relación entre anchors y widgets a mostrar en el cuadro de diálogo
+"""Definiciones de cuadros de diálogo para cada anchor.
+
+Los nombres de anchor siguen la convención utilizada en ``ospro.py``:
+
+``edit_`` → abre un cuadro con :func:`st.text_input` o :func:`st.text_area`.
+``combo_`` → abre un cuadro con :func:`st.selectbox`.
+"""
+
 ANCHOR_FIELDS = {
-    "caratula": ("Carátula", "text", "carat"),
-    "tribunal": ("Tribunal", "select", "trib"),
-    "snum": ("Sentencia N°", "text", "snum"),
-    "sfecha": ("Fecha sentencia", "text", "sfecha"),
-    "sfirmeza": ("Firmeza sentencia", "text", "sfirmeza"),
-    "sres": ("Resuelvo", "textarea", "sres"),
-    "sfirmaza": ("Firmantes", "text", "sfirmaza"),
-    "imp0_datos": ("Datos personales", "textarea", "imp0_datos"),
-    "consulado": ("Consulado", "text", "consulado"),
+    "edit_caratula": ("Carátula", "text", "carat"),
+    "combo_tribunal": ("Tribunal", "select", "trib"),
+    "edit_sent_num": ("Sentencia N°", "text", "snum"),
+    "edit_sent_fecha": ("Fecha sentencia", "text", "sfecha"),
+    "edit_sent_firmeza": ("Firmeza sentencia", "text", "sfirmeza"),
+    "edit_resuelvo": ("Resuelvo", "textarea", "sres"),
+    "edit_firmantes": ("Firmantes", "text", "sfirmaza"),
+    "edit_consulado": ("Consulado", "text", "consulado"),
+    "edit_localidad": ("Localidad", "text", "loc"),
 }
 
 
 def _mostrar_dialogo(clave: str) -> None:
-    campo = ANCHOR_FIELDS.get(clave)
-    if not campo:
-        return
-    titulo, tipo, estado = campo
+    """Muestra un cuadro modal dependiendo de ``clave``.
+
+    Si ``clave`` corresponde a un imputado (``edit_imp{n}_datos``) el índice
+    se extrae dinámicamente; de lo contrario se consulta :data:`ANCHOR_FIELDS`.
+    """
+
+    if clave.startswith("edit_imp") and clave.endswith("_datos"):
+        idx = int(re.search(r"edit_imp(\d+)_datos", clave).group(1))
+        titulo, tipo, estado = (
+            "Datos personales", "textarea", f"imp{idx}_datos"
+        )
+    else:
+        campo = ANCHOR_FIELDS.get(clave)
+        if not campo:
+            return
+        titulo, tipo, estado = campo
+
     valor_actual = st.session_state.get(estado, "")
     with st.modal(titulo):
         if tipo == "text":
@@ -166,17 +187,18 @@ tabs = st.tabs([
 # ----------  ejemplo: plantilla Migraciones  ----------
 with tabs[0]:
     # recomponemos los textos cada vez que alguien cambia algo
-    fecha_txt = fecha_alineada(loc, punto=True)
+    loc_a = anchor(loc, 'edit_localidad')
+    fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
 
-    car_a = f"<b>{anchor(caratula, 'caratula')}</b>"
-    trib_a = f"<b>{anchor(tribunal, 'tribunal')}</b>"
-    imp_a = anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')
-    sent_n_a = anchor(sent_num, 'snum')
-    sent_f_a = anchor(sent_fecha, 'sfecha')
-    res_a = anchor(resuelvo, 'sres')
-    firm_a = anchor(firmantes, 'sfirmaza')
-    sent_firmeza_a = anchor(sent_firmeza, 'sfirmeza')
+    car_a = f"<b>{anchor(caratula, 'edit_caratula')}</b>"
+    trib_a = f"<b>{anchor(tribunal, 'combo_tribunal')}</b>"
+    imp_a = anchor(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
+    sent_n_a = anchor(sent_num, 'edit_sent_num')
+    sent_f_a = anchor(sent_fecha, 'edit_sent_fecha')
+    res_a = anchor(resuelvo, 'edit_resuelvo')
+    firm_a = anchor(firmantes, 'edit_firmantes')
+    sent_firmeza_a = anchor(sent_firmeza, 'edit_sent_firmeza')
     cuerpo = (
         "<b>Sr/a Director/a</b><br>"
         "<b>de la Dirección Nacional de Migraciones</b><br>"
@@ -200,17 +222,18 @@ with tabs[0]:
 
 # ---------- plantilla Consulado ----------
 with tabs[1]:
-    fecha_txt = fecha_alineada(loc, punto=True)
+    loc_a = anchor(loc, 'edit_localidad')
+    fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
-    car_a = f"<b>{anchor(caratula, 'caratula')}</b>"
-    trib_a = f"<b>{anchor(tribunal, 'tribunal')}</b>"
-    pais_a = anchor(consulado, 'consulado')
-    imp_a = anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')
-    sent_n_a = anchor(sent_num, 'snum')
-    sent_f_a = anchor(sent_fecha, 'sfecha')
-    res_a = anchor(resuelvo, 'sres')
-    firm_a = anchor(firmantes, 'sfirmaza')
-    sent_firmeza_a = anchor(sent_firmeza, 'sfirmeza')
+    car_a = f"<b>{anchor(caratula, 'edit_caratula')}</b>"
+    trib_a = f"<b>{anchor(tribunal, 'combo_tribunal')}</b>"
+    pais_a = anchor(consulado, 'edit_consulado')
+    imp_a = anchor(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
+    sent_n_a = anchor(sent_num, 'edit_sent_num')
+    sent_f_a = anchor(sent_fecha, 'edit_sent_fecha')
+    res_a = anchor(resuelvo, 'edit_resuelvo')
+    firm_a = anchor(firmantes, 'edit_firmantes')
+    sent_firmeza_a = anchor(sent_firmeza, 'edit_sent_firmeza')
     cuerpo = (
         "<b>Al Sr. Titular del Consulado </b><br>"
         f"<b>de {pais_a} </b><br>"
@@ -232,16 +255,17 @@ with tabs[1]:
 
 # ---------- plantilla Juez Electoral ----------
 with tabs[2]:
-    fecha_txt = fecha_alineada(loc, punto=True)
+    loc_a = anchor(loc, 'edit_localidad')
+    fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
-    car_a = f"<b>{anchor(caratula, 'caratula')}</b>"
-    trib_a = f"<b>{anchor(tribunal, 'tribunal')}</b>"
-    imp_a = anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')
-    sent_n_a = anchor(sent_num, 'snum')
-    sent_f_a = anchor(sent_fecha, 'sfecha')
-    res_a = anchor(resuelvo, 'sres')
-    firm_a = anchor(firmantes, 'sfirmaza')
-    sent_firmeza_a = anchor(sent_firmeza, 'sfirmeza')
+    car_a = f"<b>{anchor(caratula, 'edit_caratula')}</b>"
+    trib_a = f"<b>{anchor(tribunal, 'combo_tribunal')}</b>"
+    imp_a = anchor(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
+    sent_n_a = anchor(sent_num, 'edit_sent_num')
+    sent_f_a = anchor(sent_fecha, 'edit_sent_fecha')
+    res_a = anchor(resuelvo, 'edit_resuelvo')
+    firm_a = anchor(firmantes, 'edit_firmantes')
+    sent_firmeza_a = anchor(sent_firmeza, 'edit_sent_firmeza')
     cuerpo = (
         "<b>SR. JUEZ ELECTORAL:</b><br>"
         "<b>S………………./………………D</b><br>"
