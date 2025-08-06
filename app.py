@@ -222,8 +222,14 @@ with st.sidebar:
     consulado = st.text_input("Consulado", key="consulado")
 
     # ── número de imputados dinamico ──
-    n = st.number_input("Número de imputados", 1, 20, st.session_state.n_imputados,
-                        key="n_imp", on_change=lambda: st.experimental_rerun())
+    n = st.number_input(
+        "Número de imputados",
+        1,
+        20,
+        st.session_state.n_imputados,
+        key="n_imp",
+        on_change=lambda: st.rerun(),
+    )
     st.session_state.n_imputados = n
 
     # ── cargar sentencia y autocompletar ──
@@ -233,8 +239,10 @@ with st.sidebar:
             st.warning("Subí un archivo primero.")
         else:
             autocompletar(up.read(), up.name)
-            st.success("Campos cargados. Revisá y editá donde sea necesario.")
-            st.experimental_rerun()   # refrescamos la UI
+            st.success(
+                "Campos cargados. Revisá y editá donde sea necesario."
+            )
+            st.rerun()   # refrescamos la UI
 
 # ───────── pestañas de imputados (en la sidebar) ────────────────────
     for i in range(st.session_state.n_imputados):
