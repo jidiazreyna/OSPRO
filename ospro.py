@@ -84,6 +84,30 @@ OPENAI_API_KEY_DEFAULT = _CONFIG.get("api_key", "")
 PROXY_URL_DEFAULT = _CONFIG.get("proxy", "")
 
 # ──────────────────── utilidades menores ────────────────────
+
+def _get_openai_client():
+    """Return an OpenAI client for both old and new SDKs."""
+    api_key = os.environ.get("OPENAI_API_KEY", OPENAI_API_KEY_DEFAULT)
+    proxy = PROXY_URL_DEFAULT
+    try:
+        from openai import OpenAI  # type: ignore
+        kwargs = {"api_key": api_key} if api_key else {}
+        if proxy:
+            try:
+                import httpx  # type: ignore
+                kwargs["http_client"] = httpx.Client(proxy=proxy)
+            except Exception:
+                pass
+        return OpenAI(**kwargs)
+    except Exception:
+        openai.api_key = api_key  # type: ignore[attr-defined]
+        if proxy and requests:
+            session = requests.Session()
+            session.proxies.update({"http": proxy, "https": proxy})
+            openai.requestssession = session  # type: ignore[attr-defined]
+        return openai
+
+
 class NoWheelComboBox(QComboBox):
     """Evita que la rueda del mouse cambie accidentalmente la opción."""
     def wheelEvent(self, event): event.ignore()
@@ -639,7 +663,8 @@ class Worker(QObject):
             texto = limpiar_pies_de_pagina(texto)
 
             # -------- 2) OpenAI JSON mode --------
-            respuesta = openai.ChatCompletion.create(
+            client = _get_openai_client()
+            kwargs = dict(
                 model="gpt-4o-mini",
                 temperature=0,
                 response_format={"type": "json_object"},
@@ -665,6 +690,10 @@ class Worker(QObject):
                     {"role": "user", "content": texto[:120000]},
                 ],
             )
+            if hasattr(client, "chat"):
+                respuesta = client.chat.completions.create(**kwargs)  # type: ignore
+            else:
+                respuesta = client.ChatCompletion.create(**kwargs)  # type: ignore
             datos = json.loads(respuesta.choices[0].message.content)
 
             # -------- 3) Ajustes post-API --------
@@ -2541,18 +2570,17 @@ def _obtener_api_key() -> str:
     return OPENAI_API_KEY_DEFAULT
 
 def _configurar_proxy() -> None:
-    """Configura la sesión de requests para usar un proxy si está definido."""
-    if PROXY_URL_DEFAULT and requests:
-        session = requests.Session()
-        session.proxies.update({"http": PROXY_URL_DEFAULT, "https": PROXY_URL_DEFAULT})
-        openai.requestssession = session
+    """Configura variables de entorno para proxy si está definido."""
+    if PROXY_URL_DEFAULT:
+        os.environ["HTTP_PROXY"] = PROXY_URL_DEFAULT
+        os.environ["HTTPS_PROXY"] = PROXY_URL_DEFAULT
 
     
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path("icono4.ico")))
     # ahora SÍ podés usar QMessageBox
-    openai.api_key = _obtener_api_key()
+    _obtener_api_key()
     _configurar_proxy()
 
 

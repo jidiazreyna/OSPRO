@@ -46,7 +46,33 @@ def _cargar_config() -> Dict[str, Any]:
 
 
 _cfg = _cargar_config()
-openai.api_key = _cfg.get("api_key", "")
+
+def _get_openai_client():
+    """Return an OpenAI client compatible with v0 and v1 APIs."""
+    api_key = _cfg.get("api_key", "")
+    proxy = _cfg.get("proxy", "")
+    try:
+        from openai import OpenAI  # type: ignore
+        kwargs = {"api_key": api_key} if api_key else {}
+        if proxy:
+            try:
+                import httpx  # type: ignore
+                kwargs["http_client"] = httpx.Client(proxy=proxy)
+            except Exception:
+                pass
+        return OpenAI(**kwargs)
+    except Exception:
+        # Old OpenAI < 1.0 style
+        openai.api_key = api_key
+        if proxy:
+            try:
+                import requests  # type: ignore
+                session = requests.Session()
+                session.proxies.update({"http": proxy, "https": proxy})
+                openai.requestssession = session  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        return openai
 
 # ────────────────── RegEx + helpers abreviados ──────────────
 _FOOTER = re.compile(
@@ -154,7 +180,8 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     texto = limpiar_pies(texto)
 
     # 2) GPT-4o mini en modo JSON
-    rsp = openai.ChatCompletion.create(
+    client = _get_openai_client()
+    kwargs = dict(
         model="gpt-4o-mini",
         temperature=0,
         response_format={"type": "json_object"},
@@ -172,6 +199,10 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
             {"role": "user", "content": texto[:120_000]},
         ],
     )
+    if hasattr(client, "chat"):
+        rsp = client.chat.completions.create(**kwargs)  # type: ignore
+    else:
+        rsp = client.ChatCompletion.create(**kwargs)  # type: ignore
     datos = json.loads(rsp.choices[0].message.content)
 
     # 3) Saneo rápido
