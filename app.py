@@ -89,6 +89,7 @@ def _mostrar_dialogo(clave: str) -> None:
     Si ``clave`` corresponde a un imputado (``edit_imp{n}_datos``) el índice
     se extrae dinámicamente; de lo contrario se consulta :data:`ANCHOR_FIELDS`.
     """
+    print("Dentro de _mostrar_dialogo:", clave)
 
     if clave.startswith("edit_imp") and clave.endswith("_datos"):
         idx = int(re.search(r"edit_imp(\d+)_datos", clave).group(1))
@@ -132,8 +133,10 @@ if "datos_autocompletados" not in st.session_state: st.session_state.datos_autoc
 
 # si hay un parámetro de consulta ``anchor`` mostramos el diálogo correspondiente
 _params = st.experimental_get_query_params()
+print("query params:", _params)
 _anchor_clicked = _params.get("anchor", [None])[0]
 if _anchor_clicked:
+    print("Abrir modal para:", _anchor_clicked)
     _mostrar_dialogo(_anchor_clicked)
 
 # ───────── barra lateral (datos generales) ──────────────────────────
@@ -302,6 +305,7 @@ if "_js_anchor_patch" not in st.session_state:
 
             e.preventDefault();                     // cancelamos el click
             const anchor = link.getAttribute('data-anchor');
+            console.log('clic anchor', anchor);
 
             // Actualizamos ?anchor=... en la URL del navegador
             const url = new URL(window.parent.location);
