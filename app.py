@@ -1,5 +1,6 @@
 # app.py  – versión resumida
 import streamlit as st
+import streamlit.components.v1 as components
 from core import autocompletar   # ← función principal
 from datetime import datetime
 from helpers import anchor, strip_anchors
@@ -265,15 +266,16 @@ with tabs[2]:
 # ───────── manejo de clics en anchors ───────────────────────────────
 ANCHOR_JS = """
 <script>
-document.addEventListener('click', function(e) {
+const doc = window.parent.document;
+doc.addEventListener('click', function(e) {
   const a = e.target.closest('a[data-anchor]');
   if (a) {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.parent.location.search);
     params.set('anchor', a.getAttribute('data-anchor'));
-    window.location.search = params.toString();
+    window.parent.location.search = params.toString();
   }
-});
+}, true);
 </script>
 """
-st.markdown(ANCHOR_JS, unsafe_allow_html=True)
+components.html(ANCHOR_JS, height=0, width=0)
