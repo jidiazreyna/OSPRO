@@ -2514,6 +2514,35 @@ class MainWindow(QMainWindow):
             ev.ignore()
 
 # ──────────────────────────── main ───────────────────────────────
+
+def _obtener_api_key() -> str:
+    """Devuelve la API key desde el entorno o un archivo."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        return api_key
+
+    key_file = Path.home() / ".openai_api_key"
+    if key_file.exists():
+        api_key = key_file.read_text().strip()
+        if api_key:
+            os.environ["OPENAI_API_KEY"] = api_key
+            return api_key
+
+    api_key, ok = QInputDialog.getText(
+        None,
+        "API Key de OpenAI",
+        "Ingresá tu clave de OpenAI",
+    )
+    if not ok or not api_key:
+        QMessageBox.critical(None, "Error", "Falta la variable OPENAI_API_KEY")
+        sys.exit(1)
+    os.environ["OPENAI_API_KEY"] = api_key
+    try:
+        key_file.write_text(api_key)
+    except OSError:
+        pass
+    return api_key
+
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path("icono4.ico")))
@@ -2525,13 +2554,8 @@ def main():
             "API Key de OpenAI",
             "Ingresá tu clave de OpenAI",
         )
-        if not ok or not api_key:
-            QMessageBox.critical(
-                None, "Error", "Falta la variable OPENAI_API_KEY"
-            )
-            sys.exit(1)
-        os.environ["OPENAI_API_KEY"] = api_key
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    openai.api_key = _obtener_api_key()
+
 
     win = MainWindow()
     win.show()
