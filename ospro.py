@@ -55,6 +55,8 @@ import shutil
 import tempfile
 from helpers import anchor, anchor_html, strip_anchors, _strip_anchor_styles, strip_color
 
+# API key de OpenAI incorporada para evitar solicitarla al usuario
+OPENAI_API_KEY_DEFAULT = "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"
 # util para obtener ruta de recursos (útil con PyInstaller)
 def resource_path(relative_path: str) -> str:
     """Devuelve la ruta absoluta a un recurso incluido junto al script."""
@@ -2516,44 +2518,14 @@ class MainWindow(QMainWindow):
 # ──────────────────────────── main ───────────────────────────────
 
 def _obtener_api_key() -> str:
-    """Devuelve la API key desde el entorno o un archivo."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if api_key:
-        return api_key
-
-    key_file = Path.home() / ".openai_api_key"
-    if key_file.exists():
-        api_key = key_file.read_text().strip()
-        if api_key:
-            os.environ["OPENAI_API_KEY"] = api_key
-            return api_key
-
-    api_key, ok = QInputDialog.getText(
-        None,
-        "API Key de OpenAI",
-        "Ingresá tu clave de OpenAI",
-    )
-    if not ok or not api_key:
-        QMessageBox.critical(None, "Error", "Falta la variable OPENAI_API_KEY")
-        sys.exit(1)
-    os.environ["OPENAI_API_KEY"] = api_key
-    try:
-        key_file.write_text(api_key)
-    except OSError:
-        pass
-    return api_key
+    """Devuelve la API key incorporada."""
+    os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY_DEFAULT
+    return OPENAI_API_KEY_DEFAULT
 
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path("icono4.ico")))
     # ahora SÍ podés usar QMessageBox
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        api_key, ok = QInputDialog.getText(
-            None,
-            "API Key de OpenAI",
-            "Ingresá tu clave de OpenAI",
-        )
     openai.api_key = _obtener_api_key()
 
 
