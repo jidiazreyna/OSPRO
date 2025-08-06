@@ -2517,13 +2517,21 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path("icono4.ico")))
-
     # ahora SÍ podés usar QMessageBox
-    if not os.getenv("OPENAI_API_KEY"):
-        QMessageBox.critical(
-            None, "Error", "Falta la variable OPENAI_API_KEY"
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        api_key, ok = QInputDialog.getText(
+            None,
+            "API Key de OpenAI",
+            "Ingresá tu clave de OpenAI",
         )
-        sys.exit(1)
+        if not ok or not api_key:
+            QMessageBox.critical(
+                None, "Error", "Falta la variable OPENAI_API_KEY"
+            )
+            sys.exit(1)
+        os.environ["OPENAI_API_KEY"] = api_key
+    openai.api_key = os.getenv("OPENAI_API_KEY")
 
     win = MainWindow()
     win.show()
