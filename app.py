@@ -1,5 +1,6 @@
 # app.py  – versión resumida
 import streamlit as st
+import streamlit.components.v1 as components
 from core import autocompletar   # ← función principal
 from datetime import datetime
 from helpers import anchor, strip_anchors
@@ -26,25 +27,6 @@ def copy_to_clipboard(texto: str) -> None:
 
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 
-# Inject JavaScript to handle anchor clicks once
-if "_js_injected" not in st.session_state:
-    st.markdown(
-        """
-        <script>
-        document.addEventListener('click', function (e) {
-          const a = e.target.closest('a[data-anchor]');
-          if (a) {
-            e.preventDefault();
-            const params = new URLSearchParams(window.location.search);
-            params.set('anchor', a.getAttribute('data-anchor'));
-            window.location.search = params.toString();
-          }
-        }, true);
-        </script>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.session_state._js_injected = True
 
 # ───────── helpers comunes ──────────────────────────────────────────
 MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
@@ -305,4 +287,35 @@ with tabs[2]:
         texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
         copy_to_clipboard(texto)
 
+
+# -- parche global de anchors JS ------------------------------------
+if "_js_anchor_patch" not in st.session_state:
+    components.html(
+        """
+        <script>
+        (function () {
+          /* Captura todos los clicks en <a data-anchor="..."> */
+          const doc = window.parent.document;     // DOM real de la app
+          doc.addEventListener('click', function (e) {
+            const link = e.target.closest('a[data-anchor]');
+            if (!link) return;
+
+            e.preventDefault();                     // cancelamos el click
+            const anchor = link.getAttribute('data-anchor');
+
+            // Actualizamos ?anchor=... en la URL del navegador
+            const url = new URL(window.parent.location);
+            url.searchParams.set('anchor', anchor);
+            window.parent.history.pushState({}, '', url);
+
+            /* Forzamos un re-run de Streamlit para que Python lea los
+               nuevos query-params y abra el modal correspondiente.      */
+            window.parent.postMessage({type: 'streamlit:rerun'}, '*');
+          }, true);  // fase captura = true (escucha antes que Streamlit)
+        })();
+        </script>
+        """,
+        height=0, width=0
+    )
+    st.session_state._js_anchor_patch = True
 
