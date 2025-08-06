@@ -1,7 +1,8 @@
 # app.py  – versión resumida
 import streamlit as st
-from core import procesar_sentencia, generar_oficios   # ← mismas funciones
+from core import autocompletar, generar_oficios   # ← mismas funciones
 from datetime import datetime
+from helpers import anchor, strip_anchors
 
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 st.divider()
@@ -40,11 +41,6 @@ def fecha_alineada(loc: str, fecha=None, punto=False):
     txt = f"{loc}, {d.day} de {MESES_ES[d.month-1]} de {d.year}"
     return txt + ("." if punto else "")
 
-def anchor(txt, clave, placeholder="…"):
-    if not txt: txt = placeholder
-    # estilito rápido: rojo = editable
-    return f"<span style='color:#c44;' data-key='{clave}'>{st.markdown(txt, unsafe_allow_html=True)}</span>"
-
 # ───────── estado de sesión ─────────────────────────────────────────
 if "n_imputados" not in st.session_state: st.session_state.n_imputados = 1
 if "datos_autocompletados" not in st.session_state: st.session_state.datos_autocompletados = {}
@@ -61,8 +57,9 @@ with st.sidebar:
     with col2:
         sent_fecha = st.text_input("Fecha sentencia", key="sfecha")
     sent_firmeza = st.text_input("Firmeza sentencia", key="sfirmeza")
-    resuelvo = st.text_area("Resuelvo", height=80, key="resuelvo")
-    firmantes = st.text_input("Firmantes", key="firmantes")
+    resuelvo = st.text_area("Resuelvo", height=80, key="sres")
+    firmantes = st.text_input("Firmantes", key="sfirmaza")
+    consulado = st.text_input("Consulado", key="consulado")
 
     # ── número de imputados dinamico ──
     n = st.number_input("Número de imputados", 1, 20, st.session_state.n_imputados,
@@ -75,8 +72,7 @@ with st.sidebar:
         if up is None:
             st.warning("Subí un archivo primero.")
         else:
-            data = procesar_sentencia(up.read(), up.name)
-            st.session_state.datos_autocompletados = data
+            autocompletar(up.read(), up.name)
             st.success("Campos cargados. Revisá y editá donde sea necesario.")
             st.experimental_rerun()   # refrescamos la UI
 
@@ -106,14 +102,47 @@ with tabs[0]:
 
     # bloque cuerpo (acá resumido)
     cuerpo = (
-        f"<b>Sr/a Director/a de la Dirección Nacional de Migraciones</b><br>"
-        f"En los autos caratulados: <b>{caratula or '“…”'}</b>, "
-        f"que se tramitan por ante <b>{tribunal or '…'}</b>, se ha dispuesto…"
+        "<b>Sr/a Director/a de la Dirección Nacional de Migraciones</b><br>"
+        f"En los autos caratulados: <b>{anchor(caratula, 'caratula')}</b>, "
+        f"que se tramitan por ante <b>{anchor(tribunal, 'tribunal')}</b>, se ha dispuesto…"
     )
     st.markdown(cuerpo, unsafe_allow_html=True)
 
     # botón copiar (texto plano)
     if st.button("Copiar", key="copy_migr"):
-        st.experimental_copy(
-            st.markdown(cuerpo, unsafe_allow_html=True).to_html()
-        )
+        st.experimental_copy(strip_anchors(cuerpo).replace("<br>", "\n"))
+
+# ---------- plantilla Consulado ----------
+with tabs[1]:
+    fecha_txt = fecha_alineada(loc, punto=True)
+    st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
+    cuerpo = (
+        "<b>Al Sr. Titular del Consulado</b><br>"
+        f"<b>de {anchor(consulado, 'consulado')}</b><br>"
+        "<b>S/D:</b><br><br>"
+        f"En los autos caratulados: <b>{anchor(caratula, 'caratula')}</b>, que se tramitan por ante "
+        f"<b>{anchor(tribunal, 'tribunal')}</b>, se ha dispuesto informar respecto de "
+        f"{anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')}.<br><br>"
+        f"Sentencia Nº {anchor(sent_num, 'snum')} de fecha {anchor(sent_fecha, 'sfecha')} - "
+        f"Resuelve: {anchor(resuelvo, 'sres')} - Firmantes: {anchor(firmantes, 'sfirmaza')}.<br><br>"
+        f"La sentencia quedó firme el {anchor(sent_firmeza, 'sfirmeza')}.")
+    st.markdown(cuerpo, unsafe_allow_html=True)
+    if st.button("Copiar", key="copy_cons"):
+        st.experimental_copy(strip_anchors(cuerpo).replace("<br>", "\n"))
+
+# ---------- plantilla Juez Electoral ----------
+with tabs[2]:
+    fecha_txt = fecha_alineada(loc, punto=True)
+    st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
+    cuerpo = (
+        "<b>Sr. Juez Electoral</b><br>"
+        "<b>S................../..................D</b><br><br>"
+        f"En los autos caratulados: <b>{anchor(caratula, 'caratula')}</b>, que se tramitan por ante "
+        f"<b>{anchor(tribunal, 'tribunal')}</b>, se informa sobre "
+        f"{anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')}.<br><br>"
+        f"Sentencia Nº {anchor(sent_num, 'snum')} de fecha {anchor(sent_fecha, 'sfecha')}. "
+        f"Resuelve: {anchor(resuelvo, 'sres')}. Fdo.: {anchor(firmantes, 'sfirmaza')}.<br><br>"
+        f"La sentencia quedó firme el {anchor(sent_firmeza, 'sfirmeza')}.")
+    st.markdown(cuerpo, unsafe_allow_html=True)
+    if st.button("Copiar", key="copy_electoral"):
+        st.experimental_copy(strip_anchors(cuerpo).replace("<br>", "\n"))
