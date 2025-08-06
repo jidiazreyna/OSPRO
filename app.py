@@ -4,6 +4,25 @@ from core import autocompletar, generar_oficios   # ← mismas funciones
 from datetime import datetime
 from helpers import anchor, strip_anchors
 
+
+def copy_to_clipboard(texto: str) -> None:
+    """Copia ``texto`` al portapapeles.
+
+    En versiones recientes de Streamlit el helper experimental
+    ``st.experimental_copy`` fue removido.  Para mantener la
+    funcionalidad se intenta utilizar :mod:`pyperclip` y, en caso de
+    no estar disponible, se muestra el texto para copiarlo de forma
+    manual.
+    """
+    try:
+        import pyperclip  # type: ignore
+
+        pyperclip.copy(texto)
+        st.success("Texto copiado al portapapeles")
+    except Exception:  # pragma: no cover - solo en entornos sin pyperclip
+        st.code(texto)
+        st.warning("No se pudo copiar automáticamente. Copie el texto manualmente.")
+
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 st.divider()
 st.subheader("Descarga")
@@ -127,7 +146,7 @@ with tabs[0]:
 
     if st.button("Copiar", key="copy_migr"):
         texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
-        st.experimental_copy(texto)
+        copy_to_clipboard(texto)
 
 # ---------- plantilla Consulado ----------
 with tabs[1]:
@@ -159,7 +178,7 @@ with tabs[1]:
     st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
     if st.button("Copiar", key="copy_cons"):
         texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
-        st.experimental_copy(texto)
+        copy_to_clipboard(texto)
 
 # ---------- plantilla Juez Electoral ----------
 with tabs[2]:
@@ -191,4 +210,4 @@ with tabs[2]:
     st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
     if st.button("Copiar", key="copy_electoral"):
         texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
-        st.experimental_copy(texto)
+        copy_to_clipboard(texto)
