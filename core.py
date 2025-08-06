@@ -3,19 +3,15 @@
 core.py – capa lógica pura de OSPRO
 -----------------------------------
 
-La app web necesita dos nombres públicos:
+La app web expone un único nombre público:
 
     autocompletar(file_bytes, filename) -> None
         Extrae los datos y rellena st.session_state.
-
-    generar_oficios(payload) -> bytes
-        Devuelve un DOCX en memoria con los oficios.
 
 ¡Nada más!  El resto son utilidades internas.
 """
 from __future__ import annotations
 
-import io
 import json
 import re
 import tempfile
@@ -26,7 +22,6 @@ from typing import Any, List, Dict
 import docx2txt
 import openai
 import streamlit as st            # ← para volcar datos en la UI
-from docx import Document         # python-docx
 from pdfminer.high_level import extract_text
 
 # ────────────────────────── Config ──────────────────────────
@@ -261,39 +256,8 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
         st.session_state.setdefault(f"{key}_datos", "")
 
 
-# ────────────────── Generador de DOCX demo ──────────────────
-def generar_oficios(payload: dict[str, Any]) -> bytes:
-    """Crea un DOCX muy simple con los datos recibidos."""
-    doc = Document()
-    g = payload.get("generales", {})
-
-    doc.add_heading("Oficios automáticos", level=1)
-    doc.add_paragraph(f"Carátula: {g.get('caratula', '…')}")
-    doc.add_paragraph(f"Tribunal: {g.get('tribunal', '…')}")
-    doc.add_paragraph(
-        f"Sentencia N°: {g.get('sent_num', '…')} – Fecha: {g.get('sent_fecha', '…')}"
-    )
-    doc.add_paragraph("\nResuelvo:")
-    doc.add_paragraph(g.get("resuelvo", "…"))
-
-    doc.add_page_break()
-    for idx, imp in enumerate(payload.get("imputados", []), 1):
-        doc.add_heading(f"Imputado {idx}", level=2)
-        dp = imp.get("datos_personales", {}) or {}
-        if isinstance(dp, dict):
-            for k, v in dp.items():
-                doc.add_paragraph(f"{k.capitalize()}: {v}")
-        else:
-            doc.add_paragraph(str(dp))
-        doc.add_paragraph("")
-
-    bio = io.BytesIO()
-    doc.save(bio)
-    return bio.getvalue()
-
-
 # ────────────────── API pública ─────────────────────────────
-__all__ = ["autocompletar", "generar_oficios"]
+__all__ = ["autocompletar"]
 
 
 if __name__ == "__main__":
