@@ -58,10 +58,9 @@ import subprocess
 import shutil
 import tempfile
 from helpers import anchor, anchor_html, strip_anchors, _strip_anchor_styles, strip_color
-# API key de OpenAI incorporada para evitar solicitarla al usuario
-OPENAI_API_KEY_DEFAULT = "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"
-# URL del proxy para entornos con autenticación. Editar según corresponda.
-PROXY_URL_DEFAULT = "http://usuario:contraseña@host:puerto"
+
+# Nombre del archivo de configuración distribuido con la aplicación
+CONFIG_FILE = "config.json"
 # util para obtener ruta de recursos (útil con PyInstaller)
 def resource_path(relative_path: str) -> str:
     """Devuelve la ruta absoluta a un recurso incluido junto al script."""
@@ -70,6 +69,19 @@ def resource_path(relative_path: str) -> str:
     except AttributeError:
         base_path = Path(__file__).resolve().parent
     return str(Path(base_path) / relative_path)
+
+# Cargar configuración con API Key y proxy
+def _cargar_config() -> dict:
+    cfg_path = Path(resource_path(CONFIG_FILE))
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+_CONFIG = _cargar_config()
+OPENAI_API_KEY_DEFAULT = _CONFIG.get("api_key", "")
+PROXY_URL_DEFAULT = _CONFIG.get("proxy", "")
 
 # ──────────────────── utilidades menores ────────────────────
 class NoWheelComboBox(QComboBox):
@@ -2523,8 +2535,9 @@ class MainWindow(QMainWindow):
 # ──────────────────────────── main ───────────────────────────────
 
 def _obtener_api_key() -> str:
-    """Devuelve la API key incorporada."""
-    os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY_DEFAULT
+    """Devuelve la API key leída del archivo de configuración."""
+    if OPENAI_API_KEY_DEFAULT:
+        os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY_DEFAULT
     return OPENAI_API_KEY_DEFAULT
 
 def _configurar_proxy() -> None:
