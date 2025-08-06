@@ -113,6 +113,19 @@ ANCHOR_FIELDS = {
 }
 
 
+# ───────── helper de compatibilidad ─────────────────────────────────
+def _open_dialog(title: str):
+    """
+    Devuelve el context-manager adecuado para abrir un cuadro modal,
+    sea `st.dialog` (Streamlit ≥ 1.30) o `st.modal` (versiones anteriores).
+    """
+    DialogCM = getattr(st, "dialog", None) or getattr(st, "modal", None)
+    if DialogCM is None:
+        raise RuntimeError("La versión de Streamlit instalada no soporta diálogos.")
+    return DialogCM(title)
+
+
+# ───────── función actualizada ─────────────────────────────────────
 def _mostrar_dialogo(clave: str) -> None:
     """Muestra un cuadro modal dependiendo de ``clave``.
 
@@ -121,19 +134,20 @@ def _mostrar_dialogo(clave: str) -> None:
     """
     print("Dentro de _mostrar_dialogo:", clave)
 
+    # ── identificar título, tipo de control y clave de estado ──
     if clave.startswith("edit_imp") and clave.endswith("_datos"):
         idx = int(re.search(r"edit_imp(\d+)_datos", clave).group(1))
-        titulo, tipo, estado = (
-            "Datos personales", "textarea", f"imp{idx}_datos"
-        )
+        titulo, tipo, estado = ("Datos personales", "textarea", f"imp{idx}_datos")
     else:
         campo = ANCHOR_FIELDS.get(clave)
-        if not campo:
+        if not campo:           # anchor desconocido → nada que hacer
             return
         titulo, tipo, estado = campo
 
     valor_actual = st.session_state.get(estado, "")
-    with st.dialog(titulo):
+
+    # ── abrimos el diálogo usando la API que exista ──
+    with _open_dialog(titulo):
         if tipo == "text":
             nuevo = st.text_input(titulo, valor_actual, key=f"dlg_{estado}")
         elif tipo == "textarea":
@@ -141,16 +155,19 @@ def _mostrar_dialogo(clave: str) -> None:
         elif tipo == "select":
             idx = TRIBUNALES.index(valor_actual) if valor_actual in TRIBUNALES else 0
             nuevo = st.selectbox(titulo, TRIBUNALES, index=idx, key=f"dlg_{estado}")
-        else:
+        else:                              # caso de seguridad
             nuevo = valor_actual
+
+        # ── botones Aceptar / Cancelar ──
         col_a, col_b = st.columns(2)
         if col_a.button("Aceptar", key=f"ok_{estado}"):
             st.session_state[estado] = nuevo
-            st.experimental_set_query_params()
-            st.experimental_rerun()
+            st.experimental_set_query_params(anchor=None)   # limpia la URL
+            st.rerun()                                      # cierra el diálogo
         if col_b.button("Cancelar", key=f"cancel_{estado}"):
-            st.experimental_set_query_params()
-            st.experimental_rerun()
+            st.experimental_set_query_params(anchor=None)
+            st.rerun()
+
 
 def fecha_alineada(loc: str, fecha=None, punto=False):
     d = fecha or datetime.now()
