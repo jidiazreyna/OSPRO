@@ -1,36 +1,10 @@
 # app.py  – versión resumida
 import streamlit as st
-from core import autocompletar, generar_oficios   # ← mismas funciones
+from core import autocompletar   # ← función principal
 from datetime import datetime
 from helpers import anchor, strip_anchors
 
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
-st.divider()
-st.subheader("Descarga")
-
-if st.button("Generar DOCX con todos los oficios"):
-    payload = {
-        "generales": {
-            "caratula":  st.session_state.carat,
-            "tribunal":  st.session_state.trib,
-            "sent_num":  st.session_state.snum,
-            "sent_fecha":st.session_state.sfecha,
-            "resuelvo":  st.session_state.sres,
-            "firmantes": st.session_state.sfirmaza,
-        },
-        "imputados": [
-            {
-                "datos_personales": st.session_state.get(f"imp{i}_datos",""),
-                "nombre":           st.session_state.get(f"imp{i}_nom",""),
-                "dni":              st.session_state.get(f"imp{i}_dni",""),
-            }
-            for i in range(st.session_state.n_imputados)
-        ],
-    }
-    docx = generar_oficios(payload)
-    st.download_button("Descargar oficios.docx", docx,
-                       file_name="oficios.docx",
-                       mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
 # ───────── helpers comunes ──────────────────────────────────────────
 MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
