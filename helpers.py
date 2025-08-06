@@ -11,7 +11,7 @@ def anchor(texto: str, clave: str, placeholder: str = None) -> str:
     )
     style_str = "".join(style)
     safe = html.escape(texto).replace("\n", "<br/>")
-    return f'<a href="{clave}" style="{style_str}">{safe}</a>'
+    return f'<a href="#" data-anchor="{clave}" onclick="return false;" style="{style_str}">{safe}</a>'
 
 
 def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
@@ -24,7 +24,7 @@ def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
     )
     style_str = "".join(style)
     safe = html_text.replace("\n", "<br/>")
-    return f'<a href="{clave}" style="{style_str}">{safe}</a>'
+    return f'<a href="#" data-anchor="{clave}" onclick="return false;" style="{style_str}">{safe}</a>'
 
 
 def strip_anchors(html_text: str) -> str:

@@ -100,49 +100,95 @@ with tabs[0]:
     fecha_txt = fecha_alineada(loc, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
 
-    # bloque cuerpo (acá resumido)
+    car_a = f"<b>{anchor(caratula, 'caratula')}</b>"
+    trib_a = f"<b>{anchor(tribunal, 'tribunal')}</b>"
+    imp_a = anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')
+    sent_n_a = anchor(sent_num, 'snum')
+    sent_f_a = anchor(sent_fecha, 'sfecha')
+    res_a = anchor(resuelvo, 'sres')
+    firm_a = anchor(firmantes, 'sfirmaza')
+    sent_firmeza_a = anchor(sent_firmeza, 'sfirmeza')
     cuerpo = (
-        "<b>Sr/a Director/a de la Dirección Nacional de Migraciones</b><br>"
-        f"En los autos caratulados: <b>{anchor(caratula, 'caratula')}</b>, "
-        f"que se tramitan por ante <b>{anchor(tribunal, 'tribunal')}</b>, se ha dispuesto…"
+        "<b>Sr/a Director/a</b><br>"
+        "<b>de la Dirección Nacional de Migraciones</b><br>"
+        "<b>S/D:</b><br><br>"
+        f"En los autos caratulados: {car_a}, que se tramitan "
+        f"por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente oficio, "
+        "a fin de informar lo resuelto por dicho Tribunal respecto de la persona "
+        "cuyos datos personales se mencionan a continuación:<br><br>"
+        f"{imp_a}.<br><br>"
+        f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}”. Fdo.: {firm_a}.<br><br>"
+        f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.<br><br>"
+        "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.<br><br>"
     )
+    saludo = "Sin otro particular, saludo a Ud. atentamente."
     st.markdown(cuerpo, unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
 
-    # botón copiar (texto plano)
     if st.button("Copiar", key="copy_migr"):
-        st.experimental_copy(strip_anchors(cuerpo).replace("<br>", "\n"))
+        texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
+        st.experimental_copy(texto)
 
 # ---------- plantilla Consulado ----------
 with tabs[1]:
     fecha_txt = fecha_alineada(loc, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
+    car_a = f"<b>{anchor(caratula, 'caratula')}</b>"
+    trib_a = f"<b>{anchor(tribunal, 'tribunal')}</b>"
+    pais_a = anchor(consulado, 'consulado')
+    imp_a = anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')
+    sent_n_a = anchor(sent_num, 'snum')
+    sent_f_a = anchor(sent_fecha, 'sfecha')
+    res_a = anchor(resuelvo, 'sres')
+    firm_a = anchor(firmantes, 'sfirmaza')
+    sent_firmeza_a = anchor(sent_firmeza, 'sfirmeza')
     cuerpo = (
-        "<b>Al Sr. Titular del Consulado</b><br>"
-        f"<b>de {anchor(consulado, 'consulado')}</b><br>"
+        "<b>Al Sr. Titular del Consulado </b><br>"
+        f"<b>de {pais_a} </b><br>"
         "<b>S/D:</b><br><br>"
-        f"En los autos caratulados: <b>{anchor(caratula, 'caratula')}</b>, que se tramitan por ante "
-        f"<b>{anchor(tribunal, 'tribunal')}</b>, se ha dispuesto informar respecto de "
-        f"{anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')}.<br><br>"
-        f"Sentencia Nº {anchor(sent_num, 'snum')} de fecha {anchor(sent_fecha, 'sfecha')} - "
-        f"Resuelve: {anchor(resuelvo, 'sres')} - Firmantes: {anchor(firmantes, 'sfirmaza')}.<br><br>"
-        f"La sentencia quedó firme el {anchor(sent_firmeza, 'sfirmeza')}.")
+        f"En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, "
+        "con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar el presente oficio, "
+        "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a continuación:<br><br>"
+        f"{imp_a}.<br><br>"
+        f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}.”. Fdo.: {firm_a}.<br><br>"
+        f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.<br><br>"
+        "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.<br><br>"
+    )
+    saludo = "Sin otro particular, saludo a Ud. atentamente."
     st.markdown(cuerpo, unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
     if st.button("Copiar", key="copy_cons"):
-        st.experimental_copy(strip_anchors(cuerpo).replace("<br>", "\n"))
+        texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
+        st.experimental_copy(texto)
 
 # ---------- plantilla Juez Electoral ----------
 with tabs[2]:
     fecha_txt = fecha_alineada(loc, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
+    car_a = f"<b>{anchor(caratula, 'caratula')}</b>"
+    trib_a = f"<b>{anchor(tribunal, 'tribunal')}</b>"
+    imp_a = anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')
+    sent_n_a = anchor(sent_num, 'snum')
+    sent_f_a = anchor(sent_fecha, 'sfecha')
+    res_a = anchor(resuelvo, 'sres')
+    firm_a = anchor(firmantes, 'sfirmaza')
+    sent_firmeza_a = anchor(sent_firmeza, 'sfirmeza')
     cuerpo = (
-        "<b>Sr. Juez Electoral</b><br>"
-        "<b>S................../..................D</b><br><br>"
-        f"En los autos caratulados: <b>{anchor(caratula, 'caratula')}</b>, que se tramitan por ante "
-        f"<b>{anchor(tribunal, 'tribunal')}</b>, se informa sobre "
-        f"{anchor(st.session_state.get('imp0_datos',''), 'imp0_datos')}.<br><br>"
-        f"Sentencia Nº {anchor(sent_num, 'snum')} de fecha {anchor(sent_fecha, 'sfecha')}. "
-        f"Resuelve: {anchor(resuelvo, 'sres')}. Fdo.: {anchor(firmantes, 'sfirmaza')}.<br><br>"
-        f"La sentencia quedó firme el {anchor(sent_firmeza, 'sfirmeza')}.")
+        "<b>SR. JUEZ ELECTORAL:</b><br>"
+        "<b>S………………./………………D</b><br>"
+        "<b>-Av. Concepción Arenales esq. Wenceslao Paunero, Bº Rogelio Martínez, Córdoba.</b><br>"
+        "<b>Tribunales Federales de Córdoba-</b><br><br>"
+        f"En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, "
+        "con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente oficio, "
+        "a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a continuación:<br><br>"
+        f"{imp_a}.<br><br>"
+        f"SENTENCIA N° {sent_n_a}, DE FECHA: {sent_f_a}. “Se Resuelve: {res_a}”. Fdo.: {firm_a}.<br><br>"
+        f"Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {sent_firmeza_a}.<br><br>"
+        "Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.<br><br>"
+    )
+    saludo = "Sin otro particular, saludo a Ud. atentamente."
     st.markdown(cuerpo, unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
     if st.button("Copiar", key="copy_electoral"):
-        st.experimental_copy(strip_anchors(cuerpo).replace("<br>", "\n"))
+        texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
+        st.experimental_copy(texto)
