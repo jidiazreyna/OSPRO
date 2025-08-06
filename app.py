@@ -28,24 +28,32 @@ def copy_to_clipboard(texto: str) -> None:
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 
 
+"""Inyectamos JavaScript una vez para capturar clicks en anchors.
+
+La lógica se delega a un script global que modifica los parámetros de la URL
+y fuerza un *rerun* de Streamlit para que Python abra el cuadro de diálogo
+correspondiente."""
 if "_js_injected" not in st.session_state:
-    st.markdown(
+    components.html(
         """
         <script>
-        document.addEventListener('click', function (e) {
-          const a = e.target.closest('a[data-anchor]');
-          if (!a) return;
+        const doc = window.parent.document;
+        doc.addEventListener('click', function (e) {
+          const link = e.target.closest('a[data-anchor]');
+          if (!link) return;
 
           e.preventDefault();
-          const params = new URLSearchParams(window.location.search);
-          params.set('anchor', a.dataset.anchor);
-          history.pushState({}, '', '?' + params.toString());
+          const anchor = link.getAttribute('data-anchor');
 
+          const url = new URL(window.parent.location);
+          url.searchParams.set('anchor', anchor);
+          window.parent.history.pushState({}, '', url);
           window.parent.postMessage({type: 'streamlit:rerun'}, '*');
         }, true);
         </script>
         """,
-        unsafe_allow_html=True,
+        height=0,
+        width=0,
     )
     st.session_state._js_injected = True
 
@@ -314,34 +322,5 @@ with tabs[2]:
 
 
 # -- parche global de anchors JS ------------------------------------
-if "_js_anchor_patch" not in st.session_state:
-    components.html(
-        """
-        <script>
-        (function () {
-          /* Captura todos los clicks en <a data-anchor="..."> */
-          const doc = window.parent.document;     // DOM real de la app
-          doc.addEventListener('click', function (e) {
-            const link = e.target.closest('a[data-anchor]');
-            if (!link) return;
-
-            e.preventDefault();                     // cancelamos el click
-            const anchor = link.getAttribute('data-anchor');
-            console.log('clic anchor', anchor);
-
-            // Actualizamos ?anchor=... en la URL del navegador
-            const url = new URL(window.parent.location);
-            url.searchParams.set('anchor', anchor);
-            window.parent.history.pushState({}, '', url);
-
-            /* Forzamos un re-run de Streamlit para que Python lea los
-               nuevos query-params y abra el modal correspondiente.      */
-            window.parent.postMessage({type: 'streamlit:rerun'}, '*');
-          }, true);  // fase captura = true (escucha antes que Streamlit)
-        })();
-        </script>
-        """,
-        height=0, width=0
-    )
-    st.session_state._js_anchor_patch = True
+# (reemplazado por _js_injected al comienzo del archivo)
 
