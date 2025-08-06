@@ -33,30 +33,30 @@ st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 La lógica se delega a un script global que modifica los parámetros de la URL
 y fuerza un *rerun* de Streamlit para que Python abra el cuadro de diálogo
 correspondiente."""
-if "_js_injected" not in st.session_state:
-    components.html(
-        """
-        <script>
-        const doc = window.parent.document;
-        doc.addEventListener('click', function (e) {
-          const link = e.target.closest('a[data-anchor]');
-          if (!link) return;
 
-          e.preventDefault();
-          const anchor = link.getAttribute('data-anchor');
+anchor_clicked = components.html(
+    """
+    <script>
+    /* Captura clicks en <a data-anchor="…"> y notifica a Streamlit ------- */
+    (function () {
+      const doc = window.parent.document;
 
-          const url = new URL(window.parent.location);
-          url.searchParams.set('anchor', anchor);
-          window.parent.history.pushState({}, '', url);
-          window.parent.postMessage({type: 'streamlit:rerun'}, '*');
-        }, true);
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
-    st.session_state._js_injected = True
+      doc.addEventListener("click", (e) => {
+        const link = e.target.closest("a[data-anchor]");
+        if (!link) return;
 
+        e.preventDefault();                       // cancelamos el href="#"
+        const anchor = link.getAttribute("data-anchor");
+
+        /* Enviamos el valor a Python y forzamos rerun inmediato -------- */
+        Streamlit.setComponentValue(anchor);
+      }, true);
+    })();
+    </script>
+    """,
+    height=0,
+    width=0,          # ← sin `key`
+)
 
 # ───────── helpers comunes ──────────────────────────────────────────
 MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
@@ -127,10 +127,12 @@ def _open_dialog(title: str):
 
 # ───────── función actualizada ─────────────────────────────────────
 def _mostrar_dialogo(clave: str) -> None:
-    """Muestra un cuadro modal dependiendo de ``clave``.
+    """Abre el diálogo correspondiente al anchor clickeado.
 
-    Si ``clave`` corresponde a un imputado (``edit_imp{n}_datos``) el índice
-    se extrae dinámicamente; de lo contrario se consulta :data:`ANCHOR_FIELDS`.
+    Soporta:
+      • Streamlit ≥ 1.37 ─ `st.dialog` actúa como context-manager.
+      • Streamlit 1.30-1.36 ─ `st.dialog` actúa como decorador.
+      • Streamlit ≤ 1.29 ─ solo existe `st.modal` (context-manager).
     """
     print("Dentro de _mostrar_dialogo:", clave)
 
@@ -140,14 +142,24 @@ def _mostrar_dialogo(clave: str) -> None:
         titulo, tipo, estado = ("Datos personales", "textarea", f"imp{idx}_datos")
     else:
         campo = ANCHOR_FIELDS.get(clave)
-        if not campo:           # anchor desconocido → nada que hacer
+        if not campo:         # anchor desconocido → nada que hacer
             return
         titulo, tipo, estado = campo
 
     valor_actual = st.session_state.get(estado, "")
 
-    # ── abrimos el diálogo usando la API que exista ──
-    with _open_dialog(titulo):
+    # ── obtenemos la “fábrica” de diálogos disponible ──
+    DialogFactory = getattr(st, "dialog", None) or getattr(st, "modal", None)
+    if DialogFactory is None:
+        st.error("Tu versión de Streamlit no soporta cuadros de diálogo.")
+        return
+
+    # Streamlit nuevo ⇒ DialogFactory(titulo) ES context-manager
+    # Streamlit intermedio ⇒ DialogFactory(titulo) ES decorador (callable)
+    dialog_obj = DialogFactory(titulo)
+
+    def cuerpo_dialogo():
+        """Contenido común del cuadro (inputs + botones)."""
         if tipo == "text":
             nuevo = st.text_input(titulo, valor_actual, key=f"dlg_{estado}")
         elif tipo == "textarea":
@@ -155,18 +167,28 @@ def _mostrar_dialogo(clave: str) -> None:
         elif tipo == "select":
             idx = TRIBUNALES.index(valor_actual) if valor_actual in TRIBUNALES else 0
             nuevo = st.selectbox(titulo, TRIBUNALES, index=idx, key=f"dlg_{estado}")
-        else:                              # caso de seguridad
+        else:
             nuevo = valor_actual
 
-        # ── botones Aceptar / Cancelar ──
         col_a, col_b = st.columns(2)
         if col_a.button("Aceptar", key=f"ok_{estado}"):
             st.session_state[estado] = nuevo
-            st.experimental_set_query_params(anchor=None)   # limpia la URL
-            st.rerun()                                      # cierra el diálogo
+            st.experimental_set_query_params(anchor=None)
+            st.rerun()
         if col_b.button("Cancelar", key=f"cancel_{estado}"):
             st.experimental_set_query_params(anchor=None)
             st.rerun()
+
+    # ── distingimos si dialog_obj es context-manager o decorador ──
+    if hasattr(dialog_obj, "__enter__"):          # context-manager
+        with dialog_obj:
+            cuerpo_dialogo()
+    else:                                         # decorador
+        @dialog_obj
+        def _inner():
+            cuerpo_dialogo()
+        _inner()   # abre el cuadro
+
 
 
 def fecha_alineada(loc: str, fecha=None, punto=False):
@@ -178,13 +200,10 @@ def fecha_alineada(loc: str, fecha=None, punto=False):
 if "n_imputados" not in st.session_state: st.session_state.n_imputados = 1
 if "datos_autocompletados" not in st.session_state: st.session_state.datos_autocompletados = {}
 
-# si hay un parámetro de consulta ``anchor`` mostramos el diálogo correspondiente
-_params = st.experimental_get_query_params()
-print("query params:", _params)
-_anchor_clicked = _params.get("anchor", [None])[0]
-if _anchor_clicked:
-    print("Abrir modal para:", _anchor_clicked)
-    _mostrar_dialogo(_anchor_clicked)
+if isinstance(anchor_clicked, str) and anchor_clicked:
+    _mostrar_dialogo(anchor_clicked)
+    st.write("DEBUG →", type(anchor_clicked), anchor_clicked)
+
 
 # ───────── barra lateral (datos generales) ──────────────────────────
 with st.sidebar:
