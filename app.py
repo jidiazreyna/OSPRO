@@ -72,7 +72,7 @@ st.markdown("""
 <style>
 span.editable {
     color: #0068c9 !important;
-    text-decoration: underline !important;
+    text-decoration: none !important;
     cursor: pointer !important;
 }
 </style>
