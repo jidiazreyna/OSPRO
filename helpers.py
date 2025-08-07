@@ -1,27 +1,12 @@
 import html
 
 
-def anchor(texto: str, clave: str, placeholder: str = None) -> str:
-    """Devuelve un enlace HTML plano.
-
-    Además imprime el HTML generado para ayudar en la depuración del flujo
-    de *anchor-links* dentro de la aplicación Streamlit.  De esta manera
-    puede verificarse desde la consola si cada ``data-anchor`` se crea con
-    la clave correcta.
-    """
+def anchor(texto: str, clave: str, placeholder: str | None = None) -> str:
     if not texto.strip():
         texto = placeholder or f"[{clave}]"
-    style = (
-        "color:blue;text-decoration:none;",
-        "font-family:'Times New Roman';font-size:12pt;",
-    )
-    style_str = "".join(style)
     safe = html.escape(texto).replace("\n", "<br/>")
-    # Eliminamos el manejador inline ``onclick`` para delegar por JS global
-    html_link = f'<a href="#" data-anchor="{clave}" style="{style_str}">{safe}</a>'
-    print("HTML anchor:", html_link)
-    return html_link
-
+    # ‼️  href agrega ?anchor=… y recarga la página
+    return f'<a href="?anchor={clave}" style="color:blue;text-decoration:none;">{safe}</a>'
 
 def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
     """Igual que anchor pero conserva etiquetas básicas"""

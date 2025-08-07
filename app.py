@@ -202,7 +202,11 @@ def _mostrar_dialogo(clave: str) -> None:
             cuerpo_dialogo()
         _inner()   # abre el cuadro
 
+query_params = st.experimental_get_query_params()
+clicked = query_params.get("anchor", [""])[0]
 
+if clicked:
+    _mostrar_dialogo(clicked)
 
 def fecha_alineada(loc: str, fecha=None, punto=False):
     d = fecha or datetime.now()
