@@ -28,47 +28,41 @@ def copy_to_clipboard(texto: str) -> None:
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 
 
-"""Inyectamos JavaScript para capturar clicks en anchors.
+js_code = """
+<script>
+/* Captura clicks en <a data-anchor="…"> y los envía a Streamlit ------- */
+(function () {
+  const parent = window.parent;
+  const doc = parent.document;
 
-En versiones antiguas de Streamlit ``components.html`` no acepta ``key``.
-El siguiente snippet añade (o reemplaza) un único listener global en el
-documento padre para enviar a Python el ``data-anchor`` clickeado.
+  // Elimina un listener previo para evitar duplicados al rerun
+  if (parent.__ospro_anchor_handler__) {
+    doc.removeEventListener('click', parent.__ospro_anchor_handler__, true);
+  }
+
+  let seq = 0;
+  function handler(e) {
+    const link = e.target.closest('a[data-anchor]');
+    if (!link) return;
+    e.preventDefault();                           // anula href="#"
+    Streamlit.setComponentValue({anchor: link.dataset.anchor, seq: seq++});
+  }
+
+  doc.addEventListener('click', handler, true);
+  parent.__ospro_anchor_handler__ = handler;
+
+  Streamlit.setComponentReady();
+  Streamlit.setFrameHeight(0);
+})();
+</script>
 """
 
 anchor_clicked = components.html(
-    """
-    <script>
-    /* Captura clicks en <a data-anchor="…"> y notifica a Streamlit ------- */
-    (function () {
-      const parent = window.parent;
-      const doc = parent.document;
-
-      // Si ya había un listener previo, lo quitamos para evitar duplicados
-      if (parent.__ospro_anchor_handler__) {
-        doc.removeEventListener('click', parent.__ospro_anchor_handler__, true);
-      }
-
-      let seq = 0;  // permite volver a abrir el mismo anchor varias veces
-      function handler(e) {
-        const link = e.target.closest('a[data-anchor]');
-        if (!link) return;
-        e.preventDefault();                       // cancelamos el href="#"
-        const anchor = link.getAttribute('data-anchor');
-        /* Enviamos el valor a Python y forzamos rerun inmediato -------- */
-        Streamlit.setComponentValue({anchor: anchor, seq: seq++});
-      }
-
-      doc.addEventListener('click', handler, true);
-      parent.__ospro_anchor_handler__ = handler;
-
-      // Señalamos a Streamlit que el componente está listo y sin altura
-      Streamlit.setComponentReady();
-      Streamlit.setFrameHeight(0);
-    })();
-    </script>
-    """,
+    js_code,
     height=0,
     width=0,
+    key="anchor_handler",                 # ← clave fija
+    sandbox="allow-scripts allow-same-origin"  # ← ¡nuevo!
 )
 
 # ───────── helpers comunes ──────────────────────────────────────────
@@ -202,11 +196,11 @@ def _mostrar_dialogo(clave: str) -> None:
             cuerpo_dialogo()
         _inner()   # abre el cuadro
 
-query_params = st.experimental_get_query_params()
-clicked = query_params.get("anchor", [""])[0]
+if isinstance(anchor_clicked, dict):
+    clave = anchor_clicked.get("anchor", "")
+    if clave:
+        _mostrar_dialogo(clave)
 
-if clicked:
-    _mostrar_dialogo(clicked)
 
 def fecha_alineada(loc: str, fecha=None, punto=False):
     d = fecha or datetime.now()

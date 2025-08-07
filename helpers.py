@@ -1,15 +1,17 @@
 import html
 
-
 def anchor(texto: str, clave: str, placeholder: str | None = None) -> str:
     if not texto.strip():
         texto = placeholder or f"[{clave}]"
     safe = html.escape(texto).replace("\n", "<br/>")
-    # ‼️  href agrega ?anchor=… y recarga la página
+    # — sin navegación; solo marca data‑anchor —
     return (
-        f'<a href="?anchor={clave}" target="_self" rel="noopener" '
+        f'<a href="#" data-anchor="{clave}" '
         f'style="color:blue;text-decoration:none;">{safe}</a>'
     )
+
+
+
 def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
     """Igual que anchor pero conserva etiquetas básicas"""
     if not html_text.strip():
