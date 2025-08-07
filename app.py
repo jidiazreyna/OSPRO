@@ -65,22 +65,30 @@ def _html_compat(content: str, *, height: int = 0, width: int = 0):
 # -------------------------------------------------------------------
 js_code = """
 <script>
-/* Envía a Streamlit los cambios en elementos editables */
 (function () {
   const parent = window.parent;
-  const doc = parent.document;
+  const doc    = parent.document;
 
-  if (parent.__ospro_edit_handler__)
-      doc.removeEventListener('focusout', parent.__ospro_edit_handler__, true);
+  // Borrá cualquier handler previo para no acumularlos al rerender
+  if (parent.__ospro_edit_handler__) {
+    doc.removeEventListener('input', parent.__ospro_edit_handler__, true);
+    doc.removeEventListener('blur',  parent.__ospro_edit_handler__, true);
+  }
 
   function handler(e) {
     const el = e.target.closest('.editable');
     if (!el) return;
-    const val = el.innerText;
-    Streamlit.setComponentValue({key: el.dataset.key, value: val});
+    Streamlit.setComponentValue({
+      key:   el.dataset.key,   // misma key que usan tus text_input
+      value: el.innerText      // lo editado
+    });
   }
 
-  doc.addEventListener('focusout', handler, true);
+  // ① se dispara en cada tecla
+  doc.addEventListener('input', handler, true);
+  // ② de yapa, cuando el usuario sale del span
+  doc.addEventListener('blur',  handler, true);
+
   parent.__ospro_edit_handler__ = handler;
 
   Streamlit.setComponentReady();
