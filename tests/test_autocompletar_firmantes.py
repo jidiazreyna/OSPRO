@@ -24,3 +24,24 @@ def test_autocompletar_converts_firmantes_to_string(monkeypatch):
     core.autocompletar(b"", "dummy.pdf")
 
     assert st.session_state.sfirmaza == "Juez, Secretario"
+
+
+def test_autocompletar_handles_dict_firmantes(monkeypatch):
+    st.session_state.clear()
+
+    def fake_procesar_sentencia(_bytes, _name):
+        return {
+            "generales": {
+                "firmantes": [
+                    {"nombre": "Ana Perez", "cargo": "Jueza"},
+                    {"nombre": "Luis Gomez", "cargo": "Secretario"},
+                ]
+            },
+            "imputados": [],
+        }
+
+    monkeypatch.setattr(core, "procesar_sentencia", fake_procesar_sentencia)
+
+    core.autocompletar(b"", "dummy.pdf")
+
+    assert st.session_state.sfirmaza == "Ana Perez, Jueza; Luis Gomez, Secretario"
