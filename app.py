@@ -147,6 +147,16 @@ if isinstance(edit_event, dict):
                 st.session_state[estado] = valor
         st.rerun()
 
+# ───── proceso diferido de autocompletado ───────────────────────────
+if "pending_autocompletar" in st.session_state:
+    file_bytes, filename = st.session_state.pop("pending_autocompletar")
+    try:
+        autocompletar(file_bytes, filename)
+    except RuntimeError as exc:
+        st.session_state["ac_error"] = str(exc)
+    else:
+        st.session_state["ac_success"] = True
+
 
 # ───────── barra lateral (datos generales) ──────────────────────────
 with st.sidebar:
@@ -181,15 +191,16 @@ with st.sidebar:
         if up is None:
             st.warning("Subí un archivo primero.")
         else:
-            try:
-                autocompletar(up.read(), up.name)
-            except RuntimeError as exc:
-                st.error(str(exc))
-            else:
-                st.success(
-                    "Campos cargados. Revisá y editá donde sea necesario."
-                )
-                st.rerun()   # refrescamos la UI
+            st.session_state.pending_autocompletar = (up.read(), up.name)
+            st.rerun()
+
+    err = st.session_state.pop("ac_error", None)
+    if err:
+        st.error(err)
+    elif st.session_state.pop("ac_success", False):
+        st.success(
+            "Campos cargados. Revisá y editá donde sea necesario."
+        )
 
 # ───────── pestañas de imputados (en la sidebar) ────────────────────
     for i in range(st.session_state.n_imputados):
