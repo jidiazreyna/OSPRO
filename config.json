@@ -1,4 +1,4 @@
 {
-  "api_key": "TU_API_KEY",
+  "api_key": "",
   "proxy": "http://usuario:contraseña@host:puerto"
 }

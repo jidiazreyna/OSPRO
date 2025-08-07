@@ -181,11 +181,15 @@ with st.sidebar:
         if up is None:
             st.warning("Subí un archivo primero.")
         else:
-            autocompletar(up.read(), up.name)
-            st.success(
-                "Campos cargados. Revisá y editá donde sea necesario."
-            )
-            st.rerun()   # refrescamos la UI
+            try:
+                autocompletar(up.read(), up.name)
+            except RuntimeError as exc:
+                st.error(str(exc))
+            else:
+                st.success(
+                    "Campos cargados. Revisá y editá donde sea necesario."
+                )
+                st.rerun()   # refrescamos la UI
 
 # ───────── pestañas de imputados (en la sidebar) ────────────────────
     for i in range(st.session_state.n_imputados):
