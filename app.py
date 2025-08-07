@@ -66,7 +66,7 @@ def _html_compat(content: str, *, height: int = 0, width: int = 0):
 # -------------------------------------------------------------------
 js_code = """
 <script>
-/* Captura clicks en <a data-anchor="…"> y envía la clave a Streamlit */
+/* Captura clicks en elementos con data-anchor y envía la clave a Streamlit */
 (function () {
   const parent = window.parent;
   const doc = parent.document;
@@ -76,7 +76,7 @@ js_code = """
 
   let seq = 0;
   function handler(e) {
-    const link = e.target.closest('a[data-anchor]');
+    const link = e.target.closest('[data-anchor]');
     if (!link) return;
     e.preventDefault();
     Streamlit.setComponentValue({anchor: link.dataset.anchor, seq: seq++});
@@ -209,10 +209,8 @@ def _mostrar_dialogo(clave: str) -> None:
         col_a, col_b = st.columns(2)
         if col_a.button("Aceptar", key=f"ok_{estado}"):
             st.session_state[estado] = nuevo
-            st.experimental_set_query_params(anchor=None)
             st.rerun()
         if col_b.button("Cancelar", key=f"cancel_{estado}"):
-            st.experimental_set_query_params(anchor=None)
             st.rerun()
 
     # ── distingimos si dialog_obj es context-manager o decorador ──
@@ -225,12 +223,6 @@ def _mostrar_dialogo(clave: str) -> None:
             cuerpo_dialogo()
         _inner()   # abre el cuadro
 
-if isinstance(anchor_clicked, dict):
-    clave = anchor_clicked.get("anchor", "")
-    if clave:
-        _mostrar_dialogo(clave)
-
-
 def fecha_alineada(loc: str, fecha=None, punto=False):
     d = fecha or datetime.now()
     txt = f"{loc}, {d.day} de {MESES_ES[d.month-1]} de {d.year}"
@@ -241,12 +233,9 @@ if "n_imputados" not in st.session_state: st.session_state.n_imputados = 1
 if "datos_autocompletados" not in st.session_state: st.session_state.datos_autocompletados = {}
 
 if isinstance(anchor_clicked, dict):
-    clicked = anchor_clicked.get("anchor")
-else:
-    clicked = anchor_clicked
-if isinstance(clicked, str) and clicked:
-    _mostrar_dialogo(clicked)
-    st.write("DEBUG →", type(anchor_clicked), anchor_clicked)
+    clave = anchor_clicked.get("anchor")
+    if isinstance(clave, str) and clave:
+        _mostrar_dialogo(clave)
 
 
 # ───────── barra lateral (datos generales) ──────────────────────────
