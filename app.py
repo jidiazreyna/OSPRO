@@ -4,7 +4,6 @@ import streamlit.components.v1 as components
 from core import autocompletar   # ← función principal
 from datetime import datetime
 from helpers import dialog_link, strip_dialog_links
-import re
 
 
 def copy_to_clipboard(texto: str) -> None:
@@ -109,18 +108,10 @@ MESES_ES = [
     "diciembre",
 ]
 
-# Mapeo de claves de elementos editables → keys del estado de sesión
-FIELD_MAP = {
-    "edit_caratula": "carat",
-    "combo_tribunal": "trib",
-    "edit_sent_num": "snum",
-    "edit_sent_fecha": "sfecha",
-    "edit_sent_firmeza": "sfirmeza",
-    "edit_resuelvo": "sres",
-    "edit_firmantes": "sfirmaza",
-    "edit_consulado": "consulado",
-    "edit_localidad": "loc",
-}
+# En la interfaz principal los elementos editables usan como ``data-key``
+# la misma clave empleada en ``st.session_state``.  De esta manera, cuando
+# el usuario modifica el texto desde el anchor, el valor correspondiente en
+# la barra lateral se actualiza automáticamente.
 
 
 def fecha_alineada(loc: str, fecha=None, punto=False):
@@ -138,13 +129,7 @@ if isinstance(edit_event, dict):
     clave = edit_event.get("key")
     valor = edit_event.get("value")
     if isinstance(clave, str) and isinstance(valor, str):
-        if clave.startswith("edit_imp") and clave.endswith("_datos"):
-            idx = int(re.search(r"edit_imp(\d+)_datos", clave).group(1))
-            st.session_state[f"imp{idx}_datos"] = valor
-        else:
-            estado = FIELD_MAP.get(clave)
-            if estado:
-                st.session_state[estado] = valor
+        st.session_state[clave] = valor
         st.rerun()
 
 # ───── proceso diferido de autocompletado ───────────────────────────
@@ -223,18 +208,18 @@ tabs = st.tabs([
 # ----------  ejemplo: plantilla Migraciones  ----------
 with tabs[0]:
     # recomponemos los textos cada vez que alguien cambia algo
-    loc_a = dialog_link(loc, 'edit_localidad')
+    loc_a = dialog_link(loc, 'loc')
     fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
 
-    car_a = f"<b>{dialog_link(caratula, 'edit_caratula')}</b>"
-    trib_a = f"<b>{dialog_link(tribunal, 'combo_tribunal')}</b>"
-    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
-    sent_n_a = dialog_link(sent_num, 'edit_sent_num')
-    sent_f_a = dialog_link(sent_fecha, 'edit_sent_fecha')
-    res_a = dialog_link(resuelvo, 'edit_resuelvo')
-    firm_a = dialog_link(firmantes, 'edit_firmantes')
-    sent_firmeza_a = dialog_link(sent_firmeza, 'edit_sent_firmeza')
+    car_a = f"<b>{dialog_link(caratula, 'carat')}</b>"
+    trib_a = f"<b>{dialog_link(tribunal, 'trib')}</b>"
+    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'imp0_datos')
+    sent_n_a = dialog_link(sent_num, 'snum')
+    sent_f_a = dialog_link(sent_fecha, 'sfecha')
+    res_a = dialog_link(resuelvo, 'sres')
+    firm_a = dialog_link(firmantes, 'sfirmaza')
+    sent_firmeza_a = dialog_link(sent_firmeza, 'sfirmeza')
     cuerpo = (
         "<b>Sr/a Director/a</b><br>"
         "<b>de la Dirección Nacional de Migraciones</b><br>"
@@ -258,18 +243,18 @@ with tabs[0]:
 
 # ---------- plantilla Consulado ----------
 with tabs[1]:
-    loc_a = dialog_link(loc, 'edit_localidad')
+    loc_a = dialog_link(loc, 'loc')
     fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
-    car_a = f"<b>{dialog_link(caratula, 'edit_caratula')}</b>"
-    trib_a = f"<b>{dialog_link(tribunal, 'combo_tribunal')}</b>"
-    pais_a = dialog_link(consulado, 'edit_consulado')
-    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
-    sent_n_a = dialog_link(sent_num, 'edit_sent_num')
-    sent_f_a = dialog_link(sent_fecha, 'edit_sent_fecha')
-    res_a = dialog_link(resuelvo, 'edit_resuelvo')
-    firm_a = dialog_link(firmantes, 'edit_firmantes')
-    sent_firmeza_a = dialog_link(sent_firmeza, 'edit_sent_firmeza')
+    car_a = f"<b>{dialog_link(caratula, 'carat')}</b>"
+    trib_a = f"<b>{dialog_link(tribunal, 'trib')}</b>"
+    pais_a = dialog_link(consulado, 'consulado')
+    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'imp0_datos')
+    sent_n_a = dialog_link(sent_num, 'snum')
+    sent_f_a = dialog_link(sent_fecha, 'sfecha')
+    res_a = dialog_link(resuelvo, 'sres')
+    firm_a = dialog_link(firmantes, 'sfirmaza')
+    sent_firmeza_a = dialog_link(sent_firmeza, 'sfirmeza')
     cuerpo = (
         "<b>Al Sr. Titular del Consulado </b><br>"
         f"<b>de {pais_a} </b><br>"
@@ -291,17 +276,17 @@ with tabs[1]:
 
 # ---------- plantilla Juez Electoral ----------
 with tabs[2]:
-    loc_a = dialog_link(loc, 'edit_localidad')
+    loc_a = dialog_link(loc, 'loc')
     fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
-    car_a = f"<b>{dialog_link(caratula, 'edit_caratula')}</b>"
-    trib_a = f"<b>{dialog_link(tribunal, 'combo_tribunal')}</b>"
-    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
-    sent_n_a = dialog_link(sent_num, 'edit_sent_num')
-    sent_f_a = dialog_link(sent_fecha, 'edit_sent_fecha')
-    res_a = dialog_link(resuelvo, 'edit_resuelvo')
-    firm_a = dialog_link(firmantes, 'edit_firmantes')
-    sent_firmeza_a = dialog_link(sent_firmeza, 'edit_sent_firmeza')
+    car_a = f"<b>{dialog_link(caratula, 'carat')}</b>"
+    trib_a = f"<b>{dialog_link(tribunal, 'trib')}</b>"
+    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'imp0_datos')
+    sent_n_a = dialog_link(sent_num, 'snum')
+    sent_f_a = dialog_link(sent_fecha, 'sfecha')
+    res_a = dialog_link(resuelvo, 'sres')
+    firm_a = dialog_link(firmantes, 'sfirmaza')
+    sent_firmeza_a = dialog_link(sent_firmeza, 'sfirmeza')
     cuerpo = (
         "<b>SR. JUEZ ELECTORAL:</b><br>"
         "<b>S………………./………………D</b><br>"
