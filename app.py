@@ -5,7 +5,7 @@ import streamlit.components.v1 as components
 from core import autocompletar   # ← función principal
 from datetime import datetime
 from helpers import dialog_link, strip_dialog_links
-
+import json
 
 def copy_to_clipboard(texto: str) -> None:
     """Copia ``texto`` al portapapeles.
@@ -13,15 +13,28 @@ def copy_to_clipboard(texto: str) -> None:
     En versiones recientes de Streamlit el helper experimental
     ``st.experimental_copy`` fue removido.  Para mantener la
     funcionalidad se intenta utilizar :mod:`pyperclip` y, en caso de
-    no estar disponible, se muestra el texto para copiarlo de forma
-    manual.
+    no estar disponible, se recurre a la API del navegador.
     """
     try:
         import pyperclip  # type: ignore
 
         pyperclip.copy(texto)
         st.success("Texto copiado al portapapeles")
+        return
     except Exception:  # pragma: no cover - solo en entornos sin pyperclip
+        pass
+
+    try:
+        components.html(
+            f"""
+            <script>
+            navigator.clipboard.writeText({json.dumps(texto)});
+            </script>
+            """,
+            height=0,
+        )
+        st.success("Texto copiado al portapapeles")
+    except Exception:  # pragma: no cover - sin soporte de portapapeles
         st.code(texto)
         st.warning("No se pudo copiar automáticamente. Copie el texto manualmente.")
 
