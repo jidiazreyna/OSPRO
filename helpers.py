@@ -4,7 +4,7 @@ def anchor(texto: str, clave: str, placeholder: str | None = None) -> str:
         texto = placeholder or f"[{clave}]"
     safe = html.escape(texto).replace("\n", "<br/>")
     return (
-        f'<a data-anchor="{clave}" '
+        f'<a href="#" data-anchor="{clave}" '
         f'style="color:blue;text-decoration:none;cursor:pointer;">{safe}</a>'
     )
 
@@ -18,7 +18,7 @@ def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
     )
     style_str = "".join(style)
     safe = html_text.replace("\n", "<br/>")
-    return f'<a data-anchor="{clave}" style="{style_str}">{safe}</a>'
+    return f'<a href="#" data-anchor="{clave}" style="{style_str}">{safe}</a>'
 
 
 def strip_anchors(html_text: str) -> str:
