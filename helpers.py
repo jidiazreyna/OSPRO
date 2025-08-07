@@ -1,28 +1,26 @@
 import html
 
 
-def anchor(texto: str, name: str) -> str:
-    """
-    Devuelve un link “estilo anchor” que al hacer clic:
-      1) inserta ?anchor=<name> en la URL (sin recargar),
-      2) envía el mensaje 'streamlit:rerun' a Streamlit → rerun inmediato.
+def anchor(texto: str, clave: str, placeholder: str = None) -> str:
+    """Devuelve un enlace HTML plano.
 
-    Se usa con `unsafe_allow_html=True`, p. ej.:
-        st.markdown(anchor("Córdoba", "edit_localidad"), unsafe_allow_html=True)
+    Además imprime el HTML generado para ayudar en la depuración del flujo
+    de *anchor-links* dentro de la aplicación Streamlit.  De esta manera
+    puede verificarse desde la consola si cada ``data-anchor`` se crea con
+    la clave correcta.
     """
-    js = (
-        "event.preventDefault();"
-        "const u=new URL(window.location);"
-        f"u.searchParams.set('anchor','{name}');"
-        "history.replaceState({},'',u);"
-        "window.parent.postMessage({type:'streamlit:rerun'},'*');"
+    if not texto.strip():
+        texto = placeholder or f"[{clave}]"
+    style = (
+        "color:blue;text-decoration:none;",
+        "font-family:'Times New Roman';font-size:12pt;",
     )
-    return (
-        f'<a href="#" data-anchor="{name}" '
-        f' onclick="{js}" '
-        " style=\"color:blue;text-decoration:none;font-family:'Times New Roman';font-size:12pt;\">"
-        f"{texto}</a>"
-    )
+    style_str = "".join(style)
+    safe = html.escape(texto).replace("\n", "<br/>")
+    # Eliminamos el manejador inline ``onclick`` para delegar por JS global
+    html_link = f'<a href="#" data-anchor="{clave}" style="{style_str}">{safe}</a>'
+    print("HTML anchor:", html_link)
+    return html_link
 
 
 def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
