@@ -148,8 +148,6 @@ def extraer_caratula(txt: str) -> str:
                 bloque = f'{prefix} {quoted}'
             else:
                 bloque = quoted
-        if bloque.startswith(('"', '“')) and bloque.endswith(('"', '”')):
-            bloque = bloque[1:-1]
         return f'{bloque.strip()} (SAC N° {nro})'
 
     m = _PAT_CARAT_2.search(plano)
@@ -320,12 +318,20 @@ def capitalizar_frase(txt: str) -> str:
 
 
 def normalizar_caratula(txt: str) -> str:
-    """Reemplaza comillas simples por dobles y normaliza espacios."""
+    """Reemplaza comillas simples por dobles, balancea y normaliza espacios."""
     if txt is None:
         return ""
     txt = txt.strip()
+    # unifico variantes de comillas en una sola
     txt = txt.replace("\u201c", '"').replace("\u201d", '"')
     txt = txt.replace("'", '"')
+    # si hay una sola comilla, cierro antes del número de expediente/SAC
+    if txt.count('"') == 1:
+        m = re.search(r'\s*(\(\s*(?:Expte\.\s*)?(?:SAC|Expte\.?)\b)', txt, re.I)
+        if m:
+            txt = txt[:m.start()].rstrip() + '"' + txt[m.start():]
+        else:
+            txt = txt + '"'
     return txt
 
 
