@@ -19,10 +19,10 @@ def test_strip_anchors_removes_wrapper():
     assert stripped == "Texto"
 
 
-def test_anchor_without_text_uses_key_without_brackets_and_is_blue():
+def test_anchor_without_text_shows_ellipsis_and_is_blue():
     html = anchor("", "edit_field")
     assert 'style="color:blue;"' in html
-    assert ">edit_field<" in html
+    assert ">…<" in html
     assert "[" not in html and "]" not in html
 
 
