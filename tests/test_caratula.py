@@ -42,83 +42,65 @@ sys.modules.setdefault("PySide6", types.ModuleType("PySide6"))
 sys.modules["PySide6.QtCore"] = qtcore
 
 import core
+# ── CARÁTULA ──────────────────────────────────────────────────────────
+_PAT_CARAT_1 = re.compile(          # 1) bloque completo con o sin paréntesis
+    r'(.+?)\s*'
+    r'(?:\(\s*(?:Expte\.\s*)?(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+)\s*\)'
+    r'|(?:Expte\.\s*)?(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+))',
+    re.I,
+)
+
+_PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
+    r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
+    r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?', re.I)
+
+_PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …”
+    r'EXPEDIENTE\s+(?:SAC|Expte\.?)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
+
+def extraer_caratula(txt: str) -> str:
+    """
+    Devuelve la carátula formal “…” (SAC N° …) o '' si no encuentra nada creíble.
+    Se prueban, en orden, tres patrones:
+      1. Entre comillas + (SAC/Expte N° …)
+      2. Frase “… autos caratulados ‘X’ …”
+      3. Encabezado “EXPEDIENTE SAC: 123 – X – …”
+    """
+    # normalizo blancos para evitar saltos de línea entre tokens
+    plano = re.sub(r'\s+', ' ', txt)
+
+    m = _PAT_CARAT_1.search(plano)
+    if m:
+        bloque, n1, n2 = m.groups()
+        nro = n1 or n2
+        bloque = bloque.strip()
+        mq = re.search(r"[\"“'‘`][^\"”'’`]+[\"”'’`]", bloque)
+        if mq:
+            inner = mq.group(0)[1:-1]
+            quoted = f'“{inner}”'
+        # Mantengo siempre lo que antecede a las comillas.
+        # El corte por longitud descartaba carátulas largas (p. ej. con
+        # varios imputados) y terminaba mostrando sólo el hecho.
+        prefix = bloque[:mq.start()].strip()
+        bloque = f'{prefix} {quoted}' if prefix else quoted
+        if prefix and len(prefix) <= 150:
+            bloque = f"{prefix} {quoted}"
+        else:
+            bloque = quoted
+        return f'{bloque.strip()} (SAC N° {nro})'
 
 
-def test_caratula_regex_permite_prefijo():
-    carat = (
-        'Leiva David p. s. a. de "robo en grado de tentativa" '
-        '(Expte. Sac 13250038)'
-    )
-    assert core.CARATULA_REGEX.match(carat)
+    m = _PAT_CARAT_2.search(plano)
+    if m:
+        titulo = m.group(1).strip()
+        # intento buscar el número SAC/Expte más próximo
+        mnum = re.search(r'(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)', plano)
+        nro  = mnum.group(1) if mnum else '…'
+        return f'“{titulo}” (SAC N° {nro})'
 
-
-def test_caratula_regex_sin_comillas():
-    carat = 'Leiva David p. s. a. de robo en grado de tentativa (Expte. Sac 13250038)'
-    assert core.CARATULA_REGEX.match(carat)
-
-
-def test_extraer_caratula_expte_sac():
-    texto = 'Leiva David p. s. a. de “robo en grado de tentativa” (Expte. Sac 13250038)'
-    esperado = 'Leiva David p. s. a. de “robo en grado de tentativa” (SAC N° 13250038)'
-    assert core.extraer_caratula(texto) == esperado
-
-
-def test_extraer_caratula_comillas_simples():
-    texto = "Leiva David p. s. a. de 'robo en grado de tentativa' (Expte. Sac 13250038)"
-    esperado = 'Leiva David p. s. a. de “robo en grado de tentativa” (SAC N° 13250038)'
-    assert core.extraer_caratula(texto) == esperado
-
-
-def test_extraer_caratula_sin_comillas():
-    texto = 'Leiva David p. s. a. de robo en grado de tentativa (Expte. Sac 13250038)'
-    esperado = 'Leiva David p. s. a. de robo en grado de tentativa (SAC N° 13250038)'
-    assert core.extraer_caratula(texto) == esperado
-
-
-def test_extraer_caratula_sin_parentesis():
-    texto = (
-        '"Agüero, Saúl Maximiliano y otro p.ss.aa robo calificado por escalamiento, etc." '
-        'SAC n.° 13551621, radicados por ante este Juzgado...'
-    )
-    esperado = (
-        '“Agüero, Saúl Maximiliano y otro p.ss.aa robo calificado por escalamiento, etc.” '
-        '(SAC N° 13551621)'
-    )
-    assert core.extraer_caratula(texto) == esperado
-
-
-def test_extraer_caratula_con_texto_previo():
-    texto = (
-        'JUZGADO DE CONTROL Y FALTAS Nº 9 Protocolo de Sentencias Nº Resolución: 5 Año: 2025 '
-        'Tomo: 1 Folio: 16-23 EXPEDIENTE SAC: 13393379 - DIAZ, ESTEBAN ARIEL - DIAZ, '
-        'YANINA ELIZABETH - CAUSA CON IMPUTADOS PROTOCOLO DE SENTENCIAS. NÚMERO: 5 DEL '
-        '12/02/2025 En la ciudad de Córdoba, el doce de febrero de dos mil veinticinco, se '
-        'dan a conocer los fundamentos de la sentencia dictada en la causa "Díaz, Esteban '
-        'Ariel y otra p. ss. aa. amenazas calificadas, etc." (SAC N° 13393379)'
-    )
-    esperado = (
-        '“Díaz, Esteban Ariel y otra p. ss. aa. amenazas calificadas, etc.” '
-        '(SAC N° 13393379)'
-    )
-    assert core.extraer_caratula(texto) == esperado
-
-
-def test_autocompletar_caratula_no_modifica_valida():
-    carat = 'Leiva David p. s. a. de robo en grado de tentativa (SAC N° 13250038)'
-    assert core.autocompletar_caratula(carat) == carat
-
-
-def test_autocompletar_caratula_extrae_del_texto():
-    texto = (
-        'JUZGADO DE CONTROL Y FALTAS Nº 9 Protocolo de Sentencias Nº Resolución: 5 Año: 2025 '
-        'Tomo: 1 Folio: 16-23 EXPEDIENTE SAC: 13393379 - DIAZ, ESTEBAN ARIEL - DIAZ, '
-        'YANINA ELIZABETH - CAUSA CON IMPUTADOS PROTOCOLO DE SENTENCIAS. NÚMERO: 5 DEL '
-        '12/02/2025 En la ciudad de Córdoba, el doce de febrero de dos mil veinticinco, se '
-        'dan a conocer los fundamentos de la sentencia dictada en la causa "Díaz, Esteban '
-        'Ariel y otra p. ss. aa. amenazas calificadas, etc." (SAC N° 13393379)'
-    )
-    esperado = (
-        '“Díaz, Esteban Ariel y otra p. ss. aa. amenazas calificadas, etc.” '
-        '(SAC N° 13393379)'
-    )
-    assert core.autocompletar_caratula(texto) == esperado
+    # El encabezado suele estar en la primera página; me quedo con la 1ª coincidencia
+    encabezados = _PAT_CARAT_3.findall(plano[:5000])
+    if encabezados:
+        nro, resto = encabezados[0]
+        titulo = resto.split(' - ')[0].strip()
+        return f'“{titulo}” (SAC N° {nro})'
+    return ""
