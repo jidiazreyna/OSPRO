@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, List, Dict
 
 import os
+import ast
 
 import docx2txt
 import openai
@@ -156,6 +157,78 @@ def capitalizar_frase(txt: str) -> str:
     return " ".join(palabras)
 
 
+def _as_str(value):
+    """Convierte listas, números o None en str plano."""
+    if isinstance(value, list):
+        if value and all(isinstance(x, dict) for x in value):
+            partes = []
+            for d in value:
+                nombre = d.get("nombre", "").strip()
+                cargo = d.get("cargo", "").strip()
+                fecha = d.get("fecha", "").strip()
+                partes.append(", ".join(p for p in (nombre, cargo, fecha) if p))
+            return "; ".join(partes)
+        return ", ".join(str(x) for x in value)
+    return str(value) if value is not None else ""
+
+
+def _format_datos_personales(raw):
+    """Convierte un dict o string con llaves en una línea humana."""
+    if isinstance(raw, dict):
+        dp = raw
+    else:
+        try:
+            dp = ast.literal_eval(raw)
+            if not isinstance(dp, dict):
+                raise ValueError
+        except Exception:
+            return str(raw)
+
+    partes = []
+    if dp.get("nombre"):
+        partes.append(dp["nombre"])
+    if dp.get("dni"):
+        partes.append(f"D.N.I. {dp['dni']}")
+    if dp.get("nacionalidad"):
+        partes.append(dp["nacionalidad"])
+    if dp.get("edad"):
+        partes.append(f"{dp['edad']}\u202faños")
+    if dp.get("estado_civil"):
+        partes.append(dp["estado_civil"])
+    if dp.get("instruccion"):
+        partes.append(dp["instruccion"])
+    if dp.get("ocupacion"):
+        partes.append(dp["ocupacion"])
+    if dp.get("fecha_nacimiento"):
+        partes.append(f"Nacido el {dp['fecha_nacimiento']}")
+    if dp.get("lugar_nacimiento"):
+        partes.append(f"en {dp['lugar_nacimiento']}")
+    if dp.get("domicilio"):
+        partes.append(f"Domicilio: {dp['domicilio']}")
+
+    padres_val = dp.get("padres")
+    if padres_val:
+        if isinstance(padres_val, str):
+            padres = padres_val
+        elif isinstance(padres_val, list):
+            nombres = []
+            for item in padres_val:
+                if isinstance(item, dict):
+                    nombres.append(item.get("nombre", str(item)))
+                else:
+                    nombres.append(str(item))
+            padres = ", ".join(nombres)
+        else:
+            padres = str(padres_val)
+        partes.append(f"Hijo de {padres}")
+
+    pront = dp.get("prontuario") or dp.get("prio") or dp.get("pront")
+    if pront:
+        partes.append(f"Pront. {pront}")
+
+    return ", ".join(partes)
+
+
 # ────────────────── Motor principal ─────────────────────────
 def _bytes_a_tmp(data: bytes, suf: str) -> Path:
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suf)
@@ -236,17 +309,12 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
 
     # ----- GENERALES -----
     g = datos.get("generales", {})
-    st.session_state.carat    = g.get("caratula", "")
-    st.session_state.trib     = g.get("tribunal", "")
-    st.session_state.snum     = g.get("sent_num", "")
-    st.session_state.sfecha   = g.get("sent_fecha", "")
-    st.session_state.sres     = g.get("resuelvo", "")
-    firmantes = g.get("firmantes") or ""
-    if isinstance(firmantes, list):
-        firmantes = ", ".join(str(f) for f in firmantes)
-    else:
-        firmantes = str(firmantes)
-    st.session_state.sfirmaza = firmantes
+    st.session_state.carat    = _as_str(g.get("caratula"))
+    st.session_state.trib     = _as_str(g.get("tribunal"))
+    st.session_state.snum     = _as_str(g.get("sent_num"))
+    st.session_state.sfecha   = _as_str(g.get("sent_fecha"))
+    st.session_state.sres     = _as_str(g.get("resuelvo"))
+    st.session_state.sfirmaza = _as_str(g.get("firmantes"))
 
     # ----- IMPUTADOS -----
     imps = datos.get("imputados", [])
@@ -254,11 +322,14 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
 
     for i, imp in enumerate(imps):
         key = f"imp{i}"
-        bruto = imp.get("datos_personales", imp)
-        st.session_state[f"{key}_nom"]   = imp.get("nombre") or bruto.get("nombre", "")
-        dni = imp.get("dni") or bruto.get("dni") or extraer_dni(str(bruto))
-        st.session_state[f"{key}_dni"]   = dni
-        st.session_state[f"{key}_datos"] = capitalizar_frase(str(bruto))
+        bruto = imp.get("datos_personales") or imp
+        st.session_state[f"{key}_datos"] = _format_datos_personales(bruto)
+        nom = _as_str(imp.get("nombre") or (bruto.get("nombre") if isinstance(bruto, dict) else ""))
+        dni = _as_str(imp.get("dni") or (bruto.get("dni") if isinstance(bruto, dict) else ""))
+        if not dni:
+            dni = extraer_dni(str(bruto))
+        st.session_state[f"{key}_nom"] = nom
+        st.session_state[f"{key}_dni"] = dni
 
     # inicializo huecos si la UI tenía más imputados
     for j in range(len(imps), st.session_state.n_imputados):
