@@ -9,7 +9,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import streamlit.components.v1 as components
 import uuid, json, html as _html
-from core import autocompletar          # lógica de autocompletado
+from core import autocompletar, autocompletar_caratula  # lógica de autocompletado
 from helpers import dialog_link, strip_dialog_links
 from helpers import create_clipboard_html
 
@@ -211,7 +211,10 @@ def html_copy_button(label: str, html_fragment: str, *, key: str | None = None):
 with st.sidebar:
     st.header("Datos generales")
     loc       = st.text_input("Localidad", value="Córdoba", key="loc")
-    caratula  = st.text_input("Carátula", key="carat")
+    caratula_raw = st.text_input("Carátula", key="carat")
+    caratula = autocompletar_caratula(caratula_raw)
+    if caratula != caratula_raw:
+        st.session_state.carat = caratula
     tribunal  = st.text_input("Tribunal", key="trib")
 
     col1, col2 = st.columns(2)

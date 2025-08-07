@@ -329,6 +329,15 @@ def normalizar_caratula(txt: str) -> str:
     return txt
 
 
+def autocompletar_caratula(txt: str) -> str:
+    """Intenta extraer y normalizar la carátula desde ``txt``."""
+    txt = normalizar_caratula(txt)
+    if not txt:
+        return ""
+    extraida = extraer_caratula(txt)
+    return extraida or txt
+
+
 def normalizar_dni(txt: str) -> str:
     """Devuelve solo los dígitos del DNI."""
     if txt is None:
@@ -545,7 +554,7 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
 
 
 # ────────────────── API pública ─────────────────────────────
-__all__ = ["autocompletar"]
+__all__ = ["autocompletar", "autocompletar_caratula"]
 
 
 if __name__ == "__main__":

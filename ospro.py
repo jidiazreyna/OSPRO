@@ -609,6 +609,15 @@ def normalizar_caratula(txt: str) -> str:
     return txt
 
 
+def autocompletar_caratula(txt: str) -> str:
+    """Intenta extraer y normalizar la carátula desde ``txt``."""
+    txt = normalizar_caratula(txt)
+    if not txt:
+        return ""
+    extraida = extraer_caratula(txt)
+    return extraida or txt
+
+
 def normalizar_dni(txt: str) -> str:
     """Devuelve solo los dígitos del DNI."""
     if txt is None:
@@ -2413,7 +2422,7 @@ class MainWindow(QMainWindow):
 
     def _check_caratula(self) -> None:
         """Valida el formato de la carátula al finalizar la edición."""
-        txt = normalizar_caratula(self.entry_caratula.text())
+        txt = autocompletar_caratula(self.entry_caratula.text())
         self.entry_caratula.setText(txt)
         if txt and not CARATULA_REGEX.match(txt):
             QMessageBox.warning(
