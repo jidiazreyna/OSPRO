@@ -3,18 +3,22 @@ import re
 
 
 def dialog_link(texto: str, clave: str, placeholder: str | None = None) -> str:
-    """Return a clickable span used to trigger dialogs.
+    """Return a clickable link used to trigger dialogs.
 
-    The element is rendered as ``<span class="dlg-link" data-key="...">`` so
-    that a small JavaScript snippet can intercept clicks and notify Streamlit
-    without recargar la página ni abrir una pestaña nueva.
+    The element is rendered as ``<a class="dlg-link" data-key="...">`` so that
+    both the PySide6 application (which relies on ``href`` attributes) and the
+    web frontend can intercept clicks without recargar la página ni abrir una
+    pestaña nueva.
     """
 
     if not texto.strip():
         texto = placeholder or f"[{clave}]"
     safe = html.escape(texto).replace("\n", "<br/>")
     style = "color:blue;text-decoration:none;cursor:pointer;"
-    return f'<span class="dlg-link" data-key="{clave}" style="{style}">{safe}</span>'
+    return (
+        f'<a class="dlg-link" data-key="{clave}" href="{clave}" '
+        f'style="{style}">{safe}</a>'
+    )
 
 
 def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None) -> str:
@@ -28,13 +32,16 @@ def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None)
     )
     style_str = "".join(style)
     safe = html_text.replace("\n", "<br/>")
-    return f'<span class="dlg-link" data-key="{clave}" style="{style_str}">{safe}</span>'
+    return (
+        f'<a class="dlg-link" data-key="{clave}" href="{clave}" '
+        f'style="{style_str}">{safe}</a>'
+    )
 
 
 def strip_dialog_links(html_text: str) -> str:
-    """Return ``html_text`` without ``span.dlg-link`` elements."""
+    """Return ``html_text`` without ``a.dlg-link`` elements."""
 
-    pattern = r"<span[^>]*class=['\"]dlg-link['\"][^>]*>(.*?)</span>"
+    pattern = r"<a[^>]*class=['\"]dlg-link['\"][^>]*>(.*?)</a>"
     return re.sub(pattern, r"\1", html_text, flags=re.DOTALL)
 
 
@@ -42,7 +49,7 @@ def _strip_dialog_styles(html_text: str) -> str:
     """Remove inline styles and ``<u>`` tags from dialog triggers."""
 
     html_text = re.sub(
-        r"(<span[^>]*class=['\"]dlg-link['\"][^>]*?)\s+style=(\"[^\"]*\"|'[^']*')",
+        r"(<a[^>]*class=['\"]dlg-link['\"][^>]*?)\s+style=(\"[^\"]*\"|'[^']*')",
         r"\1",
         html_text,
         flags=re.IGNORECASE,
