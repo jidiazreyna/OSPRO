@@ -22,3 +22,15 @@ def test_extraer_caratula_expte_sac():
     texto = 'Leiva David p. s. a. de “robo en grado de tentativa” (Expte. Sac 13250038)'
     esperado = 'Leiva David p. s. a. de “robo en grado de tentativa” (SAC N° 13250038)'
     assert core.extraer_caratula(texto) == esperado
+
+
+def test_extraer_caratula_sin_parentesis():
+    texto = (
+        '"Agüero, Saúl Maximiliano y otro p.ss.aa robo calificado por escalamiento, etc." '
+        'SAC n.° 13551621, radicados por ante este Juzgado...'
+    )
+    esperado = (
+        'Agüero, Saúl Maximiliano y otro p.ss.aa robo calificado por escalamiento, etc. '
+        '(SAC N° 13551621)'
+    )
+    assert core.extraer_caratula(texto) == esperado

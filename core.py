@@ -109,8 +109,10 @@ def limpiar_pies_de_pagina(texto: str) -> str:
 limpiar_pies = limpiar_pies_de_pagina
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
-_PAT_CARAT_1 = re.compile(          # 1) bloque completo con comillas
-    r'([^“\n]+?“[^”]+?”)\s*\(\s*(?:Expte\.\s*)?(?:SAC|Expte\.?)\s*(?:N°)?\s*([\d.]+)\s*\)',
+_PAT_CARAT_1 = re.compile(          # 1) bloque completo con o sin paréntesis
+    r'([^"\n]*?["“][^"”]+?["”])\s*'
+    r'(?:\(\s*(?:Expte\.\s*)?(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+)\s*\)'
+    r'|(?:Expte\.\s*)?(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+))',
     re.I,
 )
 
@@ -134,7 +136,11 @@ def extraer_caratula(txt: str) -> str:
 
     m = _PAT_CARAT_1.search(plano)
     if m:
-        bloque, nro = m.groups()
+        bloque, n1, n2 = m.groups()
+        nro = n1 or n2
+        bloque = bloque.strip()
+        if bloque.startswith(('"', '“')) and bloque.endswith(('"', '”')):
+            bloque = bloque[1:-1]
         return f'{bloque.strip()} (SAC N° {nro})'
 
     m = _PAT_CARAT_2.search(plano)
