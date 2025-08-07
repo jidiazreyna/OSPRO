@@ -1,53 +1,65 @@
 import html
-def anchor(texto: str, clave: str, placeholder: str | None = None) -> str:
+import re
+
+
+def dialog_link(texto: str, clave: str, placeholder: str | None = None) -> str:
+    """Return a clickable span used to trigger dialogs.
+
+    The element is rendered as ``<span class="dlg-link" data-key="...">`` so
+    that a small JavaScript snippet can intercept clicks and notify Streamlit
+    without recargar la página ni abrir una pestaña nueva.
+    """
+
     if not texto.strip():
         texto = placeholder or f"[{clave}]"
     safe = html.escape(texto).replace("\n", "<br/>")
-    return (
-        f'<a href="#" data-anchor="{clave}" '
-        f'style="color:blue;text-decoration:none;cursor:pointer;">{safe}</a>'
-    )
+    style = "color:blue;text-decoration:none;cursor:pointer;"
+    return f'<span class="dlg-link" data-key="{clave}" style="{style}">{safe}</span>'
 
-def anchor_html(html_text: str, clave: str, placeholder: str = None) -> str:
-    """Igual que anchor pero conserva etiquetas básicas"""
+
+def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None) -> str:
+    """Igual que :func:`dialog_link` pero conserva etiquetas básicas."""
+
     if not html_text.strip():
-        return anchor("", clave, placeholder)
+        return dialog_link("", clave, placeholder)
     style = (
         "color:blue;text-decoration:none;cursor:pointer;",
         "font-family:'Times New Roman';font-size:12pt;",
     )
     style_str = "".join(style)
     safe = html_text.replace("\n", "<br/>")
-    return f'<a href="#" data-anchor="{clave}" style="{style_str}">{safe}</a>'
+    return f'<span class="dlg-link" data-key="{clave}" style="{style_str}">{safe}</span>'
 
 
-def strip_anchors(html_text: str) -> str:
-    """Return ``html_text`` without ``<a>`` tags but keeping their content."""
-    import re
-    return re.sub(r"<a[^>]*>(.*?)</a>", r"\1", html_text, flags=re.DOTALL)
+def strip_dialog_links(html_text: str) -> str:
+    """Return ``html_text`` without ``span.dlg-link`` elements."""
+
+    pattern = r"<span[^>]*class=['\"]dlg-link['\"][^>]*>(.*?)</span>"
+    return re.sub(pattern, r"\1", html_text, flags=re.DOTALL)
 
 
-def _strip_anchor_styles(html: str) -> str:
-    """Remove style attributes and ``<u>`` tags from anchor elements."""
-    import re
-    html = re.sub(
-        r"(<a[^>]+?)\s+style=(\"[^\"]*\"|'[^']*')",
+def _strip_dialog_styles(html_text: str) -> str:
+    """Remove inline styles and ``<u>`` tags from dialog triggers."""
+
+    html_text = re.sub(
+        r"(<span[^>]*class=['\"]dlg-link['\"][^>]*?)\s+style=(\"[^\"]*\"|'[^']*')",
         r"\1",
-        html,
+        html_text,
         flags=re.IGNORECASE,
     )
-    html = re.sub(r'</?u[^>]*>', '', html, flags=re.IGNORECASE)
-    return html
+    html_text = re.sub(r"</?u[^>]*>", "", html_text, flags=re.IGNORECASE)
+    return html_text
 
 
-def strip_color(html: str) -> str:
+def strip_color(html_text: str) -> str:
     """Remove CSS ``color`` declarations so text defaults to black."""
-    import re
-    return re.sub(r"(?<!-)color\s*:[^;\"']*;?", '', html, flags=re.IGNORECASE)
+
+    return re.sub(r"(?<!-)color\s*:[^;\"']*;?", "", html_text, flags=re.IGNORECASE)
 
 
 def create_clipboard_html(html_data: str) -> str:
     """Return ``html_data`` packaged for the Windows clipboard."""
+
     start_marker = "<!--StartFragment-->"
     end_marker = "<!--EndFragment-->"
 
@@ -83,3 +95,11 @@ EndSelection:{3:010d}
         start_html, end_html, fragment_start, fragment_end
     )
     return final_header + html_data
+
+
+# --- Aliases for backward compatibility ---------------------------------
+anchor = dialog_link
+anchor_html = dialog_link_html
+strip_anchors = strip_dialog_links
+_strip_anchor_styles = _strip_dialog_styles
+

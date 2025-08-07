@@ -3,7 +3,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from core import autocompletar   # ← función principal
 from datetime import datetime
-from helpers import anchor, strip_anchors
+from helpers import dialog_link, strip_dialog_links
 import re
 
 
@@ -42,7 +42,7 @@ def _html_compat(content: str, *, height: int = 0, width: int = 0):
             content,
             height=height,
             width=width,
-            key="anchor_handler",
+            key="dlg_handler",
             sandbox="allow-scripts allow-same-origin",
         )
     except TypeError:
@@ -66,24 +66,24 @@ def _html_compat(content: str, *, height: int = 0, width: int = 0):
 # -------------------------------------------------------------------
 js_code = """
 <script>
-/* Captura clicks en elementos con data-anchor y envía la clave a Streamlit */
+/* Captura clicks en elementos con clase dlg-link y envía la clave a Streamlit */
 (function () {
   const parent = window.parent;
   const doc = parent.document;
 
-  if (parent.__ospro_anchor_handler__)
-      doc.removeEventListener('click', parent.__ospro_anchor_handler__, true);
+  if (parent.__ospro_dlg_handler__)
+      doc.removeEventListener('click', parent.__ospro_dlg_handler__, true);
 
   let seq = 0;
   function handler(e) {
-    const link = e.target.closest('[data-anchor]');
-    if (!link) return;
+    const el = e.target.closest('.dlg-link');
+    if (!el) return;
     e.preventDefault();
-    Streamlit.setComponentValue({anchor: link.dataset.anchor, seq: seq++});
+    Streamlit.setComponentValue({key: el.dataset.key, seq: seq++});
   }
 
   doc.addEventListener('click', handler, true);
-  parent.__ospro_anchor_handler__ = handler;
+  parent.__ospro_dlg_handler__ = handler;
 
   Streamlit.setComponentReady();
   Streamlit.setFrameHeight(0);
@@ -92,7 +92,7 @@ js_code = """
 """
 
 # ⬇️  aquí ya no fallará, sea cual sea tu versión de Streamlit
-anchor_clicked = _html_compat(js_code, height=0, width=0)
+dialog_event = _html_compat(js_code, height=0, width=0)
 
 # ───────── helpers comunes ──────────────────────────────────────────
 MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
@@ -128,15 +128,15 @@ TRIBUNALES = [
 ]
 
 
-"""Definiciones de cuadros de diálogo para cada anchor.
+"""Definiciones de cuadros de diálogo para cada elemento interactivo.
 
-Los nombres de anchor siguen la convención utilizada en ``ospro.py``:
+Los nombres de clave siguen la convención utilizada en ``ospro.py``:
 
 ``edit_`` → abre un cuadro con :func:`st.text_input` o :func:`st.text_area`.
 ``combo_`` → abre un cuadro con :func:`st.selectbox`.
 """
 
-ANCHOR_FIELDS = {
+DIALOG_FIELDS = {
     "edit_caratula": ("Carátula", "text", "carat"),
     "combo_tribunal": ("Tribunal", "select", "trib"),
     "edit_sent_num": ("Sentencia N°", "text", "snum"),
@@ -163,7 +163,7 @@ def _open_dialog(title: str):
 
 # ───────── función actualizada ─────────────────────────────────────
 def _mostrar_dialogo(clave: str) -> None:
-    """Abre el diálogo correspondiente al anchor clickeado.
+    """Abre el diálogo correspondiente al elemento clickeado.
 
     Soporta:
       • Streamlit ≥ 1.37 ─ `st.dialog` actúa como context-manager.
@@ -177,8 +177,8 @@ def _mostrar_dialogo(clave: str) -> None:
         idx = int(re.search(r"edit_imp(\d+)_datos", clave).group(1))
         titulo, tipo, estado = ("Datos personales", "textarea", f"imp{idx}_datos")
     else:
-        campo = ANCHOR_FIELDS.get(clave)
-        if not campo:         # anchor desconocido → nada que hacer
+        campo = DIALOG_FIELDS.get(clave)
+        if not campo:         # clave desconocida → nada que hacer
             return
         titulo, tipo, estado = campo
 
@@ -232,8 +232,8 @@ def fecha_alineada(loc: str, fecha=None, punto=False):
 if "n_imputados" not in st.session_state: st.session_state.n_imputados = 1
 if "datos_autocompletados" not in st.session_state: st.session_state.datos_autocompletados = {}
 
-if isinstance(anchor_clicked, dict):
-    clave = anchor_clicked.get("anchor")
+if isinstance(dialog_event, dict):
+    clave = dialog_event.get("key")
     if isinstance(clave, str) and clave:
         _mostrar_dialogo(clave)
 
@@ -298,18 +298,18 @@ tabs = st.tabs([
 # ----------  ejemplo: plantilla Migraciones  ----------
 with tabs[0]:
     # recomponemos los textos cada vez que alguien cambia algo
-    loc_a = anchor(loc, 'edit_localidad')
+    loc_a = dialog_link(loc, 'edit_localidad')
     fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
 
-    car_a = f"<b>{anchor(caratula, 'edit_caratula')}</b>"
-    trib_a = f"<b>{anchor(tribunal, 'combo_tribunal')}</b>"
-    imp_a = anchor(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
-    sent_n_a = anchor(sent_num, 'edit_sent_num')
-    sent_f_a = anchor(sent_fecha, 'edit_sent_fecha')
-    res_a = anchor(resuelvo, 'edit_resuelvo')
-    firm_a = anchor(firmantes, 'edit_firmantes')
-    sent_firmeza_a = anchor(sent_firmeza, 'edit_sent_firmeza')
+    car_a = f"<b>{dialog_link(caratula, 'edit_caratula')}</b>"
+    trib_a = f"<b>{dialog_link(tribunal, 'combo_tribunal')}</b>"
+    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
+    sent_n_a = dialog_link(sent_num, 'edit_sent_num')
+    sent_f_a = dialog_link(sent_fecha, 'edit_sent_fecha')
+    res_a = dialog_link(resuelvo, 'edit_resuelvo')
+    firm_a = dialog_link(firmantes, 'edit_firmantes')
+    sent_firmeza_a = dialog_link(sent_firmeza, 'edit_sent_firmeza')
     cuerpo = (
         "<b>Sr/a Director/a</b><br>"
         "<b>de la Dirección Nacional de Migraciones</b><br>"
@@ -328,23 +328,23 @@ with tabs[0]:
     st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
 
     if st.button("Copiar", key="copy_migr"):
-        texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
+        texto = strip_dialog_links(cuerpo + saludo).replace("<br>", "\n")
         copy_to_clipboard(texto)
 
 # ---------- plantilla Consulado ----------
 with tabs[1]:
-    loc_a = anchor(loc, 'edit_localidad')
+    loc_a = dialog_link(loc, 'edit_localidad')
     fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
-    car_a = f"<b>{anchor(caratula, 'edit_caratula')}</b>"
-    trib_a = f"<b>{anchor(tribunal, 'combo_tribunal')}</b>"
-    pais_a = anchor(consulado, 'edit_consulado')
-    imp_a = anchor(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
-    sent_n_a = anchor(sent_num, 'edit_sent_num')
-    sent_f_a = anchor(sent_fecha, 'edit_sent_fecha')
-    res_a = anchor(resuelvo, 'edit_resuelvo')
-    firm_a = anchor(firmantes, 'edit_firmantes')
-    sent_firmeza_a = anchor(sent_firmeza, 'edit_sent_firmeza')
+    car_a = f"<b>{dialog_link(caratula, 'edit_caratula')}</b>"
+    trib_a = f"<b>{dialog_link(tribunal, 'combo_tribunal')}</b>"
+    pais_a = dialog_link(consulado, 'edit_consulado')
+    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
+    sent_n_a = dialog_link(sent_num, 'edit_sent_num')
+    sent_f_a = dialog_link(sent_fecha, 'edit_sent_fecha')
+    res_a = dialog_link(resuelvo, 'edit_resuelvo')
+    firm_a = dialog_link(firmantes, 'edit_firmantes')
+    sent_firmeza_a = dialog_link(sent_firmeza, 'edit_sent_firmeza')
     cuerpo = (
         "<b>Al Sr. Titular del Consulado </b><br>"
         f"<b>de {pais_a} </b><br>"
@@ -361,22 +361,22 @@ with tabs[1]:
     st.markdown(cuerpo, unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
     if st.button("Copiar", key="copy_cons"):
-        texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
+        texto = strip_dialog_links(cuerpo + saludo).replace("<br>", "\n")
         copy_to_clipboard(texto)
 
 # ---------- plantilla Juez Electoral ----------
 with tabs[2]:
-    loc_a = anchor(loc, 'edit_localidad')
+    loc_a = dialog_link(loc, 'edit_localidad')
     fecha_txt = fecha_alineada(loc_a, punto=True)
     st.markdown(f"<p style='text-align:right'>{fecha_txt}</p>", unsafe_allow_html=True)
-    car_a = f"<b>{anchor(caratula, 'edit_caratula')}</b>"
-    trib_a = f"<b>{anchor(tribunal, 'combo_tribunal')}</b>"
-    imp_a = anchor(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
-    sent_n_a = anchor(sent_num, 'edit_sent_num')
-    sent_f_a = anchor(sent_fecha, 'edit_sent_fecha')
-    res_a = anchor(resuelvo, 'edit_resuelvo')
-    firm_a = anchor(firmantes, 'edit_firmantes')
-    sent_firmeza_a = anchor(sent_firmeza, 'edit_sent_firmeza')
+    car_a = f"<b>{dialog_link(caratula, 'edit_caratula')}</b>"
+    trib_a = f"<b>{dialog_link(tribunal, 'combo_tribunal')}</b>"
+    imp_a = dialog_link(st.session_state.get('imp0_datos',''), 'edit_imp0_datos')
+    sent_n_a = dialog_link(sent_num, 'edit_sent_num')
+    sent_f_a = dialog_link(sent_fecha, 'edit_sent_fecha')
+    res_a = dialog_link(resuelvo, 'edit_resuelvo')
+    firm_a = dialog_link(firmantes, 'edit_firmantes')
+    sent_firmeza_a = dialog_link(sent_firmeza, 'edit_sent_firmeza')
     cuerpo = (
         "<b>SR. JUEZ ELECTORAL:</b><br>"
         "<b>S………………./………………D</b><br>"
@@ -394,10 +394,10 @@ with tabs[2]:
     st.markdown(cuerpo, unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
     if st.button("Copiar", key="copy_electoral"):
-        texto = strip_anchors(cuerpo + saludo).replace("<br>", "\n")
+        texto = strip_dialog_links(cuerpo + saludo).replace("<br>", "\n")
         copy_to_clipboard(texto)
 
 
-# -- parche global de anchors JS ------------------------------------
-# (reemplazado por _js_injected al comienzo del archivo)
+# -- parche global del antiguo manejo JS ------------------------------
+# (reemplazado por la inyección al comienzo del archivo)
 
