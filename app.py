@@ -1,4 +1,4 @@
-# app.py  – versión revisada 2025-08-07
+# app.py
 import re
 import uuid
 import html
@@ -7,16 +7,13 @@ from datetime import datetime
 
 import streamlit as st
 import streamlit.components.v1 as components
-import streamlit.components.v1 as components
-import uuid, json, html as _html
 from core import autocompletar, autocompletar_caratula  # lógica de autocompletado
-from helpers import dialog_link, strip_dialog_links
-from helpers import create_clipboard_html
+from helpers import dialog_link, strip_dialog_links, create_clipboard_html
 
 # ────────── util: copiar al portapapeles ────────────────────────────
 def copy_to_clipboard(texto: str) -> None:
     """
-    Copia `texto al portapapeles.  
+    Copia texto al portapapeles.  
     1) Usa pyperclip si está disponible.  
     2) Si falla, inyecta JS que realiza el copiado en el mismo gesto
        de usuario.  Soporta todas las versiones de Streamlit.
@@ -70,6 +67,17 @@ def copy_to_clipboard(texto: str) -> None:
 # ────────── config general de la página ─────────────────────────────
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 
+# Inyectar CSS global para los spans editables
+st.markdown("""
+<style>
+span.editable {
+    color: #0068c9 !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 LINE_STYLE = "margin:0;line-height:150%;mso-line-height-alt:150%;"
 # ────────── helper de compatibilidad para components.html ───────────
 def _html_compat(content: str, *, height: int = 0, width: int = 0):
@@ -116,9 +124,8 @@ _js_edit_handler = """
 
   function handler(e) {
     const el = e.target.closest('.editable');
-    if (el && e.type === 'blur') {        // ← solo al salir del span
-      Streamlit.setComponentValue({ key: el.dataset.key, value: el.innerText });
-    }
+    if (!el) return;
+    Streamlit.setComponentValue({ key: el.dataset.key, value: el.innerText });
   }
 
   doc.addEventListener('input', handler, true);
@@ -151,12 +158,12 @@ if "n_imputados" not in st.session_state:
 if "datos_autocompletados" not in st.session_state:
     st.session_state.datos_autocompletados = {}
 
-# app.py (sincronización)
+# sincronicemos spans editables → barra lateral
 if isinstance(edit_event, dict):
-    k, v = edit_event["key"], edit_event["value"]
-    if k in st.session_state and st.session_state[k] != v:
-        st.session_state[k] = v        # Streamlit ya vuelve a ejecutar el script
-
+    k, v = edit_event.get("key"), edit_event.get("value")
+    if isinstance(k, str) and isinstance(v, str):
+        st.session_state[k] = v
+        # No hacer rerun aquí, los cambios se reflejarán automáticamente
 
 
 # ────────── procesamiento diferido del autocompletar ────────────────
@@ -174,7 +181,7 @@ def html_copy_button(label: str, html_fragment: str, *, key: str | None = None):
     raw_html  = html_fragment                         # ⇦ sin cabeceras
     packaged  = create_clipboard_html(html_fragment)  # ⇦ por si hiciera falta
     js = f"""
-      <button id="{btn_id}" style="margin:4px;">{_html.escape(label)}</button>
+      <button id="{btn_id}" style="margin:4px;">{html.escape(label)}</button>
       <script>
         const btn = document.getElementById("{btn_id}");
         if (btn) {{
@@ -212,17 +219,10 @@ def html_copy_button(label: str, html_fragment: str, *, key: str | None = None):
 with st.sidebar:
     st.header("Datos generales")
     loc       = st.text_input("Localidad", value="Córdoba", key="loc")
-
-    # ❶ Definimos el valor inicial SOLO la primera vez
-    if "carat" not in st.session_state:
-        st.session_state.carat = autocompletar_caratula("")
-
-    # ❷ Ahora sí instanciamos el widget usando la clave existente
     caratula_raw = st.text_input("Carátula", key="carat")
-    caratula_sugerida = autocompletar_caratula(caratula_raw)
     caratula = autocompletar_caratula(caratula_raw)
-    # ► Sólo si el usuario NO tocó nada aún:
-
+    if caratula != caratula_raw:
+        st.session_state.carat = caratula
     tribunal  = st.text_input("Tribunal", key="trib")
 
     col1, col2 = st.columns(2)
@@ -233,7 +233,7 @@ with st.sidebar:
 
     sent_firmeza = st.text_input("Firmeza sentencia", key="sfirmeza")
     resuelvo     = st.text_area("Resuelvo", height=80, key="sres")
-    firmantes    = st.text_input("Firmantes", key="sfirmaza")
+    firmantes    = st.text_input("Firmantes", key="sfirmantes")  # Corregido key
     consulado    = st.text_input("Consulado", key="consulado")
 
     # Nº de imputados dinámico
@@ -292,8 +292,8 @@ with tabs[0]:
     sent_n = dialog_link(sent_num, 'snum')
     sent_f = dialog_link(sent_fecha, 'sfecha')
     res_a = dialog_link(resuelvo, 'sres')
-    firm_a = dialog_link(firmantes, 'sfirmaza')
-    firmeza = dialog_link(sent_firmeza, 'sfirmaza')
+    firm_a = dialog_link(firmantes, 'sfirmantes')  # Key corregido
+    firmeza = dialog_link(sent_firmeza, 'sfirmeza')  # Key corregido
 
     # cuerpo (justificado)
     cuerpo_html = "".join([
@@ -330,8 +330,8 @@ with tabs[1]:
     sent_n = dialog_link(sent_num,'snum')
     sent_f = dialog_link(sent_fecha,'sfecha')
     res_a  = dialog_link(resuelvo,'sres')
-    firm_a = dialog_link(firmantes,'sfirmaza')
-    firmeza= dialog_link(sent_firmeza,'sfirmaza')
+    firm_a = dialog_link(firmantes,'sfirmantes')  # Key corregido
+    firmeza= dialog_link(sent_firmeza,'sfirmeza')  # Key corregido
 
     cuerpo_html = "".join([
         f"<p align='justify' style='{LINE_STYLE}'><b>Al Sr. Titular del Consulado</b></p>",
@@ -364,8 +364,8 @@ with tabs[2]:
     sent_n  = dialog_link(sent_num,'snum')
     sent_f  = dialog_link(sent_fecha,'sfecha')
     res_a   = dialog_link(resuelvo,'sres')
-    firm_a  = dialog_link(firmantes,'sfirmaza')
-    firmeza = dialog_link(sent_firmeza,'sfirmaza')
+    firm_a  = dialog_link(firmantes,'sfirmantes')  # Key corregido
+    firmeza = dialog_link(sent_firmeza,'sfirmeza')  # Key corregido
 
     cuerpo_html = "".join([
         f"<p align='justify' style='{LINE_STYLE}'><b>SR. JUEZ ELECTORAL:</b></p>",

@@ -1,21 +1,28 @@
+# helpers.py
 import html
 import re
 
+def dialog_link(texto: str, key: str, *, bold: bool = False) -> str:
+    """
+    Envuelve texto en un <span> editable que refleja automáticamente
+    su contenido en st.session_state[key].
 
-def dialog_link(texto: str, key: str, *, bold: bool = False,
-                placeholder: str = "……"):
-    safe = html.escape(texto) if texto else placeholder
+    • key        → nombre exacto del widget/clave en session_state  
+    • bold=True  → mantiene el <b> que usás en algunos llamados
+    """
+    safe = html.escape(texto or "")
     span = (
-        f"<span contenteditable='true' spellcheck='false' "
-        f"      class='editable' data-key='{key}' "
-        f"      style='color:#0068c9;text-decoration:underline;cursor:pointer;'>"
+        f"<span contenteditable='true' "
+        f"       spellcheck='false' "
+        f"       class='editable' "
+        f"       style='color:#0068c9;text-decoration:underline;cursor:pointer;' "
+        f"       data-key='{key}'>"      # ← ***importantísimo***
         f"{safe}</span>"
     )
     return f"<b>{span}</b>" if bold else span
 
-
 def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None) -> str:
-    """Igual que :func:`dialog_link` pero conserva etiquetas básicas."""
+    """Igual que :func:dialog_link pero conserva etiquetas básicas."""
 
     if not html_text.strip():
         return dialog_link("", clave, placeholder)
@@ -30,16 +37,14 @@ def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None)
         f'contenteditable="true" style="{style_str}">{safe}</span>'
     )
 
-
 def strip_dialog_links(html_text: str) -> str:
-    """Return ``html_text`` without ``span.editable`` elements."""
+    """Return `html_text without span.editable elements."""
 
     pattern = r"<span[^>]*class=['\"]editable['\"][^>]*>(.*?)</span>"
     return re.sub(pattern, r"\1", html_text, flags=re.DOTALL)
 
-
 def _strip_dialog_styles(html_text: str) -> str:
-    """Remove inline styles and ``<u>`` tags from editable spans."""
+    """Remove inline styles and `<u> tags from editable spans."""
 
     html_text = re.sub(
         r"(<span[^>]*class=['\"]editable['\"][^>]*?)\s+style=(\"[^\"]*\"|'[^']*')",
@@ -50,15 +55,13 @@ def _strip_dialog_styles(html_text: str) -> str:
     html_text = re.sub(r"</?u[^>]*>", "", html_text, flags=re.IGNORECASE)
     return html_text
 
-
 def strip_color(html_text: str) -> str:
-    """Remove CSS ``color`` declarations so text defaults to black."""
+    """Remove CSS `color declarations so text defaults to black."""
 
     return re.sub(r"(?<!-)color\s*:[^;\"']*;?", "", html_text, flags=re.IGNORECASE)
 
-
 def create_clipboard_html(html_data: str) -> str:
-    """Return ``html_data`` packaged for the Windows clipboard."""
+    """Return `html_data packaged for the Windows clipboard."""
 
     start_marker = "<!--StartFragment-->"
     end_marker = "<!--EndFragment-->"
@@ -96,10 +99,8 @@ EndSelection:{3:010d}
     )
     return final_header + html_data
 
-
 # --- Aliases for backward compatibility ---------------------------------
 anchor = dialog_link
 anchor_html = dialog_link_html
 strip_anchors = strip_dialog_links
 _strip_anchor_styles = _strip_dialog_styles
-
