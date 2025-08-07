@@ -3,21 +3,22 @@ import re
 
 
 def dialog_link(texto: str, clave: str, placeholder: str | None = None) -> str:
-    """Return a clickable link used to trigger dialogs.
+    """Return an inline editable element linked to ``clave``.
 
-    The element is rendered as ``<a class="dlg-link" data-key="...">`` so that
-    both the PySide6 application (which relies on ``href`` attributes) and the
-    web frontend can intercept clicks without recargar la página ni abrir una
-    pestaña nueva.
+    Instead of generating an ``<a>`` tag that abre un cuadro de diálogo, the
+    new implementation produces a ``<span>`` con ``contenteditable``.  Editing
+    the highlighted text sends its contenido to la aplicación mediante
+    JavaScript, permitiendo actualizar el campo correspondiente en la barra
+    lateral sin abrir ventanas modales.
     """
 
     if not texto.strip():
         texto = placeholder or f"[{clave}]"
     safe = html.escape(texto).replace("\n", "<br/>")
-    style = "color:blue;text-decoration:none;cursor:pointer;"
+    style = "color:blue;"
     return (
-        f'<a class="dlg-link" data-key="{clave}" href="{clave}" '
-        f'style="{style}">{safe}</a>'
+        f'<span class="editable" data-key="{clave}" contenteditable="true" '
+        f'style="{style}">{safe}</span>'
     )
 
 
@@ -27,29 +28,29 @@ def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None)
     if not html_text.strip():
         return dialog_link("", clave, placeholder)
     style = (
-        "color:blue;text-decoration:none;cursor:pointer;",
+        "color:blue;",
         "font-family:'Times New Roman';font-size:12pt;",
     )
     style_str = "".join(style)
     safe = html_text.replace("\n", "<br/>")
     return (
-        f'<a class="dlg-link" data-key="{clave}" href="{clave}" '
-        f'style="{style_str}">{safe}</a>'
+        f'<span class="editable" data-key="{clave}" contenteditable="true" '
+        f'style="{style_str}">{safe}</span>'
     )
 
 
 def strip_dialog_links(html_text: str) -> str:
-    """Return ``html_text`` without ``a.dlg-link`` elements."""
+    """Return ``html_text`` without ``span.editable`` elements."""
 
-    pattern = r"<a[^>]*class=['\"]dlg-link['\"][^>]*>(.*?)</a>"
+    pattern = r"<span[^>]*class=['\"]editable['\"][^>]*>(.*?)</span>"
     return re.sub(pattern, r"\1", html_text, flags=re.DOTALL)
 
 
 def _strip_dialog_styles(html_text: str) -> str:
-    """Remove inline styles and ``<u>`` tags from dialog triggers."""
+    """Remove inline styles and ``<u>`` tags from editable spans."""
 
     html_text = re.sub(
-        r"(<a[^>]*class=['\"]dlg-link['\"][^>]*?)\s+style=(\"[^\"]*\"|'[^']*')",
+        r"(<span[^>]*class=['\"]editable['\"][^>]*?)\s+style=(\"[^\"]*\"|'[^']*')",
         r"\1",
         html_text,
         flags=re.IGNORECASE,
