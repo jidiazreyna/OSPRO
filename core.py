@@ -27,6 +27,19 @@ import openai
 import streamlit as st            # ← para volcar datos en la UI
 from pdfminer.high_level import extract_text
 
+try:
+    from PyQt6.QtCore import QRegularExpression
+except Exception:  # pragma: no cover - fallback for PyQt5 or no Qt
+    try:
+        from PyQt5.QtCore import QRegularExpression  # type: ignore
+    except Exception:  # pragma: no cover - simple stub
+        class QRegularExpression:  # minimal interface
+            def __init__(self, pattern: str):
+                self.pattern = pattern
+
+            def match(self, text: str):
+                return re.match(self.pattern, text)
+
 # ────────────────────────── Config ──────────────────────────
 CONFIG_FILE = "config.json"
 
@@ -91,6 +104,9 @@ _FOOTER_REGEX = re.compile(
 def limpiar_pies_de_pagina(texto: str) -> str:
     """Elimina de `texto los pies de página estándar de las sentencias."""
     return re.sub(_FOOTER_REGEX, " ", texto)
+
+# alias histórico
+limpiar_pies = limpiar_pies_de_pagina
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
 _PAT_CARAT_1 = re.compile(          # 1) entre comillas
@@ -314,6 +330,78 @@ def extraer_firmantes(texto: str) -> list[dict]:
             "doc"   : (m.group("doc") or "").strip(),
         })
     return firmas
+
+
+# ── helpers varios ------------------------------------------------------
+def _as_str(value):
+    """Convierte listas, números o ``None`` en ``str`` plano."""
+    if isinstance(value, list):
+        if value and all(isinstance(x, dict) for x in value):
+            partes = []
+            for d in value:
+                nombre = d.get("nombre", "").strip()
+                cargo = d.get("cargo", "").strip()
+                fecha = d.get("fecha", "").strip()
+                partes.append(", ".join(p for p in (nombre, cargo, fecha) if p))
+            return "; ".join(partes)
+        return ", ".join(map(str, value))
+    return str(value) if value is not None else ""
+
+
+def _format_datos_personales(raw):
+    """Convierte un dict o texto con llaves en una línea legible."""
+    if isinstance(raw, dict):
+        dp = raw
+    else:
+        try:
+            dp = ast.literal_eval(str(raw))
+            if not isinstance(dp, dict):
+                raise ValueError
+        except Exception:
+            return str(raw)
+
+    partes = []
+    if dp.get("nombre"):
+        partes.append(dp["nombre"])
+    if dp.get("dni"):
+        partes.append(f"D.N.I. {dp['dni']}")
+    if dp.get("nacionalidad"):
+        partes.append(dp["nacionalidad"])
+    if dp.get("edad"):
+        partes.append(f"{dp['edad']} años")
+    if dp.get("estado_civil"):
+        partes.append(dp["estado_civil"])
+    if dp.get("instruccion"):
+        partes.append(dp["instruccion"])
+    if dp.get("ocupacion"):
+        partes.append(dp["ocupacion"])
+    if dp.get("fecha_nacimiento"):
+        partes.append(f"Nacido el {dp['fecha_nacimiento']}")
+    if dp.get("lugar_nacimiento"):
+        partes.append(f"en {dp['lugar_nacimiento']}")
+    if dp.get("domicilio"):
+        partes.append(f"Domicilio: {dp['domicilio']}")
+
+    if dp.get("padres"):
+        padres_val = dp["padres"]
+        if isinstance(padres_val, str):
+            padres = padres_val
+        elif isinstance(padres_val, list):
+            nombres = []
+            for item in padres_val:
+                if isinstance(item, dict):
+                    nombres.append(item.get("nombre", str(item)))
+                else:
+                    nombres.append(str(item))
+            padres = ", ".join(nombres)
+        else:
+            padres = str(padres_val)
+        partes.append(f"Hijo de {padres}")
+
+    if dp.get("prontuario") or dp.get("prio") or dp.get("pront"):
+        pront = dp.get("prontuario") or dp.get("prio") or dp.get("pront")
+        partes.append(f"Pront. {pront}")
+    return ", ".join(partes)
 
 # ────────────────── Motor principal ─────────────────────────
 def _bytes_a_tmp(data: bytes, suf: str) -> Path:
