@@ -116,8 +116,9 @@ _js_edit_handler = """
 
   function handler(e) {
     const el = e.target.closest('.editable');
-    if (!el) return;
-    Streamlit.setComponentValue({ key: el.dataset.key, value: el.innerText });
+    if (el && e.type === 'blur') {        // ← solo al salir del span
+      Streamlit.setComponentValue({ key: el.dataset.key, value: el.innerText });
+    }
   }
 
   doc.addEventListener('input', handler, true);
@@ -150,12 +151,12 @@ if "n_imputados" not in st.session_state:
 if "datos_autocompletados" not in st.session_state:
     st.session_state.datos_autocompletados = {}
 
-# sincronicemos spans editables → barra lateral
+# app.py (sincronización)
 if isinstance(edit_event, dict):
-    k, v = edit_event.get("key"), edit_event.get("value")
-    if isinstance(k, str) and isinstance(v, str):
-        st.session_state[k] = v
-        st.rerun()
+    k, v = edit_event["key"], edit_event["value"]
+    if k in st.session_state and st.session_state[k] != v:
+        st.session_state[k] = v        # Streamlit ya vuelve a ejecutar el script
+
 
 
 # ────────── procesamiento diferido del autocompletar ────────────────
@@ -211,10 +212,17 @@ def html_copy_button(label: str, html_fragment: str, *, key: str | None = None):
 with st.sidebar:
     st.header("Datos generales")
     loc       = st.text_input("Localidad", value="Córdoba", key="loc")
+
+    # ❶ Definimos el valor inicial SOLO la primera vez
+    if "carat" not in st.session_state:
+        st.session_state.carat = autocompletar_caratula("")
+
+    # ❷ Ahora sí instanciamos el widget usando la clave existente
     caratula_raw = st.text_input("Carátula", key="carat")
+    caratula_sugerida = autocompletar_caratula(caratula_raw)
     caratula = autocompletar_caratula(caratula_raw)
-    if caratula != caratula_raw:
-        st.session_state.carat = caratula
+    # ► Sólo si el usuario NO tocó nada aún:
+
     tribunal  = st.text_input("Tribunal", key="trib")
 
     col1, col2 = st.columns(2)

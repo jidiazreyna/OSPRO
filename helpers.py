@@ -2,21 +2,13 @@ import html
 import re
 
 
-def dialog_link(texto: str, key: str, *, bold: bool = False) -> str:
-    """
-    Envuelve `texto` en un <span> editable que refleja automáticamente
-    su contenido en st.session_state[key].
-
-    • key        → nombre exacto del widget/clave en session_state  
-    • bold=True  → mantiene el <b> que usás en algunos llamados
-    """
-    safe = html.escape(texto or "")
+def dialog_link(texto: str, key: str, *, bold: bool = False,
+                placeholder: str = "……"):
+    safe = html.escape(texto) if texto else placeholder
     span = (
-        f"<span contenteditable='true' "
-        f"       spellcheck='false' "
-        f"       class='editable' "
-        f"       style='color:#0068c9;text-decoration:underline;cursor:pointer;' "
-        f"       data-key='{key}'>"      # ← ***importantísimo***
+        f"<span contenteditable='true' spellcheck='false' "
+        f"      class='editable' data-key='{key}' "
+        f"      style='color:#0068c9;text-decoration:underline;cursor:pointer;'>"
         f"{safe}</span>"
     )
     return f"<b>{span}</b>" if bold else span
