@@ -421,6 +421,14 @@ def extraer_caratula(txt: str) -> str:
         bloque, n1, n2 = m.groups()
         nro = n1 or n2
         bloque = bloque.strip()
+        mq = re.search(r'["“][^"”]+["”]', bloque)
+        if mq:
+            quoted = mq.group(0)
+            prefix = bloque[:mq.start()].strip()
+            if prefix and len(prefix) <= 80:
+                bloque = f'{prefix} {quoted}'
+            else:
+                bloque = quoted
         if bloque.startswith(('"', '“')) and bloque.endswith(('"', '”')):
             bloque = bloque[1:-1]
         return f'{bloque.strip()} (SAC N° {nro})'
