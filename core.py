@@ -457,7 +457,14 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     # 3) Saneo rápido
     g = datos.setdefault("generales", {})
     g["resuelvo"] = extraer_resuelvo(texto) or g.get("resuelvo", "")
-    g.setdefault("caratula", extraer_caratula(texto))
+
+    # El modelo a veces devuelve todo el encabezado en ``caratula``.  Siempre
+    # intentamos extraer la denominación formal "X" (SAC N° …) a partir del
+    # campo devuelto o, en su defecto, del texto completo.
+    car = extraer_caratula(g.get("caratula", "")) or extraer_caratula(texto)
+    if car:
+        g["caratula"] = car
+
     g.setdefault("tribunal", extraer_tribunal(texto))
     g.setdefault("firmantes", extraer_firmantes(texto))
 
