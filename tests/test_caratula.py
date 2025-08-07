@@ -81,7 +81,7 @@ def test_extraer_caratula_sin_parentesis():
         'SAC n.° 13551621, radicados por ante este Juzgado...'
     )
     esperado = (
-        'Agüero, Saúl Maximiliano y otro p.ss.aa robo calificado por escalamiento, etc. '
+        '“Agüero, Saúl Maximiliano y otro p.ss.aa robo calificado por escalamiento, etc.” '
         '(SAC N° 13551621)'
     )
     assert core.extraer_caratula(texto) == esperado
@@ -97,7 +97,7 @@ def test_extraer_caratula_con_texto_previo():
         'Ariel y otra p. ss. aa. amenazas calificadas, etc." (SAC N° 13393379)'
     )
     esperado = (
-        'Díaz, Esteban Ariel y otra p. ss. aa. amenazas calificadas, etc. '
+        '“Díaz, Esteban Ariel y otra p. ss. aa. amenazas calificadas, etc.” '
         '(SAC N° 13393379)'
     )
     assert core.extraer_caratula(texto) == esperado
@@ -118,7 +118,7 @@ def test_autocompletar_caratula_extrae_del_texto():
         'Ariel y otra p. ss. aa. amenazas calificadas, etc." (SAC N° 13393379)'
     )
     esperado = (
-        'Díaz, Esteban Ariel y otra p. ss. aa. amenazas calificadas, etc. '
+        '“Díaz, Esteban Ariel y otra p. ss. aa. amenazas calificadas, etc.” '
         '(SAC N° 13393379)'
     )
     assert core.autocompletar_caratula(texto) == esperado
