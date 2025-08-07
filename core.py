@@ -109,8 +109,10 @@ def limpiar_pies_de_pagina(texto: str) -> str:
 limpiar_pies = limpiar_pies_de_pagina
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
-_PAT_CARAT_1 = re.compile(          # 1) entre comillas
-    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)\s*\)', re.I)
+_PAT_CARAT_1 = re.compile(          # 1) bloque completo con comillas
+    r'([^“\n]+?“[^”]+?”)\s*\(\s*(?:Expte\.\s*)?(?:SAC|Expte\.?)\s*(?:N°)?\s*([\d.]+)\s*\)',
+    re.I,
+)
 
 _PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
@@ -132,8 +134,8 @@ def extraer_caratula(txt: str) -> str:
 
     m = _PAT_CARAT_1.search(plano)
     if m:
-        titulo, nro = m.groups()
-        return f'“{titulo.strip()}” (SAC N° {nro})'
+        bloque, nro = m.groups()
+        return f'{bloque.strip()} (SAC N° {nro})'
 
     m = _PAT_CARAT_2.search(plano)
     if m:
@@ -347,6 +349,13 @@ def _as_str(value):
         return ", ".join(map(str, value))
     return str(value) if value is not None else ""
 
+def _flatten_resuelvo(text: str) -> str:
+    """Reemplaza saltos de línea por espacios simples."""
+    # Unifico todos los saltos de línea en espacios y normalizo espacios dobles
+    text = re.sub(r"\s*\n\s*", " ", text)
+    return re.sub(r"\s{2,}", " ", text).strip()
+
+
 
 def _format_datos_personales(raw):
     """Convierte un dict o texto con llaves en una línea legible."""
@@ -457,7 +466,11 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     # 3) Saneo rápido
     g = datos.setdefault("generales", {})
     g["resuelvo"] = extraer_resuelvo(texto) or g.get("resuelvo", "")
-    g.setdefault("caratula", extraer_caratula(texto))
+    carat = extraer_caratula(texto)
+    if carat:
+        g["caratula"] = carat
+    else:
+        g.setdefault("caratula", "")
     g.setdefault("tribunal", extraer_tribunal(texto))
     g.setdefault("firmantes", extraer_firmantes(texto))
 
@@ -483,11 +496,11 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
 
     # ----- GENERALES -----
     g = datos.get("generales", {})
-    st.session_state.carat    = _as_str(g.get("caratula"))
+    st.session_state.carat    = normalizar_caratula(_as_str(g.get("caratula")))
     st.session_state.trib     = _as_str(g.get("tribunal"))
     st.session_state.snum     = _as_str(g.get("sent_num"))
     st.session_state.sfecha   = _as_str(g.get("sent_fecha"))
-    st.session_state.sres     = _as_str(g.get("resuelvo"))
+    st.session_state.sres     = _flatten_resuelvo(_as_str(g.get("resuelvo")))
     st.session_state.sfirmaza = _as_str(g.get("firmantes"))
 
     # ----- IMPUTADOS -----
