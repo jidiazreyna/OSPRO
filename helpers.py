@@ -23,6 +23,7 @@ def dialog_link(texto: str, key: str, placeholder: str | None = None, *, bold: b
         f'spellcheck="false" '
         f'class="editable" '
         f'style="color:blue;" '
+        f'data-origin="" '  # 👈 seguimiento origen
         f'data-key="{key}" data-target="{key}">{safe}</span>'
     )
     return f"<b>{span}</b>" if bold else span
@@ -40,8 +41,8 @@ def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None)
     safe = html_text.replace("\n", "<br/>")
     return (
         f'<span class="editable" data-key="{clave}" data-target="{clave}" '
-        f'contenteditable="true" style="{style_str}">{safe}</span>'
-    )
+        f'data-origin="" contenteditable="true" style="{style_str}">{safe}</span>'
+    )  # 👈 origen sincronizado
 
 def strip_dialog_links(html_text: str) -> str:
     """Return `html_text without span.editable elements."""

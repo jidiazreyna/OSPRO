@@ -117,27 +117,54 @@ _js_edit_handler = """
   const parent = window.parent, doc = parent.document;
 
   // Evitar duplicados al rerender
-  if (parent.__ospro_edit_handler__) {
-    doc.removeEventListener('input', parent.__ospro_edit_handler__, true);
-    doc.removeEventListener('blur',  parent.__ospro_edit_handler__, true);
+  if (parent.__ospro_handlers__) {
+    const {span, sidebar} = parent.__ospro_handlers__;
+    doc.removeEventListener('input', span, true);
+    doc.removeEventListener('blur',  span, true);
+    doc.removeEventListener('input', sidebar, true);
   }
 
-  function handler(e) {
+  function spanHandler(e) {
     const el = e.target.closest('.editable');
-    if (!el) return;
-    Streamlit.setComponentValue({ key: el.dataset.key, value: el.innerText });
+    if (!el || el.dataset.origin === 'sidebar') return; // 👈 evita loop
+    const key = el.dataset.key;
+    const value = el.innerText;
+    const campo = doc.getElementById(key);
+    if (campo) {
+      campo.dataset.origin = 'span'; // 👈 marca origen
+      if (campo.value !== value) campo.value = value; // 👈 sync inmediata
+      campo.dataset.origin = '';
+    }
+    Streamlit.setComponentValue({ key, value, origin: 'span' }); // 👈 span → Python
   }
 
-  doc.addEventListener('input', handler, true);
-  doc.addEventListener('blur',  handler, true);
-  parent.__ospro_edit_handler__ = handler;
+  function sidebarHandler(e) {
+    const el = e.target.closest('input, textarea');
+    if (!el) return;
+    const key = el.id;
+    if (!key || el.dataset.origin === 'span') return; // 👈 evita loop
+    const value = el.value;
+    const spans = doc.querySelectorAll(`.editable[data-key="${key}"]`);
+    spans.forEach(sp => {
+      if (sp.innerText !== value) {
+        sp.dataset.origin = 'sidebar'; // 👈 marca origen
+        sp.innerText = value; // 👈 sidebar → span
+        sp.dataset.origin = '';
+      }
+    });
+  }
+
+  doc.addEventListener('input', spanHandler, true);
+  doc.addEventListener('blur',  spanHandler, true);
+  doc.addEventListener('input', sidebarHandler, true);
+  parent.__ospro_handlers__ = {span: spanHandler, sidebar: sidebarHandler};
 
   Streamlit.setComponentReady();
   Streamlit.setFrameHeight(0);
 })();
 </script>
 """
-edit_event = _html_compat(_js_edit_handler, height=0, width=0)
+edit_event = _html_compat(_js_edit_handler, height=0, width=0)  # 👈 iny. bidireccional
 
 
 # ────────── utilidades varias ───────────────────────────────────────
