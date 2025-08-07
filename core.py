@@ -110,7 +110,7 @@ limpiar_pies = limpiar_pies_de_pagina
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
 _PAT_CARAT_1 = re.compile(          # 1) bloque completo con o sin paréntesis
-    r'([^"\n]*?["“][^"”]+?["”])\s*'
+    r'(.+?)\s*'
     r'(?:\(\s*(?:Expte\.\s*)?(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+)\s*\)'
     r'|(?:Expte\.\s*)?(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+))',
     re.I,
@@ -139,9 +139,10 @@ def extraer_caratula(txt: str) -> str:
         bloque, n1, n2 = m.groups()
         nro = n1 or n2
         bloque = bloque.strip()
-        mq = re.search(r'["“][^"”]+["”]', bloque)
+        mq = re.search(r"[\"“'‘`][^\"”'’`]+[\"”'’`]", bloque)
         if mq:
-            quoted = mq.group(0)
+            inner = mq.group(0)[1:-1]
+            quoted = f'“{inner}”'
             prefix = bloque[:mq.start()].strip()
             if prefix and len(prefix) <= 80:
                 bloque = f'{prefix} {quoted}'
@@ -281,11 +282,11 @@ _FIRMAS_REGEX = re.compile(r'''
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
 
 # ── validaciones de campos ─────────────────────────────────────────────
-# Carátula: debe incluir comillas y un número de expediente o SAC.
-# Se admite un texto previo a las comillas y diferentes variantes de
+# Carátula: debe incluir un número de expediente o SAC.
+# Se admite un texto previo con o sin comillas y diferentes variantes de
 # "Expte."/"SAC"/"N°" al final.
 CARATULA_REGEX = QRegularExpression(
-    r'(?i)^\s*[^"“\n]*["“][^"”]+["”]\s*\((?:Expte\.?\s*)?(?:SAC|Expte\.?)\s*'
+    r'(?i)^\s*[^()]+\s*\((?:Expte\.?\s*)?(?:SAC|Expte\.?)\s*'
     r'(?:N\s*[°ºo\.]*\s*)?[\d.]+\)$'
 )
 # Tribunal: al menos una letra minúscula y empezar en mayúscula
