@@ -25,15 +25,42 @@ def copy_to_clipboard(texto: str) -> None:
         pass
 
     try:
-        components.html(
+        ok = components.html(
             f"""
             <script>
-            navigator.clipboard.writeText({json.dumps(texto)});
+            (async () => {{
+              let exito = false;
+              if (navigator.clipboard && navigator.clipboard.writeText) {{
+                try {{
+                  await navigator.clipboard.writeText({json.dumps(texto)});
+                  exito = true;
+                }} catch (err) {{
+                  console.error('Error al copiar:', err);
+                }}
+              }}
+              if (!exito) {{
+                const textarea = document.createElement('textarea');
+                textarea.value = {json.dumps(texto)};
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {{
+                  exito = document.execCommand('copy');
+                }} catch (err) {{
+                  console.error('Error al copiar:', err);
+                }}
+                document.body.removeChild(textarea);
+              }}
+              Streamlit.setComponentValue(exito);
+            }})();
             </script>
             """,
             height=0,
+            key="clipboard",
         )
-        st.success("Texto copiado al portapapeles")
+        if ok:
+            st.success("Texto copiado al portapapeles")
+        else:
+            st.warning("No se pudo copiar automáticamente. Copie el texto manualmente.")
     except Exception:  # pragma: no cover - sin soporte de portapapeles
         st.code(texto)
         st.warning("No se pudo copiar automáticamente. Copie el texto manualmente.")
