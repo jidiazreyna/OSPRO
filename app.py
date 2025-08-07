@@ -28,34 +28,38 @@ def copy_to_clipboard(texto: str) -> None:
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 
 
-"""Inyectamos JavaScript una vez para capturar clicks en anchors.
+"""Inyectamos JavaScript para capturar clicks en anchors.
 
-La lógica se delega a un script global que modifica los parámetros de la URL
-y fuerza un *rerun* de Streamlit para que Python abra el cuadro de diálogo
-correspondiente."""
+En versiones antiguas de Streamlit ``components.html`` no acepta ``key``.
+El siguiente snippet añade (o reemplaza) un único listener global en el
+documento padre para enviar a Python el ``data-anchor`` clickeado.
+"""
 
 anchor_clicked = components.html(
     """
     <script>
     /* Captura clicks en <a data-anchor="…"> y notifica a Streamlit ------- */
     (function () {
-      const doc = window.parent.document;
-      let seq = 0;  // permite volver a abrir el mismo anchor varias veces
+      const parent = window.parent;
+      const doc = parent.document;
 
-      function send(anchor) {
+      // Si ya había un listener previo, lo quitamos para evitar duplicados
+      if (parent.__ospro_anchor_handler__) {
+        doc.removeEventListener('click', parent.__ospro_anchor_handler__, true);
+      }
+
+      let seq = 0;  // permite volver a abrir el mismo anchor varias veces
+      function handler(e) {
+        const link = e.target.closest('a[data-anchor]');
+        if (!link) return;
+        e.preventDefault();                       // cancelamos el href="#"
+        const anchor = link.getAttribute('data-anchor');
+        /* Enviamos el valor a Python y forzamos rerun inmediato -------- */
         Streamlit.setComponentValue({anchor: anchor, seq: seq++});
       }
 
-      doc.addEventListener("click", (e) => {
-        const link = e.target.closest("a[data-anchor]");
-        if (!link) return;
-
-        e.preventDefault();                       // cancelamos el href="#"
-        const anchor = link.getAttribute("data-anchor");
-
-        /* Enviamos el valor a Python y forzamos rerun inmediato -------- */
-        send(anchor);
-      }, true);
+      doc.addEventListener('click', handler, true);
+      parent.__ospro_anchor_handler__ = handler;
 
       // Señalamos a Streamlit que el componente está listo y sin altura
       Streamlit.setComponentReady();
@@ -65,7 +69,6 @@ anchor_clicked = components.html(
     """,
     height=0,
     width=0,
-    key="anchor_listener",
 )
 
 # ───────── helpers comunes ──────────────────────────────────────────
