@@ -178,13 +178,19 @@ def fecha_alineada(loc: str, fecha=None, punto=False):
     txt = f"{loc}, {d.day} de {MESES_ES[d.month-1]} de {d.year}"
     return txt + ("." if punto else "")
 
-
+# ────────── callback: normaliza la carátula después de editar ───────
+def _normalizar_caratula():
+    raw  = st.session_state.carat
+    auto = autocompletar_caratula(raw)
+    if auto != raw:
+        st.session_state.carat = auto
+        st.experimental_rerun()      # fuerza un ciclo nuevo y seguro
 # ────────── estado inicial de sesión ────────────────────────────────
 if "n_imputados" not in st.session_state:
     st.session_state.n_imputados = 1
 if "datos_autocompletados" not in st.session_state:
     st.session_state.datos_autocompletados = {}
-
+st.session_state.setdefault("carat", "")
 # sincronicemos spans editables → barra lateral
 if isinstance(edit_event, dict):
     k, v = edit_event.get("key"), edit_event.get("value")
@@ -246,10 +252,13 @@ def html_copy_button(label: str, html_fragment: str, *, key: str | None = None):
 with st.sidebar:
     st.header("Datos generales")
     loc       = st.text_input("Localidad", value="Córdoba", key="loc")
-    caratula_raw = st.text_input("Carátula", key="carat")
-    caratula = autocompletar_caratula(caratula_raw)
-    if caratula != caratula_raw:
-        st.session_state.carat = caratula
+    st.text_input(
+        "Carátula",
+        key="carat",
+        on_change=_normalizar_caratula,   # ← NUEVO
+    )
+    caratula = st.session_state.carat     # ← reemplaza a tu caratula_raw
+
     tribunal  = st.text_input("Tribunal", key="trib")
 
     col1, col2 = st.columns(2)
