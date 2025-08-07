@@ -563,9 +563,11 @@ _FIRMAS_REGEX = re.compile(r'''
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
 
 # ── validaciones de campos ─────────────────────────────────────────────
-# Carátula: debe incluir comillas y un número de expediente o SAC
+# Carátula: debe incluir comillas y un número de expediente o SAC.
+# Se permite texto previo y variantes de "Expte."/"SAC"/"N°".
 CARATULA_REGEX = QRegularExpression(
-    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*\d+\))?["”](?:\s*\((?:SAC|Expte\.?\s*)\s*N°\s*\d+\))?$'
+    r'(?i)^\s*[^"“\n]*["“][^"”]+["”]\s*\((?:Expte\.?\s*)?(?:SAC|Expte\.?)\s*'
+    r'(?:N\s*[°ºo\.]*\s*)?[\d.]+\)$'
 )
 # Tribunal: al menos una letra minúscula y empezar en mayúscula
 TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
