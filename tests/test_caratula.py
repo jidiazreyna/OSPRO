@@ -52,9 +52,26 @@ def test_caratula_regex_permite_prefijo():
     assert core.CARATULA_REGEX.match(carat)
 
 
+def test_caratula_regex_sin_comillas():
+    carat = 'Leiva David p. s. a. de robo en grado de tentativa (Expte. Sac 13250038)'
+    assert core.CARATULA_REGEX.match(carat)
+
+
 def test_extraer_caratula_expte_sac():
     texto = 'Leiva David p. s. a. de “robo en grado de tentativa” (Expte. Sac 13250038)'
     esperado = 'Leiva David p. s. a. de “robo en grado de tentativa” (SAC N° 13250038)'
+    assert core.extraer_caratula(texto) == esperado
+
+
+def test_extraer_caratula_comillas_simples():
+    texto = "Leiva David p. s. a. de 'robo en grado de tentativa' (Expte. Sac 13250038)"
+    esperado = 'Leiva David p. s. a. de “robo en grado de tentativa” (SAC N° 13250038)'
+    assert core.extraer_caratula(texto) == esperado
+
+
+def test_extraer_caratula_sin_comillas():
+    texto = 'Leiva David p. s. a. de robo en grado de tentativa (Expte. Sac 13250038)'
+    esperado = 'Leiva David p. s. a. de robo en grado de tentativa (SAC N° 13250038)'
     assert core.extraer_caratula(texto) == esperado
 
 
