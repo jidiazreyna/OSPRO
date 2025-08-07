@@ -27,3 +27,16 @@ def test_autocompletar_formats_resuelvo_and_datos(monkeypatch):
 
     assert st.session_state.sres == "Punto 1, Punto 2"
     assert st.session_state.imp0_datos == "Juan Perez, D.N.I. 12.345"
+
+
+def test_autocompletar_flattens_resuelvo_newlines(monkeypatch):
+    st.session_state.clear()
+
+    def fake_procesar_sentencia(_bytes, _name):
+        return {"generales": {"resuelvo": "Linea 1\nLinea 2"}, "imputados": []}
+
+    monkeypatch.setattr(core, "procesar_sentencia", fake_procesar_sentencia)
+
+    core.autocompletar(b"", "dummy.pdf")
+
+    assert st.session_state.sres == "Linea 1 Linea 2"

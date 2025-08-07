@@ -4,7 +4,19 @@ from pathlib import Path
 
 # Ensure project root is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import pytest
 
+pytest.importorskip("fastapi")
+
+# Stub external dependencies
+sys.modules.setdefault("openai", types.ModuleType("openai"))
+sys.modules.setdefault("docx2txt", types.ModuleType("docx2txt"))
+pdfminer = types.ModuleType("pdfminer")
+pdf_high = types.ModuleType("pdfminer.high_level")
+pdf_high.extract_text = lambda *a, **k: ""
+pdfminer.high_level = pdf_high
+sys.modules["pdfminer"] = pdfminer
+sys.modules["pdfminer.high_level"] = pdf_high
 import api
 import core
 from fastapi.testclient import TestClient
