@@ -28,23 +28,57 @@ def copy_to_clipboard(texto: str) -> None:
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 
 
+# --- helper de compatibilidad --------------------------------------
+def _html_compat(content: str, *, height: int = 0, width: int = 0):
+    """
+    Llama a components.html() con los argumentos que soporte la versión
+    instalada de Streamlit.  Intenta primero con 'sandbox'; si falla,
+    re‑intenta sin él; si además falla con 'key', re‑intenta solo con los
+    parámetros básicos.
+    """
+    # 1º: con 'sandbox' y 'key' (Streamlit ≥ 1.33 aprox.)
+    try:
+        return components.html(
+            content,
+            height=height,
+            width=width,
+            key="anchor_handler",
+            sandbox="allow-scripts allow-same-origin",
+        )
+    except TypeError:
+        pass
+
+    # 2º: solo con 'sandbox' (Streamlit 1.30 – 1.32)
+    try:
+        return components.html(
+            content,
+            height=height,
+            width=width,
+            sandbox="allow-scripts allow-same-origin",
+        )
+    except TypeError:
+        pass
+
+    # 3º: firma mínima (Streamlit ≤ 1.29)
+    return components.html(content, height=height, width=width)
+
+
+# -------------------------------------------------------------------
 js_code = """
 <script>
-/* Captura clicks en <a data-anchor="…"> y los envía a Streamlit ------- */
+/* Captura clicks en <a data-anchor="…"> y envía la clave a Streamlit */
 (function () {
   const parent = window.parent;
   const doc = parent.document;
 
-  // Elimina un listener previo para evitar duplicados al rerun
-  if (parent.__ospro_anchor_handler__) {
-    doc.removeEventListener('click', parent.__ospro_anchor_handler__, true);
-  }
+  if (parent.__ospro_anchor_handler__)
+      doc.removeEventListener('click', parent.__ospro_anchor_handler__, true);
 
   let seq = 0;
   function handler(e) {
     const link = e.target.closest('a[data-anchor]');
     if (!link) return;
-    e.preventDefault();                           // anula href="#"
+    e.preventDefault();
     Streamlit.setComponentValue({anchor: link.dataset.anchor, seq: seq++});
   }
 
@@ -57,13 +91,8 @@ js_code = """
 </script>
 """
 
-anchor_clicked = components.html(
-    js_code,
-    height=0,
-    width=0,
-    key="anchor_handler",                 # ← clave fija
-    sandbox="allow-scripts allow-same-origin"  # ← ¡nuevo!
-)
+# ⬇️  aquí ya no fallará, sea cual sea tu versión de Streamlit
+anchor_clicked = _html_compat(js_code, height=0, width=0)
 
 # ───────── helpers comunes ──────────────────────────────────────────
 MESES_ES = ["enero","febrero","marzo","abril","mayo","junio",
