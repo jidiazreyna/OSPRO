@@ -2,22 +2,28 @@
 import html
 import re
 
-def dialog_link(texto: str, key: str, *, bold: bool = False) -> str:
-    """
-    Envuelve texto en un <span> editable que refleja automáticamente
-    su contenido en st.session_state[key].
+def dialog_link(texto: str, key: str, placeholder: str | None = None, *, bold: bool = False) -> str:
+    """Return an editable HTML span linked to ``key``.
 
-    • key        → nombre exacto del widget/clave en session_state  
-    • bold=True  → mantiene el <b> que usás en algunos llamados
+    ``texto`` es el contenido inicial.  Si está vacío, se mostrará
+    ``placeholder`` (o puntos suspensivos si tampoco se provee un
+    placeholder).  El ``key`` se replica en los atributos ``data-key`` y
+    ``data-target`` para que ``inline_edit.js`` pueda sincronizar el valor
+    con el campo correspondiente cuando el usuario presiona ``Ctrl+Enter``
+    o el elemento pierde el foco.
     """
-    safe = html.escape(texto or "")
+
+    contenido = texto.strip()
+    if not contenido:
+        contenido = placeholder if placeholder is not None else "…"
+
+    safe = html.escape(contenido)
     span = (
-        f"<span contenteditable='true' "
-        f"       spellcheck='false' "
-        f"       class='editable' "
-        f"       style='color:#0068c9;text-decoration:underline;cursor:pointer;' "
-        f"       data-key='{key}'>"      # ← ***importantísimo***
-        f"{safe}</span>"
+        f'<span contenteditable="true" '
+        f'spellcheck="false" '
+        f'class="editable" '
+        f'style="color:blue;" '
+        f'data-key="{key}" data-target="{key}">{safe}</span>'
     )
     return f"<b>{span}</b>" if bold else span
 
