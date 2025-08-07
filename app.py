@@ -11,7 +11,7 @@ import streamlit.components.v1 as components
 import uuid, json, html as _html
 from core import autocompletar          # lógica de autocompletado
 from helpers import dialog_link, strip_dialog_links
-
+from helpers import create_clipboard_html
 
 # ────────── util: copiar al portapapeles ────────────────────────────
 def copy_to_clipboard(texto: str) -> None:
@@ -70,7 +70,7 @@ def copy_to_clipboard(texto: str) -> None:
 # ────────── config general de la página ─────────────────────────────
 st.set_page_config(page_title="OSPRO – Oficios", layout="wide")
 
-
+LINE_STYLE = "margin:0;line-height:150%;mso-line-height-alt:150%;"
 # ────────── helper de compatibilidad para components.html ───────────
 def _html_compat(content: str, *, height: int = 0, width: int = 0):
     """
@@ -168,43 +168,45 @@ if "pending_autocompletar" in st.session_state:
     else:
         st.session_state["ac_success"] = True
 
-def html_copy_button(label: str, text: str, *, key: str | None = None):
+def html_copy_button(label: str, html_fragment: str, *, key: str | None = None):
+    btn_id    = key or f"btn_{uuid.uuid4().hex}"
+    raw_html  = html_fragment                         # ⇦ sin cabeceras
+    packaged  = create_clipboard_html(html_fragment)  # ⇦ por si hiciera falta
+    js = f"""
+      <button id="{btn_id}" style="margin:4px;">{_html.escape(label)}</button>
+      <script>
+        const btn = document.getElementById("{btn_id}");
+        if (btn) {{
+          btn.addEventListener("click", async () => {{
+            try {{
+              /* API moderna */
+              const blob = new Blob([{json.dumps(raw_html)}], {{type:"text/html"}});
+              await navigator.clipboard.write([new ClipboardItem({{"text/html": blob}})]);
+            }} catch (_) {{
+              /* Fallback execCommand: copiar nodo con HTML real */
+              const div = Object.assign(document.createElement("div"), {{
+                innerHTML: {json.dumps(raw_html)}, style:"position:fixed;left:-9999px"
+              }});
+              document.body.appendChild(div);
+              const range = document.createRange();
+              range.selectNodeContents(div);
+              const sel = window.getSelection();
+              sel.removeAllRanges(); sel.addRange(range);
+              document.execCommand("copy");
+              sel.removeAllRanges(); div.remove();
+            }}
+            const old = btn.innerText;
+            btn.innerText = "¡Copiado!";
+            setTimeout(() => btn.innerText = old, 1400);
+          }});
+        }}
+      </script>
     """
-    Renderiza un botón HTML+JS que copia text al portapapeles.
-    Corre con todas las versiones de Streamlit (maneja la ausencia de 'key').
-    """
-    btn_id = key or f"btn_{uuid.uuid4().hex}"
-    safe   = json.dumps(text)     # escapa comillas y saltos de línea
-
-    html_snippet = f"""
-        <button id="{btn_id}" style="margin:4px;">{_html.escape(label)}</button>
-        <script>
-          const btn = document.getElementById("{btn_id}");
-          if (btn) {{
-            btn.addEventListener("click", async () => {{
-              try {{
-                await navigator.clipboard.writeText({safe});
-              }} catch (_) {{
-                /* fallback viejo */
-                const ta = Object.assign(document.createElement("textarea"), {{
-                    value: {safe}, style: "position:fixed;opacity:0"
-                }});
-                document.body.appendChild(ta);
-                ta.select(); document.execCommand("copy"); ta.remove();
-              }}
-              const old = btn.innerText;
-              btn.innerText = "¡Copiado!";
-              setTimeout(() => btn.innerText = old, 1500);
-            }});
-          }}
-        </script>
-    """
-
-    # ≥ 1.30 acepta 'key'; ≤ 1.29 no.
     try:
-        components.html(html_snippet, height=40, key=btn_id)
+        components.html(js, height=40, key=btn_id)  # Streamlit ≥ 1.30
     except TypeError:
-        components.html(html_snippet, height=40)
+        components.html(js, height=40)              # Streamlit ≤ 1.29
+
 # ────────── barra lateral: datos generales ──────────────────────────
 with st.sidebar:
     st.header("Datos generales")
@@ -263,124 +265,110 @@ tabs = st.tabs([
     "Decomiso s/Traslado", "Automotores Secuestrados", "RePAT",
 ])
 
-# ——— TAB 0: Migraciones ————————————————————————————————
+# ───── TAB 0 : Migraciones ─────────────────────────────────────────
 with tabs[0]:
-    loc_a   = dialog_link(loc, 'loc')
-    fecha   = fecha_alineada(loc_a, punto=True)
-    st.markdown(f"<p style='text-align:right'>{fecha}</p>", unsafe_allow_html=True)
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
 
-    car_a   = f"<b>{dialog_link(caratula, 'carat')}</b>"
-    trib_a  = f"<b>{dialog_link(tribunal, 'trib')}</b>"
-    imp_a   = dialog_link(st.session_state.get('imp0_datos', ''), 'imp0_datos')
-    sent_n  = dialog_link(sent_num, 'snum')
-    sent_f  = dialog_link(sent_fecha, 'sfecha')
-    res_a   = dialog_link(resuelvo, 'sres')
-    firm_a  = dialog_link(firmantes, 'sfirmaza')
-    firmeza = dialog_link(sent_firmeza, 'sfirmeza')
+    # fecha (derecha)
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
 
-    cuerpo = (
-        "<b>Sr/a Director/a</b><br>"
-        "<b>de la Dirección Nacional de Migraciones</b><br>"
-        "<b>S/D:</b><br><br>"
-        f"En los autos caratulados: {car_a}, que se tramitan "
-        f"por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, "
-        "con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, "
-        "se ha dispuesto librar a Ud. el presente oficio, a fin de informar lo resuelto "
-        "por dicho Tribunal respecto de la persona cuyos datos personales se mencionan "
-        "a continuación:<br><br>"
-        f"{imp_a}.<br><br>"
-        f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res_a}”. "
-        f"Fdo.: {firm_a}.<br><br>"
-        f"Asimismo, se informa que la sentencia antes señalada quedó firme con "
-        f"fecha {firmeza}.<br><br>"
-        "Se adjuntan al presente oficio copia digital de la misma y del cómputo "
-        "de pena respectivo.<br><br>"
-    )
-    saludo = "Sin otro particular, saludo a Ud. atentamente."
-    st.markdown(cuerpo, unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
+    # variables con links
+    car_a   = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a  = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    sent_n  = dialog_link(sent_num,'snum')
+    sent_f  = dialog_link(sent_fecha,'sfecha')
+    res_a   = dialog_link(resuelvo,'sres')
+    firm_a  = dialog_link(firmantes,'sfirmaza')
+    firmeza = dialog_link(sent_firmeza,'sfirmaza')
 
-    texto = re.sub(r"<br\s*/?>", "\n", strip_dialog_links(cuerpo + saludo))
-    html_copy_button("Copiar", texto, key="copy_migr")
+    # cuerpo (justificado)
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>Sr/a Director/a</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>de la Dirección Nacional de Migraciones</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a continuación:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>{imp_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res_a}”. Fdo.: {firm_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {firmeza}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
 
-# ——— TAB 1: Consulado ————————————————————————————————
+    # saludo (centrado)
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    # botón copiar
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_migr")
+
+# ───── TAB 1 : Consulado ───────────────────────────────────────────
 with tabs[1]:
-    loc_a   = dialog_link(loc, 'loc')
-    fecha   = fecha_alineada(loc_a, punto=True)
-    st.markdown(f"<p style='text-align:right'>{fecha}</p>", unsafe_allow_html=True)
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
 
-    car_a   = f"<b>{dialog_link(caratula, 'carat')}</b>"
-    trib_a  = f"<b>{dialog_link(tribunal, 'trib')}</b>"
-    pais_a  = dialog_link(consulado, 'consulado')
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''), 'imp0_datos')
-    sent_n  = dialog_link(sent_num, 'snum')
-    sent_f  = dialog_link(sent_fecha, 'sfecha')
-    res_a   = dialog_link(resuelvo, 'sres')
-    firm_a  = dialog_link(firmantes, 'sfirmaza')
-    firmeza = dialog_link(sent_firmeza, 'sfirmeza')
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
 
-    cuerpo = (
-        "<b>Al Sr. Titular del Consulado </b><br>"
-        f"<b>de {pais_a} </b><br>"
-        "<b>S/D:</b><br><br>"
-        f"En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, "
-        "de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de "
-        "esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto "
-        "librar el presente oficio, a fin de informar lo resuelto por dicho "
-        "Tribunal respecto de la persona cuyos datos personales se mencionan "
-        "a continuación:<br><br>"
-        f"{imp_a}.<br><br>"
-        f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res_a}.” "
-        f"Fdo.: {firm_a}.<br><br>"
-        f"Asimismo, se informa que la sentencia antes señalada quedó firme con "
-        f"fecha {firmeza}.<br><br>"
-        "Se adjuntan al presente oficio copia digital de la misma y del cómputo "
-        "de pena respectivo.<br><br>"
-    )
-    saludo = "Sin otro particular, saludo a Ud. atentamente."
-    st.markdown(cuerpo, unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
+    car_a  = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    pais_a = dialog_link(consulado,'consulado')
+    imp_a  = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    sent_n = dialog_link(sent_num,'snum')
+    sent_f = dialog_link(sent_fecha,'sfecha')
+    res_a  = dialog_link(resuelvo,'sres')
+    firm_a = dialog_link(firmantes,'sfirmaza')
+    firmeza= dialog_link(sent_firmeza,'sfirmaza')
 
-    texto = re.sub(r"<br\s*/?>", "\n", strip_dialog_links(cuerpo + saludo))
-    html_copy_button("Copiar", texto, key="copy_cons")
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>Al Sr. Titular del Consulado</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>de {pais_a}</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a continuación:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>{imp_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res_a}.” Fdo.: {firm_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {firmeza}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
 
-# ——— TAB 2: Juez Electoral ——————————————————————————————
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_cons")
+
+# ───── TAB 2 : Juez Electoral ──────────────────────────────────────
 with tabs[2]:
-    loc_a   = dialog_link(loc, 'loc')
-    fecha   = fecha_alineada(loc_a, punto=True)
-    st.markdown(f"<p style='text-align:right'>{fecha}</p>", unsafe_allow_html=True)
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
 
-    car_a   = f"<b>{dialog_link(caratula, 'carat')}</b>"
-    trib_a  = f"<b>{dialog_link(tribunal, 'trib')}</b>"
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''), 'imp0_datos')
-    sent_n  = dialog_link(sent_num, 'snum')
-    sent_f  = dialog_link(sent_fecha, 'sfecha')
-    res_a   = dialog_link(resuelvo, 'sres')
-    firm_a  = dialog_link(firmantes, 'sfirmaza')
-    firmeza = dialog_link(sent_firmeza, 'sfirmeza')
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
 
-    cuerpo = (
-        "<b>SR. JUEZ ELECTORAL:</b><br>"
-        "<b>S………………./………………D</b><br>"
-        "<b>-Av. Concepción Arenales esq. Wenceslao Paunero, Bº Rogelio Martínez, Córdoba.</b><br>"
-        "<b>Tribunales Federales de Córdoba-</b><br><br>"
-        f"En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, "
-        "de la ciudad de Córdoba, Provincia de Córdoba, con la intervención "
-        "de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar "
-        "a Ud. el presente oficio, a fin de informar lo resuelto por dicho Tribunal "
-        "respecto de la persona cuyos datos personales se mencionan a continuación:"
-        "<br><br>"
-        f"{imp_a}.<br><br>"
-        f"SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res_a}”. "
-        f"Fdo.: {firm_a}.<br><br>"
-        f"Asimismo, se informa que la sentencia antes señalada quedó firme con "
-        f"fecha {firmeza}.<br><br>"
-        "Se adjuntan al presente oficio copia digital de la misma y del cómputo "
-        "de pena respectivo.<br><br>"
-    )
-    saludo = "Sin otro particular, saludo a Ud. atentamente."
-    st.markdown(cuerpo, unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
+    car_a   = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a  = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    sent_n  = dialog_link(sent_num,'snum')
+    sent_f  = dialog_link(sent_fecha,'sfecha')
+    res_a   = dialog_link(resuelvo,'sres')
+    firm_a  = dialog_link(firmantes,'sfirmaza')
+    firmeza = dialog_link(sent_firmeza,'sfirmaza')
 
-    texto = re.sub(r"<br\s*/?>", "\n", strip_dialog_links(cuerpo + saludo))
-    html_copy_button("Copiar", texto, key="copy_electoral")
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>SR. JUEZ ELECTORAL:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S………………./………………D</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>-Av. Concepción Arenales esq. W. Paunero, Córdoba-</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a continuación:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>{imp_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res_a}”. Fdo.: {firm_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Asimismo, se informa que la sentencia antes señalada quedó firme con fecha {firmeza}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se adjuntan al presente oficio copia digital de la misma y del cómputo de pena respectivo.</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_electoral")
