@@ -88,10 +88,14 @@ PROXY_URL_DEFAULT = _CONFIG.get("proxy", "")
 def _get_openai_client():
     """Return an OpenAI client for both old and new SDKs."""
     api_key = os.environ.get("OPENAI_API_KEY", OPENAI_API_KEY_DEFAULT)
+    if not api_key:
+        raise RuntimeError(
+            "Falta la clave de API de OpenAI. Definí OPENAI_API_KEY o actualizá config.json."
+        )
     proxy = PROXY_URL_DEFAULT
     try:
         from openai import OpenAI  # type: ignore
-        kwargs = {"api_key": api_key} if api_key else {}
+        kwargs = {"api_key": api_key}
         if proxy:
             try:
                 import httpx  # type: ignore
