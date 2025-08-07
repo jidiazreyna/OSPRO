@@ -19,6 +19,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, List, Dict
 
+import os
+
 import docx2txt
 import openai
 import streamlit as st            # ← para volcar datos en la UI
@@ -42,10 +44,11 @@ def _cargar_config() -> Dict[str, Any]:
 
 _cfg = _cargar_config()
 
+
 def _get_openai_client():
     """Return an OpenAI client compatible with v0 and v1 APIs."""
-    api_key = _cfg.get("api_key", "")
-    proxy = _cfg.get("proxy", "")
+    api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", ""))
+    proxy = os.environ.get("PROXY_URL", _cfg.get("proxy", ""))
     try:
         from openai import OpenAI  # type: ignore
         kwargs = {"api_key": api_key} if api_key else {}
