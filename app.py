@@ -40,6 +40,11 @@ anchor_clicked = components.html(
     /* Captura clicks en <a data-anchor="…"> y notifica a Streamlit ------- */
     (function () {
       const doc = window.parent.document;
+      let seq = 0;  // permite volver a abrir el mismo anchor varias veces
+
+      function send(anchor) {
+        Streamlit.setComponentValue({anchor: anchor, seq: seq++});
+      }
 
       doc.addEventListener("click", (e) => {
         const link = e.target.closest("a[data-anchor]");
@@ -49,13 +54,18 @@ anchor_clicked = components.html(
         const anchor = link.getAttribute("data-anchor");
 
         /* Enviamos el valor a Python y forzamos rerun inmediato -------- */
-        Streamlit.setComponentValue(anchor);
+        send(anchor);
       }, true);
+
+      // Señalamos a Streamlit que el componente está listo y sin altura
+      Streamlit.setComponentReady();
+      Streamlit.setFrameHeight(0);
     })();
     </script>
     """,
     height=0,
-    width=0,          # ← sin `key`
+    width=0,
+    key="anchor_listener",
 )
 
 # ───────── helpers comunes ──────────────────────────────────────────
@@ -200,8 +210,12 @@ def fecha_alineada(loc: str, fecha=None, punto=False):
 if "n_imputados" not in st.session_state: st.session_state.n_imputados = 1
 if "datos_autocompletados" not in st.session_state: st.session_state.datos_autocompletados = {}
 
-if isinstance(anchor_clicked, str) and anchor_clicked:
-    _mostrar_dialogo(anchor_clicked)
+if isinstance(anchor_clicked, dict):
+    clicked = anchor_clicked.get("anchor")
+else:
+    clicked = anchor_clicked
+if isinstance(clicked, str) and clicked:
+    _mostrar_dialogo(clicked)
     st.write("DEBUG →", type(anchor_clicked), anchor_clicked)
 
 
