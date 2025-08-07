@@ -241,7 +241,12 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
     st.session_state.snum     = g.get("sent_num", "")
     st.session_state.sfecha   = g.get("sent_fecha", "")
     st.session_state.sres     = g.get("resuelvo", "")
-    st.session_state.sfirmaza = g.get("firmantes", [])
+    firmantes = g.get("firmantes") or ""
+    if isinstance(firmantes, list):
+        firmantes = ", ".join(str(f) for f in firmantes)
+    else:
+        firmantes = str(firmantes)
+    st.session_state.sfirmaza = firmantes
 
     # ----- IMPUTADOS -----
     imps = datos.get("imputados", [])
