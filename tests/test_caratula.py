@@ -1,3 +1,4 @@
+import re
 import sys
 import types
 from pathlib import Path
@@ -15,7 +16,40 @@ sys.modules["pdfminer"] = pdfminer
 sys.modules["pdfminer.high_level"] = pdf_high
 sys.modules.setdefault("streamlit", types.ModuleType("streamlit"))
 
+# Minimal stub for PySide6.QtCore.QRegularExpression
+class _FakeMatch:
+    def __init__(self, m: re.Match | None):
+        self._m = m
+
+    def hasMatch(self) -> bool:  # pragma: no cover - simple stub
+        return bool(self._m)
+
+    def __bool__(self) -> bool:  # pragma: no cover - simple stub
+        return bool(self._m)
+
+
+class _FakeQRegularExpression:
+    def __init__(self, pattern: str):
+        self._re = re.compile(pattern)
+
+    def match(self, text: str) -> _FakeMatch:
+        return _FakeMatch(self._re.match(text))
+
+
+qtcore = types.ModuleType("PySide6.QtCore")
+qtcore.QRegularExpression = _FakeQRegularExpression
+sys.modules.setdefault("PySide6", types.ModuleType("PySide6"))
+sys.modules["PySide6.QtCore"] = qtcore
+
 import core
+
+
+def test_caratula_regex_permite_prefijo():
+    carat = (
+        'Leiva David p. s. a. de "robo en grado de tentativa" '
+        '(Expte. Sac 13250038)'
+    )
+    assert core.CARATULA_REGEX.match(carat)
 
 
 def test_extraer_caratula_expte_sac():
