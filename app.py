@@ -1,4 +1,5 @@
 # app.py  – versión resumida
+import re
 import streamlit as st
 import streamlit.components.v1 as components
 from core import autocompletar   # ← función principal
@@ -246,7 +247,7 @@ with tabs[0]:
     st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
 
     if st.button("Copiar", key="copy_migr"):
-        texto = strip_dialog_links(cuerpo + saludo).replace("<br>", "\n")
+        texto = re.sub(r"<br\s*/?>", "\n", strip_dialog_links(cuerpo + saludo))
         copy_to_clipboard(texto)
 
 # ---------- plantilla Consulado ----------
@@ -279,7 +280,7 @@ with tabs[1]:
     st.markdown(cuerpo, unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
     if st.button("Copiar", key="copy_cons"):
-        texto = strip_dialog_links(cuerpo + saludo).replace("<br>", "\n")
+        texto = re.sub(r"<br\s*/?>", "\n", strip_dialog_links(cuerpo + saludo))
         copy_to_clipboard(texto)
 
 # ---------- plantilla Juez Electoral ----------
@@ -312,7 +313,7 @@ with tabs[2]:
     st.markdown(cuerpo, unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center'>{saludo}</p>", unsafe_allow_html=True)
     if st.button("Copiar", key="copy_electoral"):
-        texto = strip_dialog_links(cuerpo + saludo).replace("<br>", "\n")
+        texto = re.sub(r"<br\s*/?>", "\n", strip_dialog_links(cuerpo + saludo))
         copy_to_clipboard(texto)
 
 
