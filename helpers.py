@@ -17,8 +17,8 @@ def dialog_link(texto: str, clave: str, placeholder: str | None = None) -> str:
     safe = html.escape(texto).replace("\n", "<br/>")
     style = "color:blue;"
     return (
-        f'<span class="editable" data-key="{clave}" contenteditable="true" '
-        f'style="{style}">{safe}</span>'
+        f'<span class="editable" data-key="{clave}" data-target="{clave}" '
+        f'contenteditable="true" style="{style}">{safe}</span>'
     )
 
 
@@ -34,8 +34,8 @@ def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None)
     style_str = "".join(style)
     safe = html_text.replace("\n", "<br/>")
     return (
-        f'<span class="editable" data-key="{clave}" contenteditable="true" '
-        f'style="{style_str}">{safe}</span>'
+        f'<span class="editable" data-key="{clave}" data-target="{clave}" '
+        f'contenteditable="true" style="{style_str}">{safe}</span>'
     )
 
 
