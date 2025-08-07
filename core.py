@@ -47,7 +47,7 @@ _cfg = _cargar_config()
 
 def _get_openai_client():
     """Return an OpenAI client compatible with v0 and v1 APIs."""
-    api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", ""))
+    api_key = os.environ.get("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", _cfg.get("api_key", ""))
     proxy = os.environ.get("PROXY_URL", _cfg.get("proxy", ""))
     try:
         from openai import OpenAI  # type: ignore
