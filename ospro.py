@@ -392,8 +392,11 @@ def limpiar_pies_de_pagina(texto: str) -> str:
     return re.sub(_FOOTER_REGEX, " ", texto)
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
-_PAT_CARAT_1 = re.compile(          # 1) entre comillas
-    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)\s*\)', re.I)
+_PAT_CARAT_1 = re.compile(          # 1) bloque completo con o sin paréntesis
+    r'([^"\n]*?["“][^"”]+?["”])\s*'
+    r'(?:\(\s*(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+)\s*\)'
+    r'|(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+))',
+    re.I)
 
 _PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
@@ -415,8 +418,12 @@ def extraer_caratula(txt: str) -> str:
 
     m = _PAT_CARAT_1.search(plano)
     if m:
-        titulo, nro = m.groups()
-        return f'“{titulo.strip()}” (SAC N° {nro})'
+        bloque, n1, n2 = m.groups()
+        nro = n1 or n2
+        bloque = bloque.strip()
+        if bloque.startswith(('"', '“')) and bloque.endswith(('"', '”')):
+            bloque = bloque[1:-1]
+        return f'{bloque.strip()} (SAC N° {nro})'
 
     m = _PAT_CARAT_2.search(plano)
     if m:
