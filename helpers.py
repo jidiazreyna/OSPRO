@@ -2,24 +2,24 @@ import html
 import re
 
 
-def dialog_link(texto: str, clave: str, placeholder: str | None = None) -> str:
-    """Return an inline editable element linked to ``clave``.
-
-    Instead of generating an ``<a>`` tag that abre un cuadro de diálogo, the
-    new implementation produces a ``<span>`` con ``contenteditable``.  Editing
-    the highlighted text sends its contenido to la aplicación mediante
-    JavaScript, permitiendo actualizar el campo correspondiente en la barra
-    lateral sin abrir ventanas modales.
+def dialog_link(texto: str, key: str, *, bold: bool = False) -> str:
     """
+    Envuelve `texto` en un <span> editable que refleja automáticamente
+    su contenido en st.session_state[key].
 
-    if not texto.strip():
-        texto = placeholder or clave
-    safe = html.escape(texto).replace("\n", "<br/>")
-    style = "color:blue;"
-    return (
-        f'<span class="editable" data-key="{clave}" data-target="{clave}" '
-        f'contenteditable="true" style="{style}">{safe}</span>'
+    • key        → nombre exacto del widget/clave en session_state  
+    • bold=True  → mantiene el <b> que usás en algunos llamados
+    """
+    safe = html.escape(texto or "")
+    span = (
+        f"<span contenteditable='true' "
+        f"       spellcheck='false' "
+        f"       class='editable' "
+        f"       style='color:#0068c9;text-decoration:underline;cursor:pointer;' "
+        f"       data-key='{key}'>"      # ← ***importantísimo***
+        f"{safe}</span>"
     )
+    return f"<b>{span}</b>" if bold else span
 
 
 def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None) -> str:

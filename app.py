@@ -278,14 +278,14 @@ with tabs[0]:
     st.markdown(fecha_html, unsafe_allow_html=True)
 
     # variables con links
-    car_a   = f"<b>{dialog_link(caratula,'carat')}</b>"
-    trib_a  = f"<b>{dialog_link(tribunal,'trib')}</b>"
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
-    sent_n  = dialog_link(sent_num,'snum')
-    sent_f  = dialog_link(sent_fecha,'sfecha')
-    res_a   = dialog_link(resuelvo,'sres')
-    firm_a  = dialog_link(firmantes,'sfirmaza')
-    firmeza = dialog_link(sent_firmeza,'sfirmaza')
+    car_a = dialog_link(caratula, "carat", bold=True)
+    trib_a = dialog_link(tribunal, "trib", bold=True)
+    imp_a = dialog_link(st.session_state.get('imp0_datos', ''), 'imp0_datos')
+    sent_n = dialog_link(sent_num, 'snum')
+    sent_f = dialog_link(sent_fecha, 'sfecha')
+    res_a = dialog_link(resuelvo, 'sres')
+    firm_a = dialog_link(firmantes, 'sfirmaza')
+    firmeza = dialog_link(sent_firmeza, 'sfirmaza')
 
     # cuerpo (justificado)
     cuerpo_html = "".join([
