@@ -13,7 +13,7 @@ def dialog_link(texto: str, clave: str, placeholder: str | None = None) -> str:
     """
 
     if not texto.strip():
-        texto = placeholder or f"[{clave}]"
+        texto = placeholder or clave
     safe = html.escape(texto).replace("\n", "<br/>")
     style = "color:blue;"
     return (
