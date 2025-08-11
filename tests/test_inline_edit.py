@@ -9,7 +9,7 @@ from helpers import anchor, strip_anchors
 def test_anchor_produces_editable_span():
     html = anchor("Texto", "edit_field")
     assert html.startswith("<span")
-    assert 'contenteditable="true"' in html
+    assert 'contenteditable="plaintext-only"' in html
     assert 'data-key="edit_field"' in html
 
 
@@ -21,7 +21,7 @@ def test_strip_anchors_removes_wrapper():
 
 def test_anchor_without_text_shows_ellipsis_and_is_blue():
     html = anchor("", "edit_field")
-    assert 'style="color:blue;"' in html
+    assert 'class="editable"' in html
     assert ">…<" in html
     assert "[" not in html and "]" not in html
 
