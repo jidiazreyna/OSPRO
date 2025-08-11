@@ -19,13 +19,14 @@ def dialog_link(texto: str, key: str, placeholder: str | None = None, *, bold: b
 
     safe = html.escape(contenido)
     span = (
-        f'<span contenteditable="true" '
+        f'<span contenteditable="plaintext-only" '  # ← texto plano
         f'spellcheck="false" '
         f'class="editable" '
-        f'style="color:blue;" '
-        f'data-origin="" '  # 👈 seguimiento origen
+        f'data-singleline="1" '                    # ← tratamos Enter especial
+        f'data-origin="" '
         f'data-key="{key}" data-target="{key}">{safe}</span>'
     )
+
     return f"<b>{span}</b>" if bold else span
 
 def dialog_link_html(html_text: str, clave: str, placeholder: str | None = None) -> str:
