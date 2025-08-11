@@ -118,52 +118,98 @@ _js_edit_handler = """
 
   // Evitar duplicados al rerender
   if (parent.__ospro_handlers__) {
-    const {span, sidebar} = parent.__ospro_handlers__;
+    const {span, sidebar, keydown} = parent.__ospro_handlers__;
     doc.removeEventListener('input', span, true);
     doc.removeEventListener('blur',  span, true);
     doc.removeEventListener('input', sidebar, true);
+    if (keydown) doc.removeEventListener('keydown', keydown, true);
+  }
+
+  // Mover el cursor después de un nodo
+  function placeCaretAfter(node) {
+    try {
+      const r = doc.createRange();
+      r.setStartAfter(node);
+      r.collapse(true);
+      const sel = doc.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+    } catch (_) {}
+  }
+
+  // ENTER dentro del anchor: impedir salto dentro del span y salir
+  function keydownHandler(e) {
+    const el = e.target && e.target.closest && e.target.closest('.editable');
+    if (!el) return;
+
+    // Enter simple → salir del anchor (Shift+Enter se permite como salto suave)
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+
+      // sincroniza con la barra lateral antes de salir
+      const key = el.dataset.key;
+      const value = el.innerText;
+      const campo = doc.getElementById(key);
+      if (campo) {
+        campo.dataset.origin = 'span';
+        if (campo.value !== value) campo.value = value;
+        campo.dataset.origin = '';
+      }
+      try { Streamlit.setComponentValue({ key, value, origin: 'span' }); } catch (_) {}
+
+      // Inserta un <br> inmediatamente DESPUÉS del span y ubica el cursor ahí
+      const br = doc.createElement('br');
+      if (el.nextSibling) {
+        el.parentNode.insertBefore(br, el.nextSibling);
+      } else {
+        el.parentNode.appendChild(br);
+      }
+      placeCaretAfter(br);
+    }
   }
 
   function spanHandler(e) {
-    const el = e.target.closest('.editable');
-    if (!el || el.dataset.origin === 'sidebar') return; // 👈 evita loop
+    const el = e.target && e.target.closest && e.target.closest('.editable');
+    if (!el || el.dataset.origin === 'sidebar') return;
     const key = el.dataset.key;
     const value = el.innerText;
     const campo = doc.getElementById(key);
     if (campo) {
-      campo.dataset.origin = 'span'; // 👈 marca origen
-      if (campo.value !== value) campo.value = value; // 👈 sync inmediata
+      campo.dataset.origin = 'span';
+      if (campo.value !== value) campo.value = value;
       campo.dataset.origin = '';
     }
-    Streamlit.setComponentValue({ key, value, origin: 'span' }); // 👈 span → Python
+    try { Streamlit.setComponentValue({ key, value, origin: 'span' }); } catch (_) {}
   }
 
   function sidebarHandler(e) {
-    const el = e.target.closest('input, textarea');
+    const el = e.target && e.target.closest && e.target.closest('input, textarea');
     if (!el) return;
     const key = el.id;
-    if (!key || el.dataset.origin === 'span') return; // 👈 evita loop
+    if (!key || el.dataset.origin === 'span') return;
     const value = el.value;
     const spans = doc.querySelectorAll(`.editable[data-key="${key}"]`);
     spans.forEach(sp => {
       if (sp.innerText !== value) {
-        sp.dataset.origin = 'sidebar'; // 👈 marca origen
-        sp.innerText = value; // 👈 sidebar → span
+        sp.dataset.origin = 'sidebar';
+        sp.innerText = value;
         sp.dataset.origin = '';
       }
     });
   }
 
+  doc.addEventListener('keydown', keydownHandler, true);
   doc.addEventListener('input', spanHandler, true);
   doc.addEventListener('blur',  spanHandler, true);
   doc.addEventListener('input', sidebarHandler, true);
-  parent.__ospro_handlers__ = {span: spanHandler, sidebar: sidebarHandler};
+  parent.__ospro_handlers__ = {span: spanHandler, sidebar: sidebarHandler, keydown: keydownHandler};
 
   Streamlit.setComponentReady();
   Streamlit.setFrameHeight(0);
 })();
 </script>
 """
+
 edit_event = _html_compat(_js_edit_handler, height=0, width=0)  # 👈 iny. bidireccional
 
 
