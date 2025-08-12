@@ -94,6 +94,25 @@ div[role="tablist"]::-webkit-scrollbar {
     height: 8px;
 }
 </style>
+<script>
+(function() {
+  const doc = window.parent.document;
+  function bindWheel() {
+    const el = doc.querySelector('div[role="tablist"]');
+    if (!el || el.dataset.wheelbound) return;
+    el.dataset.wheelbound = '1';
+    el.addEventListener('wheel', (evt) => {
+      if (evt.deltaY !== 0) {
+        evt.preventDefault();
+        el.scrollLeft += evt.deltaY;
+      }
+    }, {passive: false});
+  }
+  const obs = new MutationObserver(bindWheel);
+  obs.observe(doc.body, {childList: true, subtree: true});
+  bindWheel();
+})();
+</script>
 """, unsafe_allow_html=True)
 
 LINE_STYLE = "margin:0;line-height:150%;mso-line-height-alt:150%;"
