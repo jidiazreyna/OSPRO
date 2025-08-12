@@ -17,6 +17,8 @@ from core import (
 )  # lógica de autocompletado y listas
 from helpers import dialog_link, strip_dialog_links, create_clipboard_html
 
+CARACTER_ENTREGA = ["definitivo", "de depositario judicial"]
+
 # ────────── util: copiar al portapapeles ────────────────────────────
 def copy_to_clipboard(texto: str) -> None:
     """
@@ -258,6 +260,17 @@ def fecha_alineada(loc: str, fecha=None, punto=False):
     txt = f"{loc}, {d.day} de {MESES_ES[d.month-1]} de {d.year}"
     return txt + ("." if punto else "")
 
+def res_decomiso() -> str:
+    txt = resuelvo
+    plano = " ".join(txt.splitlines())
+    pattern = r"\b([IVXLCDM]+|\d+)[\.\)]\s+([\s\S]*?)(?=\b(?:[IVXLCDM]+|\d+)[\.\)]\s+|$)"
+    partes = []
+    for m in re.finditer(pattern, plano, re.IGNORECASE):
+        num, t = m.group(1), m.group(2).strip()
+        if re.search(r"decomis", t, re.IGNORECASE):
+            partes.append(f"{num}. {t}")
+    return " ".join(partes) if partes else (resuelvo or "…")
+
 # ────────── callback: normaliza la carátula después de editar ───────
 def _normalizar_caratula():
     raw  = st.session_state.carat
@@ -328,6 +341,38 @@ def html_copy_button(label: str, html_fragment: str, *, key: str | None = None):
     except TypeError:
         components.html(js, height=40)              # Streamlit ≤ 1.29
 
+def connect_tabs(a: str, b: str) -> None:
+    js = """
+    <script>
+    (function() {
+      const doc = parent.document;
+      function draw() {
+        const id = 'related_indicator';
+        const old = doc.getElementById(id); if (old) old.remove();
+        const tabs = Array.from(doc.querySelectorAll('button[role="tab"]'));
+        const ta = tabs.find(el => el.innerText.trim() === '%s');
+        const tb = tabs.find(el => el.innerText.trim() === '%s');
+        if (!ta || !tb) return;
+        const ra = ta.getBoundingClientRect();
+        const rb = tb.getBoundingClientRect();
+        const div = doc.createElement('div');
+        div.id = id;
+        div.style.position = 'absolute';
+        div.style.background = '#0068c9';
+        div.style.height = '2px';
+        div.style.top = (ra.bottom + window.scrollY) + 'px';
+        div.style.left = (ra.left + ra.width/2) + 'px';
+        div.style.width = (rb.left + rb.width/2 - (ra.left + ra.width/2)) + 'px';
+        doc.body.appendChild(div);
+      }
+      draw();
+      doc.addEventListener('click', draw);
+      window.addEventListener('resize', draw);
+    })();
+    </script>
+    """ % (html.escape(a), html.escape(b))
+    _html_compat(js, height=0)
+
 # ────────── barra lateral: datos generales ──────────────────────────
 with st.sidebar:
     st.header("Datos generales")
@@ -352,6 +397,18 @@ with st.sidebar:
     firmantes    = st.text_input("Firmantes", key="sfirmantes")  # Corregido key
     consulado    = st.text_input("Consulado", key="consulado")
     deposito     = combo_editable("Depósito", DEPOSITOS, key="deposito")
+
+    rodado       = st.text_input("Decomisado/secuestrado", key="rodado")
+    st.write("Reg. automotor / Comisaría:")
+    col_rc = st.columns(2)
+    regn      = col_rc[0].text_input("Reg. N°", key="regn")
+    comisaria = col_rc[1].text_input("Comisaría N°", key="comisaria")
+    dep_def    = combo_editable("Carácter de la entrega", CARACTER_ENTREGA, key="dep_def")
+    titular_veh = st.text_input("Titular del vehículo", key="titular_veh")
+    st.write("Inf. Téc. Iden. Matrícula:")
+    col_it = st.columns(2)
+    itim_num   = col_it[0].text_input("N°", key="itim_num")
+    itim_fecha = col_it[1].text_input("Fecha", key="itim_fecha")
 
     # Nº de imputados dinámico
     n = st.number_input(
@@ -408,7 +465,9 @@ tabs = st.tabs([
     "Migraciones", "Consulado", "Juez Electoral", "Policía Documentación",
     "Registro Civil", "Reg. Condenados Sexuales", "RNR", "Complejo Carcelario",
     "Juzgado Niñez-Adolescencia", "RePAT", "Fiscalía Instrucción",
+    "Automotores Secuestrados", "Registro Automotor", "Decomiso (Reg. Automotor)",
 ])
+connect_tabs("Registro Automotor", "Decomiso (Reg. Automotor)")
 
 # ───── TAB 0 : Migraciones ─────────────────────────────────────────
 with tabs[0]:
@@ -831,3 +890,106 @@ with tabs[10]:
     st.markdown(saludo_html, unsafe_allow_html=True)
 
     html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_fiscinst")
+
+# ───── TAB 11 : Automotores Secuestrados ───────────────────────────
+with tabs[11]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a       = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a      = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    rodado_a    = dialog_link(rodado, 'rodado')
+    deposito_a  = dialog_link(deposito, 'deposito')
+    dep_def_a   = dialog_link(dep_def, 'dep_def')
+    titular_a   = dialog_link(titular_veh, 'titular_veh')
+    itim_n_a    = dialog_link(itim_num, 'itim_num')
+    itim_f_a    = dialog_link(itim_fecha, 'itim_fecha')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>A LA OFICINA DE</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>AUTOMOTORES SECUESTRADOS EN </b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>CAUSAS PENALES, TRIBUNAL SUPERIOR DE JUSTICIA.</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha resuelto enviar a Ud. el presente a fines de solicitarle que establezca lo necesario para que, por intermedio de quien corresponda, se coloque a la orden y disposición del Tribunal señalado, el rodado {rodado_a}, vehículo que se encuentra en el {deposito_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se hace saber a Ud. que dicha petición obedece a que el Tribunal mencionado ha dispuesto la entrega del referido vehículo en carácter {dep_def_a} a su titular registral {titular_a}. Para mayor recaudo se adjunta al presente, en documento informático, copia de la resolución que dispuso la medida.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Finalmente, se informa que a dicho rodado, se le realizó el correspondiente Informe Técnico de Identificación de Matrículas N° {itim_n_a} de fecha {itim_f_a}, concluyendo el mismo que la unidad no presenta adulteración en sus matrículas identificatorias.</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Saludo a Ud. muy atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_autosec")
+
+# ───── TAB 12 : Registro Automotor ─────────────────────────────────
+with tabs[12]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a    = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a   = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n   = dialog_link(sent_num,'snum')
+    sent_f   = dialog_link(sent_fecha,'sfecha')
+    res      = res_decomiso()
+    res_a    = dialog_link(res,'sres')
+    firm_a   = dialog_link(firmantes,'sfirmantes')
+    regn_a   = dialog_link(regn,'regn')
+    rodado_a = dialog_link(rodado,'rodado')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>AL SR. TITULAR DEL REGISTRO DE LA</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>PROPIEDAD DEL AUTOMOTOR N° {regn_a}</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>&emsp;En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con intervención de esta<b> Oficina de Servicios </b><b>Procesales – OSPRO –</b>, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante Sentencia N° {sent_n} de fecha {sent_f}, dicho Tribunal resolvió ordenar el <b>DECOMISO</b> del {rodado_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se transcribe a continuación la parte pertinente de la misma:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>&ldquo;SE RESUELVE: {res_a}&rdquo;. (Fdo.: {firm_a}).</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. atte.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_regauto")
+
+# ───── TAB 13 : Decomiso (Reg. Automotor) ──────────────────────────
+with tabs[13]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a    = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a   = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n   = dialog_link(sent_num,'snum')
+    sent_f   = dialog_link(sent_fecha,'sfecha')
+    res      = res_decomiso()
+    res_a    = dialog_link(res,'sres')
+    firm_a   = dialog_link(firmantes,'sfirmantes')
+    rodado_a = dialog_link(rodado,'rodado')
+    deposito_a = dialog_link(deposito,'deposito')
+    regn_a   = dialog_link(regn,'regn')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>A LA SRA. SECRETARIA PENAL</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DEL TRIBUNAL SUPERIOR DE JUSTICIA</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DRA. MARIA PUEYRREDON DE MONFARRELL</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S______/_______D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con conocimiento e intervención de esta <b>Oficina de Servicios</b> <b>Procesales – OSPRO –</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto por la Sentencia N° {sent_n} del {sent_f}, dictada por el tribunal mencionado, en virtud de la cual se ordenó el <b>DECOMISO</b> de los siguientes objetos:</p>",
+        f"<table border='1' cellspacing='0' cellpadding='2'><tr><th>Tipos de elementos</th><th>Ubicación actual</th></tr><tr><td>{rodado_a}</td><td>{deposito_a}</td></tr></table>",
+        f"<p align='justify' style='{LINE_STYLE}'>Pongo en su conocimiento que la mencionada sentencia se encuentra firme, transcribiéndose a continuación la parte pertinente de la misma:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>&ldquo;SE RESUELVE: {res_a}&rdquo;. (Fdo.: {firm_a}).</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Asimismo, se informa que en el día de la fecha se comunicó dicha resolución al Registro del Automotor donde está radicado el vehículo, Nº {regn_a}.</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. muy atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_decomregauto")
