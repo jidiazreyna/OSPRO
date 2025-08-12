@@ -466,8 +466,10 @@ tabs = st.tabs([
     "Registro Civil", "Reg. Condenados Sexuales", "RNR", "Complejo Carcelario",
     "Juzgado Niñez-Adolescencia", "RePAT", "Fiscalía Instrucción",
     "Automotores Secuestrados", "Registro Automotor", "Decomiso (Reg. Automotor)",
+    "Decomiso Con Traslado", "Comisaría Traslado", "Decomiso Sin Traslado",
 ])
 connect_tabs("Registro Automotor", "Decomiso (Reg. Automotor)")
+connect_tabs("Decomiso Con Traslado", "Comisaría Traslado")
 
 # ───── TAB 0 : Migraciones ─────────────────────────────────────────
 with tabs[0]:
@@ -993,3 +995,108 @@ with tabs[13]:
     st.markdown(saludo_html, unsafe_allow_html=True)
 
     html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_decomregauto")
+
+# ───── TAB 14 : Decomiso Con Traslado ──────────────────────────
+with tabs[14]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a       = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a      = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n      = dialog_link(sent_num,'snum')
+    sent_f      = dialog_link(sent_fecha,'sfecha')
+    res         = res_decomiso()
+    res_a       = dialog_link(res,'sres')
+    firm_a      = dialog_link(firmantes,'sfirmantes')
+    rodado_a    = dialog_link(rodado,'rodado')
+    comisaria_a = dialog_link(comisaria,'comisaria')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>A LA SRA. SECRETARIA PENAL</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DEL TRIBUNAL SUPERIOR DE JUSTICIA</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DRA. MARIA PUEYRREDON DE MONFARRELL</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con intervención de esta <b>Oficina de Servicios Procesales</b> <b>- OSPRO -</b>, se ha dispuesto librar a Ud. el presente, a fin de informarle que mediante Sentencia N° {sent_n} de {sent_f}, dicho Tribunal resolvió ordenar el <b>DECOMISO</b> de los siguientes objetos:</p>",
+        f"<table border='1' cellspacing='0' cellpadding='2'><tr><th>Descripción del objeto</th><th>Ubicación Actual</th></tr><tr><td>{rodado_a}</td><td>Comisaría {comisaria_a}</td></tr></table>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se hace saber a Ud. que el/los elemento/s referido/s se encuentra/n en la Cría. {comisaria_a} de la Policía de Córdoba y en el día de la fecha se libró oficio a dicha dependencia policial a los fines de remitir al Depósito General de Efectos Secuestrados el/los objeto/s decomisado/s.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Asimismo, informo que la sentencia referida se encuentra firme, transcribiéndose a continuación la parte pertinente de la misma: &ldquo;SE RESUELVE: {res_a}&rdquo;. (Fdo.: {firm_a}).</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. muy atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_decom_ct")
+
+# ───── TAB 15 : Comisaría Traslado ─────────────────────────────
+with tabs[15]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a       = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a      = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n      = dialog_link(sent_num,'snum')
+    sent_f      = dialog_link(sent_fecha,'sfecha')
+    res         = res_decomiso()
+    res_a       = dialog_link(res,'sres')
+    firm_a      = dialog_link(firmantes,'sfirmantes')
+    rodado_a    = dialog_link(rodado,'rodado')
+    comisaria_a = dialog_link(comisaria,'comisaria')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>AL SR. TITULAR</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DE LA COMISARÍA N° {comisaria_a} </b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DE LA POLICÍA DE CÓRDOBA</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con intervención de esta <b>Oficina de Servicios Procesales</b> <b>- OSPRO -</b>, se ha dispuesto librar a Ud. el presente, a los fines de solicitarle que personal a su cargo Traslade los efectos que a continuación se detallan al Depósito General de Efectos Secuestrados -sito en calle Abdel Taier n° 270, B° Comercial, de esta ciudad de Córdoba-, para que sean allí recibidos:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>{rodado_a}</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Lo solicitado obedece a directivas generales impartidas por la Secretaría Penal del T.S.J, de la cual depende esta Oficina, para los casos en los que se haya dictado la pena de decomiso y los objetos aún estén en las Comisarías, Subcomisarías y otras dependencias policiales.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se transcribe a continuación la parte pertinente de la Sentencia que así lo ordena:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Sentencia N° {sent_n} de fecha {sent_f}, &ldquo;{res_a}&rdquo;. (Fdo.: {firm_a}), elemento/s que fuera/n secuestrado/s en las presentes actuaciones y que actualmente se encuentra/n en el Depósito de la Comisaría a su cargo.</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. muy atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_comis_trasl")
+
+# ───── TAB 16 : Decomiso Sin Traslado ─────────────────────────
+with tabs[16]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a      = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a     = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n     = dialog_link(sent_num,'snum')
+    sent_f     = dialog_link(sent_fecha,'sfecha')
+    res        = res_decomiso()
+    res_a      = dialog_link(res,'sres')
+    firm_a     = dialog_link(firmantes,'sfirmantes')
+    rodado_a   = dialog_link(rodado,'rodado')
+    deposito_a = dialog_link(deposito,'deposito')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>A LA SRA. SECRETARIA PENAL</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DEL TRIBUNAL SUPERIOR DE JUSTICIA</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DRA. MARIA PUEYRREDON DE MONFARRELL</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S______/_______D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con conocimiento e intervención de esta <b>Oficina de Servicios</b> <b>Procesales ‑ OSPRO‑</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto por la Sentencia N° {sent_n} del {sent_f}, dictada por la Cámara mencionada, en virtud de la cual se ordenó el <b>DECOMISO</b> de los siguientes objetos:</p>",
+        f"<table border='1' cellspacing='0' cellpadding='2'><tr><th>TIPOS DE ELEMENTOS</th><th>UBICACIÓN ACTUAL</th></tr><tr><td>{rodado_a}</td><td>{deposito_a}</td></tr></table>",
+        f"<p align='justify' style='{LINE_STYLE}'>Pongo en su conocimiento que la mencionada resolución se encuentra firme, transcribiéndose a continuación la parte pertinente de la misma: &ldquo;SE RESUELVE: {res_a}&rdquo;. (Fdo.: {firm_a}).</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. muy atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_decom_st")
