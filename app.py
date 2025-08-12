@@ -14,6 +14,7 @@ from core import (
     DEPOSITOS,
     JUZ_NAVFYG,
     TRIBUNALES,
+    MAX_IMPUTADOS,
 )  # lógica de autocompletado y listas
 from helpers import dialog_link, strip_dialog_links, create_clipboard_html
 
@@ -481,8 +482,9 @@ with st.sidebar:
     itim_fecha = col_it[1].text_input("Fecha", key="itim_fecha")
 
     # Nº de imputados dinámico
+    st.session_state.n_imputados = min(st.session_state.n_imputados, MAX_IMPUTADOS)
     n = st.number_input(
-        "Número de imputados", 1, 20, st.session_state.n_imputados,
+        "Número de imputados", 1, MAX_IMPUTADOS, st.session_state.n_imputados,
         key="n_imp", on_change=st.rerun,
     )
     st.session_state.n_imputados = n
