@@ -373,8 +373,29 @@ def connect_tabs(a: str, b: str) -> None:
     """ % (html.escape(a), html.escape(b))
     _html_compat(js, height=0)
 
+
+def switch_tab(name: str) -> None:
+    js = f"""
+    <script>
+      const tabs = parent.document.querySelectorAll('button[role="tab"]');
+      const t = Array.from(tabs).find(el => el.innerText.trim() === {json.dumps(name)});
+      if (t) t.click();
+    </script>
+    """
+    _html_compat(js, height=0)
+
+
+TAB_NAMES = [
+    "Migraciones", "Consulado", "Juez Electoral", "Policía Documentación",
+    "Registro Civil", "Reg. Condenados Sexuales", "RNR", "Complejo Carcelario",
+    "Juzgado Niñez-Adolescencia", "RePAT", "Fiscalía Instrucción",
+    "Automotores Secuestrados", "Registro Automotor", "Decomiso (Reg. Automotor)",
+]
+
+
 # ────────── barra lateral: datos generales ──────────────────────────
 with st.sidebar:
+    tab_dest = st.selectbox("Ir a oficio", TAB_NAMES, key="tab_select")
     st.header("Datos generales")
     loc       = st.text_input("Localidad", value="Córdoba", key="loc")
     st.text_input(
@@ -461,16 +482,10 @@ with st.sidebar:
 
 
 # ────────── panel principal: tabs de oficios ────────────────────────
-tabs = st.tabs([
-    "Migraciones", "Consulado", "Juez Electoral", "Policía Documentación",
-    "Registro Civil", "Reg. Condenados Sexuales", "RNR", "Complejo Carcelario",
-    "Juzgado Niñez-Adolescencia", "RePAT", "Fiscalía Instrucción",
-    "Automotores Secuestrados", "Registro Automotor", "Decomiso (Reg. Automotor)",
-    "Decomiso Con Traslado", "Comisaría Traslado", "Decomiso Sin Traslado",
-])
+tabs = st.tabs(TAB_NAMES)
 connect_tabs("Registro Automotor", "Decomiso (Reg. Automotor)")
 connect_tabs("Decomiso Con Traslado", "Comisaría Traslado")
-
+switch_tab(tab_dest)
 # ───── TAB 0 : Migraciones ─────────────────────────────────────────
 with tabs[0]:
     loc_a  = dialog_link(loc, 'loc')
