@@ -660,9 +660,26 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
 
     imps = datos.get("imputados") or []
 
+
     def _dp_from_block(b: str) -> dict:
         d = extraer_datos_personales(b)
-        return {"datos_personales": d, "dni": d.get("dni", ""), "nombre": d.get("nombre", "")}
+        return {
+            "datos_personales": d,
+            "dni": d.get("dni", ""),
+            "nombre": d.get("nombre", ""),
+        }
+
+    # ✅ Siempre preferimos nuestra segmentación local: es más confiable
+    bloques = segmentar_imputados(texto)
+    if bloques:
+        datos["imputados"] = [_dp_from_block(b) for b in bloques]
+    else:
+        # Sólo si no pudimos segmentar, usamos lo que vino del modelo
+        imps = datos.get("imputados") or []
+        if not imps:
+            dp_auto = extraer_datos_personales(texto)
+            if dp_auto:
+                datos["imputados"] = [{"datos_personales": dp_auto, "dni": dp_auto.get("dni","")}]
 
     # Si no hay imputados, o el primero trae un string largo (mal), rehago desde el texto
     if not imps or any(isinstance(imp.get("datos_personales"), str) and es_multipersona(imp["datos_personales"]) for imp in imps):
