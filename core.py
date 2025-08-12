@@ -132,10 +132,6 @@ TRIBUNALES = [
 ]
 
 
-# Máximo de imputados soportados por la interfaz
-MAX_IMPUTADOS = 20
-
-
 def _get_openai_client():
     """Return an OpenAI client compatible with v0 and v1 APIs."""
     api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", ""))
@@ -443,93 +439,51 @@ def _recortar_bloque_un_persona(b: str) -> str:
         s = s[:dnis[1].start()]
     return s.strip()
 
-
-def _extraer_datos_personales_ia(texto: str) -> dict:
-    """Intenta extraer datos personales usando un modelo de lenguaje.
-
-    Devuelve un ``dict`` con las claves solicitadas.  Si falla o no hay
-    credenciales de OpenAI configuradas, retorna un ``dict`` vacío.
-    """
-    try:
-        client = _get_openai_client()
-    except Exception:
-        return {}
-
-    kwargs = dict(
-        model="gpt-4o-mini",
-        temperature=0,
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Extraé un JSON con las claves: nombre, dni, ocupacion, "
-                    "padres, domicilio, alias, fecha_nacimiento y nacionalidad. "
-                    "Si algún dato falta, devolvé la clave vacía."
-                ),
-            },
-            {"role": "user", "content": texto[:4000]},
-        ],
-    )
-    try:
-        if hasattr(client, "chat"):
-            rsp = client.chat.completions.create(**kwargs)  # type: ignore
-        else:  # pragma: no cover - API v0
-            rsp = client.ChatCompletion.create(**kwargs)  # type: ignore
-        return json.loads(rsp.choices[0].message.content)
-    except Exception:
-        return {}
-
 def extraer_datos_personales(texto: str) -> dict:
-    t = re.sub(r'\s+', ' ', texto)
+    t = re.sub(r'\s+', ' ', texto)  # línea corrida para facilitar regex largas
     dp: dict[str, str | list] = {}
 
-    # 1) Intento con IA
-    dp_ia = _extraer_datos_personales_ia(t)
-    if dp_ia.get("dni"):
-        dp_ia["dni"] = normalizar_dni(dp_ia.get("dni"))
-    if isinstance(dp_ia.get("padres"), str):
-        padres = [p.strip() for p in re.split(r"\s+y\s+|,", dp_ia["padres"]) if p.strip()]
-        dp_ia["padres"] = padres
-    if dp_ia.get("nombre"):
-        dp_ia["nombre"] = capitalizar_frase(dp_ia["nombre"])
-    dp.update({k: v for k, v in dp_ia.items() if v})
-
-    # 2) Complemento con regex para datos faltantes
+    # Nombre cerca de "de XX años ... DNI"
+    m = NOMBRE_RE.search(t)
+    if m:
+        dp["nombre"] = capitalizar_frase(m.group(1).strip())
+    # Nombre: prefiero el que está al INICIO del bloque; si no, el genérico
     m = NOMBRE_INICIO_RE.search(t) or NOMBRE_RE.search(t)
     if m:
-        dp.setdefault("nombre", capitalizar_frase(m.group(1).strip()))
+        dp["nombre"] = capitalizar_frase(m.group(1).strip())
 
-    m_dni_txt = DNI_TXT_RE.search(t)
-    m_dni_num = DNI_REGEX.search(t)
-    first_dni = m_dni_txt or m_dni_num
-    if m_dni_txt:
-        dp.setdefault("dni", normalizar_dni(m_dni_txt.group(1)))
-    elif m_dni_num:
-        dp.setdefault("dni", normalizar_dni(m_dni_num.group(0)))
+    # DNI (robusto)
+    m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
+    if m:
+        dp["dni"] = normalizar_dni(m.group(1))
 
-    alias_scope = t[:first_dni.start()] if first_dni else t
-    m_alias = ALIAS_RE.search(alias_scope)
-    if m_alias:
-        dp.setdefault("alias", m_alias.group(1).strip())
+    # Alias: sólo lo tomo ANTES del primer DNI (evita “heredar” alias ajenos)
+    alias_scope = t[:m.start()] if m else t
+    if (m2 := ALIAS_RE.search(alias_scope)):   
+        dp["alias"] = m2.group(1).strip()
 
-    if (m := EDAD_RE.search(t)):    dp.setdefault("edad", m.group(1))
-    if (m := NAC_RE.search(t)):     dp.setdefault("nacionalidad", m.group(1).strip())
-    if (m := ECIVIL_RE.search(t)):  dp.setdefault("estado_civil", m.group(1).strip())
-    if (m := OCUP_RE.search(t)):    dp.setdefault("ocupacion", m.group(1).strip())
-    if (m := INSTR_RE.search(t)):   dp.setdefault("instruccion", m.group(1).strip())
-    if (m := DOM_RE.search(t)):     dp.setdefault("domicilio", m.group(1).strip())
-    if (m := FNAC_RE.search(t)):    dp.setdefault("fecha_nacimiento", m.group(1).strip())
-    if (m := LNAC_RE.search(t)):    dp.setdefault("lugar_nacimiento", m.group(1).strip())
+    # DNI (robusto)
+    m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
+    if m:
+        dp["dni"] = normalizar_dni(m.group(1))
+
+    if (m := ALIAS_RE.search(t)):   dp["alias"] = m.group(1).strip()
+    if (m := EDAD_RE.search(t)):    dp["edad"]  = m.group(1)
+    if (m := NAC_RE.search(t)):     dp["nacionalidad"] = m.group(1).strip()
+    if (m := ECIVIL_RE.search(t)):  dp["estado_civil"] = m.group(1).strip()
+    if (m := OCUP_RE.search(t)):    dp["ocupacion"]    = m.group(1).strip()
+    if (m := INSTR_RE.search(t)):   dp["instruccion"]  = m.group(1).strip()
+    if (m := DOM_RE.search(t)):     dp["domicilio"]    = m.group(1).strip()
+    if (m := FNAC_RE.search(t)):    dp["fecha_nacimiento"] = m.group(1).strip()
+    if (m := LNAC_RE.search(t)):    dp["lugar_nacimiento"] = m.group(1).strip()
     if (m := PADRES_RE.search(t)):
         padres = [m.group(1).strip()]
         if m.group(2): padres.append(m.group(2).strip())
-        dp.setdefault("padres", padres)
+        dp["padres"] = padres
     if (m := PRIO_RE.search(t)):
-        dp.setdefault("prio", m.group(1).strip())
+        dp["prio"] = m.group(1).strip()
 
     return dp
-
 
 
 def extraer_dni(texto: str) -> str:
@@ -865,8 +819,7 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
 
 
     # ----- IMPUTADOS -----
-    # limitamos al máximo soportado por la UI
-    imps = datos.get("imputados", [])[:MAX_IMPUTADOS]
+    imps = datos.get("imputados", [])
     st.session_state.n_imputados = max(1, len(imps))
 
     for i, imp in enumerate(imps):
@@ -896,7 +849,6 @@ __all__ = [
     "DEPOSITOS",
     "JUZ_NAVFYG",
     "TRIBUNALES",
-    "MAX_IMPUTADOS",
 ]
 
 
