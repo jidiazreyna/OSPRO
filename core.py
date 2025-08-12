@@ -373,6 +373,17 @@ _FIRMAS_REGEX_FDO = re.compile(r'''
     (?:\s*,\s*(?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+))?
 ''', re.IGNORECASE | re.MULTILINE | re.VERBOSE)
 
+_FIRMAS_BLOQUE = re.compile(
+    r'(?:^|\n)\s*(?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:?\s*'
+    r'(?P<nombre>[^\n]+?)\s*(?:\r?\n)+\s*(?P<cargo>[^\n]+)',
+    re.IGNORECASE
+)
+
+_FIRMAS_FDO = re.compile(
+    r'(?:^|\n)\s*Fdo\.?\s*:\s*(?P<nombre>[^\n,]+)\s*(?:,\s*(?P<cargo>[^\n]+))?',
+    re.IGNORECASE
+)
+
 
 # ── validaciones de campos ─────────────────────────────────────────────
 # Carátula: debe incluir un número de expediente o SAC.
@@ -493,27 +504,57 @@ def normalizar_dni(txt: str) -> str:
     return re.sub(r"\D", "", str(txt))
 
 
+def _reordenar_nombre(n: str) -> str:
+    n = n.strip()
+    partes = n.split()
+    if not partes:
+        return n
+    i = 0
+    while i < len(partes) and partes[i].isupper():
+        i += 1
+    if 0 < i < len(partes):
+        apellidos = " ".join(partes[:i]).title()
+        nombres   = " ".join(partes[i:]).title()
+        return f"{nombres} {apellidos}".strip()
+    return capitalizar_frase(n)
+
+
+def _normalizar_cargo(c: str) -> str:
+    c = (c or "").strip()
+    c = c.replace("CAMARA", "Cámara").replace("CAMARA.", "Cámara.")
+    return capitalizar_frase(c)
+
 
 def extraer_firmantes(texto: str) -> list[dict]:
+    texto = limpiar_pies_de_pagina(texto)
+    start = max(0, int(len(texto) * 0.6))
+    cola = texto[start:]
+
     vistos = set()
-    firmas = []
+    firmas: list[dict] = []
 
     def _add(nombre, cargo="", doc=""):
-        if not nombre: return
-        key = (nombre.strip().upper(), cargo.strip().upper())
-        if key in vistos: return
+        nombre = (nombre or "").strip()
+        cargo  = (cargo or "").strip()
+        if not nombre:
+            return
+        nombre = _reordenar_nombre(nombre)
+        cargo  = _normalizar_cargo(cargo)
+        key = (nombre.upper(), cargo.upper())
+        if key in vistos:
+            return
         vistos.add(key)
-        firmas.append({
-            "nombre": capitalizar_frase(nombre).strip(),
-            "cargo" : capitalizar_frase(cargo).strip(),
-            "doc"   : (doc or "").strip(),
-        })
+        firmas.append({"nombre": nombre, "cargo": cargo, "doc": (doc or "").strip()})
 
-    for m in _FIRMAS_REGEX.finditer(texto):
-        _add(m.group("nombre"), m.group("cargo") or "", m.group("doc") or "")
+    for m in _FIRMAS_BLOQUE.finditer(cola):
+        _add(m.group("nombre"), m.group("cargo"))
 
-    for m in _FIRMAS_REGEX_FDO.finditer(texto):
-        _add(m.group("nombre"), m.group("cargo") or "", "")
+    for m in _FIRMAS_FDO.finditer(cola):
+        _add(m.group("nombre"), m.group("cargo") or "")
+
+    if not firmas:
+        for m in _FIRMAS_REGEX.finditer(cola):
+            _add(m.group("nombre"), m.group("cargo") or "", m.group("doc") or "")
 
     return firmas
 
@@ -697,7 +738,7 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
     st.session_state.snum     = _as_str(g.get("sent_num"))
     st.session_state.sfecha   = _as_str(g.get("sent_fecha"))
     st.session_state.sres     = _flatten_resuelvo(_as_str(g.get("resuelvo")))
-    st.session_state.sfirmaza = _as_str(g.get("firmantes"))
+    st.session_state.sfirmeza = _as_str(g.get("firmantes"))
     st.session_state.sfirmantes = _as_str(g.get("firmantes"))
 
     # ----- IMPUTADOS -----
