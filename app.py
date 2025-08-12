@@ -390,7 +390,9 @@ TAB_NAMES = [
     "Registro Civil", "Reg. Condenados Sexuales", "RNR", "Complejo Carcelario",
     "Juzgado Niñez-Adolescencia", "RePAT", "Fiscalía Instrucción",
     "Automotores Secuestrados", "Registro Automotor", "Decomiso (Reg. Automotor)",
+    "Decomiso Con Traslado", "Comisaría Traslado", "Decomiso Sin Traslado",
 ]
+
 
 
 # ────────── barra lateral: datos generales ──────────────────────────
