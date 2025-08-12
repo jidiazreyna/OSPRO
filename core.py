@@ -694,7 +694,14 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     else:
         g.setdefault("caratula", "")
     g.setdefault("tribunal", extraer_tribunal(texto))
-    g.setdefault("firmantes", extraer_firmantes(texto))
+
+    # usar SIEMPRE lo que detecta nuestro parser, si trajo algo
+    firmas = extraer_firmantes(texto)
+    if firmas:
+        g["firmantes"] = firmas
+    else:
+        g.setdefault("firmantes", [])
+
 
     for imp in datos.get("imputados", []):
         dp = imp.get("datos_personales", {}) or {}
@@ -703,9 +710,8 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         else:
             dni = dp.get("dni") or extraer_dni(json.dumps(dp, ensure_ascii=False))
         imp.setdefault("dni", dni)
-    # Completar firmantes si faltan
-    g = datos.setdefault("generales", {})
-    g.setdefault("firmantes", extraer_firmantes(texto))
+
+
 
     # Completar/imputar datos personales
     imps = datos.setdefault("imputados", [])
@@ -737,9 +743,10 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
     st.session_state.trib     = _as_str(g.get("tribunal"))
     st.session_state.snum     = _as_str(g.get("sent_num"))
     st.session_state.sfecha   = _as_str(g.get("sent_fecha"))
-    st.session_state.sres     = _flatten_resuelvo(_as_str(g.get("resuelvo")))
-    st.session_state.sfirmeza = _as_str(g.get("firmantes"))
+    st.session_state.sres       = _flatten_resuelvo(_as_str(g.get("resuelvo")))
+    st.session_state.sfirmeza   = _as_str(g.get("sent_firmeza") or "")  
     st.session_state.sfirmantes = _as_str(g.get("firmantes"))
+
 
     # ----- IMPUTADOS -----
     imps = datos.get("imputados", [])
