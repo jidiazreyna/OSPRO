@@ -373,14 +373,15 @@ with st.sidebar:
             st.text_input("Liberación (fecha y motivo)", key=f"{k}_liberacion")
             st.text_area("Historial de delitos y condenas anteriores", key=f"{k}_antecedentes", height=80)
             st.text_area("Tratamientos médicos y psicológicos", key=f"{k}_tratamientos", height=80)
+            st.text_input("Juzgado de Niñez, Adolescencia, V.F. y Género", key=f"{k}_juz_navfyg")
+            st.text_input("Expediente de V.F. relacionado", key=f"{k}_ee_relacionado")
 
 
 # ────────── panel principal: tabs de oficios ────────────────────────
 tabs = st.tabs([
     "Migraciones", "Consulado", "Juez Electoral", "Policía Documentación",
-    "Registro Civil", "Reg. Condenados Sexuales", "RNR", "Reg. Automotor",
-    "Decomiso (Reg. Auto.)", "Decomiso c/Traslado", "Comisaría Traslado",
-    "Decomiso s/Traslado", "Automotores Secuestrados", "RePAT",
+    "Registro Civil", "Reg. Condenados Sexuales", "RNR", "Complejo Carcelario",
+    "Juzgado Niñez-Adolescencia", "RePAT", "Fiscalía Instrucción",
 ])
 
 # ───── TAB 0 : Migraciones ─────────────────────────────────────────
@@ -662,3 +663,145 @@ with tabs[6]:
     st.markdown(saludo_html, unsafe_allow_html=True)
 
     html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_rnr")
+
+# ───── TAB 7 : Complejo Carcelario ────────────────────────────────
+with tabs[7]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a   = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a  = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n  = dialog_link(sent_num,'snum')
+    sent_f  = dialog_link(sent_fecha,'sfecha')
+    res_a   = dialog_link(resuelvo,'sres')
+    firm_a  = dialog_link(firmantes,'sfirmantes')
+    establecimiento = st.session_state.get('imp0_servicio_penitenciario','').upper()
+    establecimiento_a = dialog_link(establecimiento, 'imp0_servicio_penitenciario')
+    nombre_a = dialog_link(st.session_state.get('imp0_nom',''),'imp0_nom')
+    dni_a    = dialog_link(st.session_state.get('imp0_dni',''),'imp0_dni')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>AL SEÑOR DIRECTOR </b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DEL {establecimiento_a}</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, me dirijo a Ud. a los fines de informar lo resuelto con relación a {nombre_a}, DNI {dni_a}, mediante Sentencia N° {sent_n}, de fecha {sent_f}: “{res_a}”. (Fdo.: {firm_a}).</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, lo saludo atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_comcar")
+
+# ───── TAB 8 : Juzgado Niñez-Adolescencia ─────────────────────────
+with tabs[8]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a   = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a  = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n  = dialog_link(sent_num,'snum')
+    sent_f  = dialog_link(sent_fecha,'sfecha')
+    res_a   = dialog_link(resuelvo,'sres')
+    firm_a  = dialog_link(firmantes,'sfirmantes')
+    juz = st.session_state.get('imp0_juz_navfyg', 'Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de ….. Nom. – Sec. N° …..')
+    if juz.startswith('Juzgado de Niñez,'):
+        juz = juz.replace(', Violencia', ',\nViolencia').replace('Género de ', 'Género de \n')
+    elif 'modalidad doméstica -causas graves-' in juz:
+        juz = juz.replace(', modalidad', ',\nmodalidad').replace('-causas graves- de', '-causas graves-\nde')
+    juz_a = dialog_link(juz, 'imp0_juz_navfyg')
+    ee_rel = st.session_state.get('imp0_ee_relacionado', '………….')
+    ee_rel_a = dialog_link(ee_rel, 'imp0_ee_relacionado')
+    nombre_a = dialog_link(st.session_state.get('imp0_nom',''),'imp0_nom')
+    dni_a    = dialog_link(st.session_state.get('imp0_dni',''),'imp0_dni')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>{juz_a}</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con conocimiento e intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente, a fin de comunicarle lo resuelto por el mencionado Tribunal con relación a {nombre_a}, DNI {dni_a}, mediante Sentencia N° {sent_n}, de fecha {sent_f}: “Se Resuelve: {res_a}” (Fdo.: {firm_a}).</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se adjuntan al presente oficio copia digital de la sentencia y del cómputo de pena respectivo.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Expediente de V.F. relacionado al presente n° {ee_rel_a}</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_jninez")
+
+# ───── TAB 9 : RePAT ───────────────────────────────────────────────
+with tabs[9]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a   = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a  = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n  = dialog_link(sent_num,'snum')
+    sent_f  = dialog_link(sent_fecha,'sfecha')
+    res_a   = dialog_link(resuelvo,'sres')
+    firm_a  = dialog_link(firmantes,'sfirmantes')
+    firmeza = dialog_link(sent_firmeza,'sfirmeza')
+    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>SR. DIRECTOR DEL REGISTRO PROVINCIAL </b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>DE ANTECEDENTES DE TRÁNSITO (RePAT)</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, de esta ciudad de Córdoba, provincia de Córdoba, con intervención de esta <b>Oficina de Servicios Procesales - OSPRO -</b>, se ha dispuesto librar a Ud. el presente a fin de comunicar lo resuelto por dicho Tribunal, respecto de la persona cuyos datos se detallan a continuación:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>{imp_a}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>SENTENCIA N° {sent_n}, DE FECHA {sent_f}: “Se resuelve: {res_a}”. (Fdo.: {firm_a}).</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Asimismo, se informa que la sentencia condenatoria antes referida quedó firme con fecha {firmeza}.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se adjuntan al presente oficio copia digital Sentencia y de cómputo de pena respectivos.</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Saludo a Ud. atentamente.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_repat")
+
+# ───── TAB 10 : Fiscalía Instrucción ───────────────────────────────
+with tabs[10]:
+    loc_a  = dialog_link(loc, 'loc')
+    fecha  = fecha_alineada(loc_a, punto=True)
+
+    fecha_html = f"<p align='right' style='{LINE_STYLE}'>{fecha}</p>"
+    st.markdown(fecha_html, unsafe_allow_html=True)
+
+    car_a   = f"<b>{dialog_link(caratula,'carat')}</b>"
+    trib_a  = f"<b>{dialog_link(tribunal,'trib')}</b>"
+    sent_n  = dialog_link(sent_num,'snum')
+    sent_f  = dialog_link(sent_fecha,'sfecha')
+    firm_a  = dialog_link(firmantes,'sfirmantes')
+    plano = resuelvo.replace('\n', ' ')
+    pattern = r"\b([IVXLCDM]+|\d+)[\.\)]\s+([\s\S]*?)(?=\b(?:[IVXLCDM]+|\d+)[\.\)]\s+|$)"
+    partes = []
+    for m in re.finditer(pattern, plano, re.DOTALL | re.IGNORECASE):
+        num, txt = m.group(1), m.group(2).strip()
+        if re.search(r"investig|esclarec|antecedente|instruc", txt, re.IGNORECASE):
+            partes.append(f"{num}. {txt}")
+    res = " ".join(partes) if partes else resuelvo
+    res_a = dialog_link(res, 'sres')
+
+    cuerpo_html = "".join([
+        f"<p align='justify' style='{LINE_STYLE}'><b>Sr/a Fiscal de </b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>Instrucción que por turno corresponda</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>S/D:</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con intervención de la <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente, por disposición de la Cámara señalada y conforme a lo resuelto en la sentencia dictada en la causa de referencia, los antecedentes obrantes en el expediente mencionado, a los fines de investigar la posible comisión de un delito perseguible de oficio.</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>Se transcribe a continuación la parte pertinente de la misma: “Se resuelve: {res_a}”. (Fdo.: {firm_a}).</p>",
+    ])
+    st.markdown(cuerpo_html, unsafe_allow_html=True)
+
+    saludo_html = f"<p align='center' style='{LINE_STYLE}'>Sin otro particular, saludo a Ud. atte.</p>"
+    st.markdown(saludo_html, unsafe_allow_html=True)
+
+    html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_fiscinst")
