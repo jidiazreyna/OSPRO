@@ -313,17 +313,15 @@ def extraer_tribunal(txt: str) -> str:
 
 _FIRMA_FIN_PAT = re.compile(
     r'''
-        ^\s*(?:[\-\u2022*·]\s*)?   # posible viñeta o puntuación inicial
+        ^\s*(?:[\-\u2022*·]\s*)?                # posible viñeta
         (?:
-            (?:Texto\s+)?Firmad[oa]\s+digitalmente(?:\s+por:)?  # "Firmado digitalmente por:"
-          | Firmad[oa]                                 # Firmado / Firmada
-          | Firma\s+digital                            # Firma digital
-          | Texto\s+Firmado                            # Texto Firmado digitalmente
-          | Fdo\.?                                     # Fdo.:
-          | Fecha\s*:\s*\d{4}                         # Fecha: 2025‑08‑02
-          | Expediente\s+SAC                           # Expediente SAC …
+            (?:Texto\s+)?Firmad[oa]\s+digitalmente(?:\s+por:)? |
+            Firmad[oa] | Firma\s+digital | Texto\s+Firmado |
+            Fdo\.? | Expediente\s+SAC |
+            Fecha\s*:?\s*(?:\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}[./-]\d{1,2}[./-]\d{1,2})
         )
     ''', re.I | re.M | re.X)
+
 
 def extraer_resuelvo(texto: str) -> str:
     """
@@ -359,28 +357,22 @@ def extraer_resuelvo(texto: str) -> str:
     return frag
 
 
-# ── helper para capturar FIRMANTES ────────────────────────────
-# ── helper para capturar FIRMANTES ────────────────────────────
 _FIRMAS_REGEX = re.compile(r'''
-    # Cabecera opcional: "Firmado digitalmente por:" (con o sin "Texto")
     (?:^|\n)\s*
-    (?: (?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s* )?      
-
-    # Nombre (mayúsculas con espacios, puntos o guiones)
-    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)\s*                
-
-    # Separador: coma o salto de línea
+    (?: (?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s* )?
+    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)\s*
     (?: ,\s* | \n\s* )
-
-    # Cargo (toma todo hasta salto de línea o coma)
-    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)                              
-
-    # Documento opcional en la misma línea o inmediata
-    (?: [,\s]* \n?\s* (?:CUIL|DNI|ID)\s* (?P<doc>[\d.\-]+) )?    
-
-    # Debe haber una línea "Fecha: aaaa.mm.dd" a ≤2 renglones
-    (?= (?:[^\n]*\n){0,2}\s*Fecha\s*:\s*\d{4}[./-]\d{2}[./-]\d{2} )
+    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)
+    (?: [,\s]* \n?\s* (?:CUIL|DNI|ID)\s* (?P<doc>[\d.\-]+) )?
+    (?: (?=[\s\S]*?Fecha\s*:?\s*(?:\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}[./-]\d{1,2}[./-]\d{1,2})) )?
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
+
+_FIRMAS_REGEX_FDO = re.compile(r'''
+    Fdo\.?\s*:\s*
+    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)
+    (?:\s*,\s*(?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+))?
+''', re.IGNORECASE | re.MULTILINE | re.VERBOSE)
+
 
 # ── validaciones de campos ─────────────────────────────────────────────
 # Carátula: debe incluir un número de expediente o SAC.
@@ -398,6 +390,53 @@ DNI_REGEX = re.compile(
     r'\b(?:\d{1,3}\.){2}\d{3}\b'   # 12.345.678 con puntos
     r'|\b\d{7,8}\b'                # 12345678 sin puntos
 )
+
+ALIAS_RE   = re.compile(r'alias\s+[«“"\'’]?([^"»”\n]+)[»”"\'’]?', re.I)
+EDAD_RE    = re.compile(r'\b(\d{1,3})\s*años(?:\s*de\s*edad)?', re.I)
+NAC_RE     = re.compile(r'de\s+nacionalidad\s+([a-záéíóúñ]+)', re.I)
+ECIVIL_RE  = re.compile(r'de\s+estado\s+civil\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
+OCUP_RE    = re.compile(r'de\s+ocupaci[oó]n\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
+INSTR_RE   = re.compile(r'instrucci[oó]n\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
+DOM_RE     = re.compile(r'domiciliad[oa]\s+en\s+([^.\n]+)', re.I)
+FNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+(\d{1,2}/\d{1,2}/\d{2,4})', re.I)
+LNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+\d{1,2}/\d{1,2}/\d{2,4},?\s+en\s+([^.,\n]+)', re.I)
+PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(?:[,.;]|\s$)', re.I)
+PRIO_RE    = re.compile(r'(?:Prio\.?|Pront\.?|Prontuario)\s*[:\-]?\s*([^\n.;]+)', re.I)
+DNI_TXT_RE = re.compile(r'(?:D\.?\s*N\.?\s*I\.?|DNI)\s*:?\s*([\d.]+)', re.I)
+NOMBRE_RE  = re.compile(r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?D\.?N\.?I\.?:?\s*[\d.]+', re.I | re.S)
+
+def extraer_datos_personales(texto: str) -> dict:
+    t = re.sub(r'\s+', ' ', texto)  # línea corrida para facilitar regex largas
+    dp: dict[str, str | list] = {}
+
+    # Nombre cerca de "de XX años ... DNI"
+    m = NOMBRE_RE.search(t)
+    if m:
+        dp["nombre"] = capitalizar_frase(m.group(1).strip())
+
+    # DNI (robusto)
+    m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
+    if m:
+        dp["dni"] = normalizar_dni(m.group(1))
+
+    if (m := ALIAS_RE.search(t)):   dp["alias"] = m.group(1).strip()
+    if (m := EDAD_RE.search(t)):    dp["edad"]  = m.group(1)
+    if (m := NAC_RE.search(t)):     dp["nacionalidad"] = m.group(1).strip()
+    if (m := ECIVIL_RE.search(t)):  dp["estado_civil"] = m.group(1).strip()
+    if (m := OCUP_RE.search(t)):    dp["ocupacion"]    = m.group(1).strip()
+    if (m := INSTR_RE.search(t)):   dp["instruccion"]  = m.group(1).strip()
+    if (m := DOM_RE.search(t)):     dp["domicilio"]    = m.group(1).strip()
+    if (m := FNAC_RE.search(t)):    dp["fecha_nacimiento"] = m.group(1).strip()
+    if (m := LNAC_RE.search(t)):    dp["lugar_nacimiento"] = m.group(1).strip()
+    if (m := PADRES_RE.search(t)):
+        padres = [m.group(1).strip()]
+        if m.group(2): padres.append(m.group(2).strip())
+        dp["padres"] = padres
+    if (m := PRIO_RE.search(t)):
+        dp["prio"] = m.group(1).strip()
+
+    return dp
+
 
 def extraer_dni(texto: str) -> str:
     """Devuelve sólo los dígitos del primer DNI hallado en texto."""
@@ -456,18 +495,28 @@ def normalizar_dni(txt: str) -> str:
 
 
 def extraer_firmantes(texto: str) -> list[dict]:
-    """
-    Devuelve [{'nombre':…, 'cargo':…, 'doc':…}, …] con cada
-    firma hallada en el texto de la sentencia.
-    """
+    vistos = set()
     firmas = []
-    for m in _FIRMAS_REGEX.finditer(texto):
+
+    def _add(nombre, cargo="", doc=""):
+        if not nombre: return
+        key = (nombre.strip().upper(), cargo.strip().upper())
+        if key in vistos: return
+        vistos.add(key)
         firmas.append({
-            "nombre": capitalizar_frase(m.group("nombre")).strip(),
-            "cargo" : capitalizar_frase(m.group("cargo")).strip(),
-            "doc"   : (m.group("doc") or "").strip(),
+            "nombre": capitalizar_frase(nombre).strip(),
+            "cargo" : capitalizar_frase(cargo).strip(),
+            "doc"   : (doc or "").strip(),
         })
+
+    for m in _FIRMAS_REGEX.finditer(texto):
+        _add(m.group("nombre"), m.group("cargo") or "", m.group("doc") or "")
+
+    for m in _FIRMAS_REGEX_FDO.finditer(texto):
+        _add(m.group("nombre"), m.group("cargo") or "", "")
+
     return firmas
+
 
 
 # ── helpers varios ------------------------------------------------------
@@ -494,7 +543,6 @@ def _flatten_resuelvo(text: str) -> str:
 
 
 def _format_datos_personales(raw):
-    """Convierte un dict o texto con llaves en una línea legible."""
     if isinstance(raw, dict):
         dp = raw
     else:
@@ -506,26 +554,19 @@ def _format_datos_personales(raw):
             return str(raw)
 
     partes = []
-    if dp.get("nombre"):
-        partes.append(dp["nombre"])
-    if dp.get("dni"):
-        partes.append(f"D.N.I. {dp['dni']}")
-    if dp.get("nacionalidad"):
-        partes.append(dp["nacionalidad"])
-    if dp.get("edad"):
-        partes.append(f"{dp['edad']} años")
-    if dp.get("estado_civil"):
-        partes.append(dp["estado_civil"])
-    if dp.get("instruccion"):
-        partes.append(dp["instruccion"])
-    if dp.get("ocupacion"):
-        partes.append(dp["ocupacion"])
+    if dp.get("nombre"): partes.append(dp["nombre"])
+    if dp.get("edad"):   partes.append(f"{dp['edad']} años")
+    if dp.get("dni"):    partes.append(f"D.N.I. {dp['dni']}")
+    if dp.get("alias"):  partes.append(f'alias “{dp["alias"]}”')
+    if dp.get("nacionalidad"): partes.append(dp["nacionalidad"])
+    if dp.get("estado_civil"): partes.append(dp["estado_civil"])
+    if dp.get("ocupacion"):    partes.append(dp["ocupacion"])
+    if dp.get("instruccion"):  partes.append(dp["instruccion"])
+    if dp.get("domicilio"):    partes.append(f"Domicilio: {dp['domicilio']}")
     if dp.get("fecha_nacimiento"):
         partes.append(f"Nacido el {dp['fecha_nacimiento']}")
     if dp.get("lugar_nacimiento"):
         partes.append(f"en {dp['lugar_nacimiento']}")
-    if dp.get("domicilio"):
-        partes.append(f"Domicilio: {dp['domicilio']}")
 
     if dp.get("padres"):
         padres_val = dp["padres"]
@@ -545,8 +586,10 @@ def _format_datos_personales(raw):
 
     if dp.get("prontuario") or dp.get("prio") or dp.get("pront"):
         pront = dp.get("prontuario") or dp.get("prio") or dp.get("pront")
-        partes.append(f"Pront. {pront}")
+        partes.append(f"Prio. {pront}")
+
     return ", ".join(partes)
+
 
 # ────────────────── Motor principal ─────────────────────────
 def _bytes_a_tmp(data: bytes, suf: str) -> Path:
@@ -572,6 +615,8 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         raise ValueError("Formato no soportado (PDF o DOCX)")
 
     texto = limpiar_pies(texto)
+# Heurística local para datos personales (complementa a GPT)
+    dp_auto = extraer_datos_personales(texto)
 
     # 2) GPT-4o mini en modo JSON
     client = _get_openai_client()
@@ -617,6 +662,21 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         else:
             dni = dp.get("dni") or extraer_dni(json.dumps(dp, ensure_ascii=False))
         imp.setdefault("dni", dni)
+    # Completar firmantes si faltan
+    g = datos.setdefault("generales", {})
+    g.setdefault("firmantes", extraer_firmantes(texto))
+
+    # Completar/imputar datos personales
+    imps = datos.setdefault("imputados", [])
+    if not imps and dp_auto:
+        imps.append({"datos_personales": dp_auto, "dni": dp_auto.get("dni", "")})
+    elif imps and dp_auto:
+        bruto = imps[0].get("datos_personales") or {}
+        if isinstance(bruto, dict):
+            for k, v in dp_auto.items():
+                bruto.setdefault(k, v)
+            imps[0]["datos_personales"] = bruto
+            imps[0].setdefault("dni", bruto.get("dni", ""))
 
     return datos
 
