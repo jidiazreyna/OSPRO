@@ -398,13 +398,14 @@ def connect_tabs(a: str, b: str) -> None:
       draw();
       doc.addEventListener('click', draw);
       window.addEventListener('resize', draw);
-      window.addEventListener('scroll', draw, {passive: true});
+      window.addEventListener('scroll', draw, {{passive: true}});
       const tabList = doc.querySelector('div[role="tablist"]');
-      if (tabList) tabList.addEventListener('scroll', draw, {passive: true});
+      if (tabList) tabList.addEventListener('scroll', draw, {{passive: true}});
     }})();
     </script>
     """
     _html_compat(js, height=0)
+
 
 
 def switch_tab(name: str) -> None:
