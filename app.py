@@ -342,16 +342,18 @@ def html_copy_button(label: str, html_fragment: str, *, key: str | None = None):
         components.html(js, height=40)              # Streamlit ≤ 1.29
 
 def connect_tabs(a: str, b: str) -> None:
-    js = """
+    """Draw a line between two tabs identified by their titles."""
+    uid = re.sub(r"\W+", "_", f"related_indicator_{a}_{b}")
+    js = f"""
     <script>
-    (function() {
+    (function() {{
       const doc = parent.document;
-      function draw() {
-        const id = 'related_indicator';
+      function draw() {{
+        const id = {json.dumps(uid)};
         const old = doc.getElementById(id); if (old) old.remove();
         const tabs = Array.from(doc.querySelectorAll('button[role="tab"]'));
-        const ta = tabs.find(el => el.innerText.trim() === '%s');
-        const tb = tabs.find(el => el.innerText.trim() === '%s');
+        const ta = tabs.find(el => el.innerText.trim() === {json.dumps(a)});
+        const tb = tabs.find(el => el.innerText.trim() === {json.dumps(b)});
         if (!ta || !tb) return;
         const ra = ta.getBoundingClientRect();
         const rb = tb.getBoundingClientRect();
@@ -364,13 +366,13 @@ def connect_tabs(a: str, b: str) -> None:
         div.style.left = (ra.left + ra.width/2) + 'px';
         div.style.width = (rb.left + rb.width/2 - (ra.left + ra.width/2)) + 'px';
         doc.body.appendChild(div);
-      }
+      }}
       draw();
       doc.addEventListener('click', draw);
       window.addEventListener('resize', draw);
-    })();
+    }})();
     </script>
-    """ % (html.escape(a), html.escape(b))
+    """
     _html_compat(js, height=0)
 
 
