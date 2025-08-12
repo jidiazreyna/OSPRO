@@ -391,6 +391,10 @@ PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(
 PRIO_RE    = re.compile(r'(?:Prio\.?|Pront\.?|Prontuario)\s*[:\-]?\s*([^\n.;]+)', re.I)
 DNI_TXT_RE = re.compile(r'(?:D\.?\s*N\.?\s*I\.?|DNI)\s*:?\s*([\d.]+)', re.I)
 NOMBRE_RE  = re.compile(r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?D\.?N\.?I\.?:?\s*[\d.]+', re.I | re.S)
+NOMBRE_INICIO_RE = re.compile(
+    r'^\s*([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ.\-]+){1,3})\s*,',
+    re.M
+)
 
 # ── NUEVO: helpers de segmentación ─────────────────────────
 MULTI_PERSONA_PAT = re.compile(r'(D\.?\s*N\.?\s*I\.?|Prontuario)', re.I)
@@ -400,15 +404,40 @@ def es_multipersona(s: str) -> bool:
     return len(MULTI_PERSONA_PAT.findall(s or "")) >= 2
 
 def segmentar_imputados(texto: str) -> list[str]:
-    # Recorta la zona “traídos a proceso” → “La audiencia…”
-    m1 = re.search(r'han sido tra[íi]dos a proceso los imputados?:', texto, re.I)
-    m2 = re.search(r'\nLa audiencia de debate', texto, re.I)
-    zona = texto[m1.end(): (m2.start() if (m1 and m2) else len(texto))] if m1 else texto
-    # Cada ficha termina en "Prontuario ... ."
-    bloques = re.findall(r'.*?Prontuario[^\n.]*\.', zona, flags=re.I | re.S)
-    return [re.sub(r'\s+', ' ', b).strip() for b in bloques]
+    plano = re.sub(r'\s+', ' ', texto)
+
+    # Intento segmentar por "Nombre, ..." que arranca una ficha
+    NAME_START = re.compile(
+        r'(?<!\w)([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ.\-]+){1,3})\s*,\s*'
+        r'(?:de\s*\d{1,3}\s*años|D\.?\s*N\.?\s*I\.?|nacionalidad)',
+        re.I
+    )
+    hits = list(NAME_START.finditer(plano))
+
+    bloques: list[str] = []
+    if hits:
+        for i, m in enumerate(hits):
+            start = m.start()
+            end = hits[i+1].start() if i+1 < len(hits) else len(plano)
+            bloques.append(_recortar_bloque_un_persona(plano[start:end]))
+        return bloques
+
+    # Fallback: si no pude, uso "…Prontuario." y recorto por DNI duplicado
+    candidatos = re.findall(r'.*?Prontuario[^\n.]*\.', plano, flags=re.I | re.S)
+    return [_recortar_bloque_un_persona(b) for b in candidatos]
 
 
+def _recortar_bloque_un_persona(b: str) -> str:
+    s = re.sub(r'\s+', ' ', b).strip()
+    # 1) Corto en el primer "Prontuario ... .", si existe
+    m_prio = re.search(r'Prontuario[^\n.]*\.', s, re.I)
+    if m_prio:
+        s = s[:m_prio.end()]
+    # 2) Si hay 2 DNIs dentro del mismo bloque → me quedo hasta el 1º DNI
+    dnis = list(DNI_TXT_RE.finditer(s))
+    if len(dnis) >= 2:
+        s = s[:dnis[1].start()]
+    return s.strip()
 
 def extraer_datos_personales(texto: str) -> dict:
     t = re.sub(r'\s+', ' ', texto)  # línea corrida para facilitar regex largas
@@ -418,6 +447,20 @@ def extraer_datos_personales(texto: str) -> dict:
     m = NOMBRE_RE.search(t)
     if m:
         dp["nombre"] = capitalizar_frase(m.group(1).strip())
+    # Nombre: prefiero el que está al INICIO del bloque; si no, el genérico
+    m = NOMBRE_INICIO_RE.search(t) or NOMBRE_RE.search(t)
+    if m:
+        dp["nombre"] = capitalizar_frase(m.group(1).strip())
+
+    # DNI (robusto)
+    m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
+    if m:
+        dp["dni"] = normalizar_dni(m.group(1))
+
+    # Alias: sólo lo tomo ANTES del primer DNI (evita “heredar” alias ajenos)
+    alias_scope = t[:m.start()] if m else t
+    if (m2 := ALIAS_RE.search(alias_scope)):   
+        dp["alias"] = m2.group(1).strip()
 
     # DNI (robusto)
     m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
