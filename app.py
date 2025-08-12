@@ -419,6 +419,19 @@ def switch_tab(name: str) -> None:
     _html_compat(js, height=0)
 
 
+# ────────── helpers: acceso dinámico a imputados ───────────────────
+def imp_key(field: str, idx: int | None = None) -> str:
+    """Devuelve la clave en session_state para el imputado seleccionado."""
+    if idx is None:
+        idx = st.session_state.get("imp_sel", 0)
+    return f"imp{idx}_{field}"
+
+
+def imp_val(field: str, idx: int | None = None, default: str = "") -> str:
+    """Obtiene el valor de un campo del imputado actual."""
+    return st.session_state.get(imp_key(field, idx), default)
+
+
 TAB_NAMES = [
     "Migraciones", "Consulado", "Juez Electoral", "Policía Documentación",
     "Registro Civil", "Reg. Condenados Sexuales", "RNR", "Complejo Carcelario",
@@ -517,7 +530,16 @@ with st.sidebar:
             st.text_input("Expediente de V.F. relacionado", key=f"{k}_ee_relacionado")
 
 
-# ────────── panel principal: tabs de oficios ────────────────────────
+# ────────── panel principal: selector de imputado + tabs ───────────
+st.selectbox(
+    "Imputado",
+    list(range(st.session_state.n_imputados)),
+    format_func=lambda i: f"Imputado {i+1}" + (
+        f" – {st.session_state.get(f'imp{i}_nom', '')}" if st.session_state.get(f'imp{i}_nom', '') else ""
+    ),
+    key="imp_sel",
+)
+
 tabs = st.tabs(TAB_NAMES)
 connect_tabs("Registro Automotor", "Decomiso (Reg. Automotor)")
 connect_tabs("Decomiso Con Traslado", "Comisaría Traslado")
@@ -534,7 +556,7 @@ with tabs[0]:
     # variables con links
     car_a = dialog_link(caratula, "carat", bold=True)
     trib_a = dialog_link(tribunal, "trib", bold=True)
-    imp_a = dialog_link(st.session_state.get('imp0_datos', ''), 'imp0_datos')
+    imp_a = dialog_link(imp_val('datos'), imp_key('datos'))
     sent_n = dialog_link(sent_num, 'snum')
     sent_f = dialog_link(sent_fecha, 'sfecha')
     res_a = dialog_link(resuelvo, 'sres')
@@ -572,7 +594,7 @@ with tabs[1]:
     car_a  = f"<b>{dialog_link(caratula,'carat')}</b>"
     trib_a = f"<b>{dialog_link(tribunal,'trib')}</b>"
     pais_a = dialog_link(consulado,'consulado')
-    imp_a  = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    imp_a  = dialog_link(imp_val('datos'), imp_key('datos'))
     sent_n = dialog_link(sent_num,'snum')
     sent_f = dialog_link(sent_fecha,'sfecha')
     res_a  = dialog_link(resuelvo,'sres')
@@ -606,7 +628,7 @@ with tabs[2]:
 
     car_a   = f"<b>{dialog_link(caratula,'carat')}</b>"
     trib_a  = f"<b>{dialog_link(tribunal,'trib')}</b>"
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    imp_a   = dialog_link(imp_val('datos'), imp_key('datos'))
     sent_n  = dialog_link(sent_num,'snum')
     sent_f  = dialog_link(sent_fecha,'sfecha')
     res_a   = dialog_link(resuelvo,'sres')
@@ -640,14 +662,14 @@ with tabs[3]:
 
     car_a   = dialog_link(caratula, 'carat', bold=True)
     trib_a  = dialog_link(tribunal, 'trib', bold=True)
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    imp_a   = dialog_link(imp_val('datos'), imp_key('datos'))
     sent_n  = dialog_link(sent_num,'snum')
     sent_f  = dialog_link(sent_fecha,'sfecha')
     res_a   = dialog_link(resuelvo,'sres')
     firm_a  = dialog_link(firmantes,'sfirmantes')
     firmeza = dialog_link(sent_firmeza,'sfirmeza')
-    comp_txt = dialog_link(st.session_state.get('imp0_computo',''),'imp0_computo')
-    tipo     = st.session_state.get('imp0_computo_tipo','Efec.')
+    comp_txt = dialog_link(imp_val('computo'), imp_key('computo'))
+    tipo     = imp_val('computo_tipo', default='Efec.')
     if str(tipo).startswith('Efec'):
         comp_label = "el cómputo de pena respectivo"
     else:
@@ -680,7 +702,7 @@ with tabs[4]:
 
     car_a   = dialog_link(caratula, 'carat', bold=True)
     trib_a  = dialog_link(tribunal, 'trib', bold=True)
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    imp_a   = dialog_link(imp_val('datos'), imp_key('datos'))
     sent_n  = dialog_link(sent_num,'snum')
     sent_f  = dialog_link(sent_fecha,'sfecha')
     res_a   = dialog_link(resuelvo,'sres')
@@ -714,20 +736,20 @@ with tabs[5]:
 
     car_a   = dialog_link(caratula, 'carat', bold=True)
     trib_a  = dialog_link(tribunal, 'trib', bold=True)
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    imp_a   = dialog_link(imp_val('datos'), imp_key('datos'))
     sent_n  = dialog_link(sent_num,'snum')
     sent_f  = dialog_link(sent_fecha,'sfecha')
     res_a   = dialog_link(resuelvo,'sres')
     firm_a  = dialog_link(firmantes,'sfirmantes')
     firmeza = dialog_link(sent_firmeza,'sfirmeza')
-    extincion_a    = dialog_link(st.session_state.get('imp0_computo',''),'imp0_computo')
-    condena_a      = dialog_link(st.session_state.get('imp0_condena',''),'imp0_condena')
-    servicio_a     = dialog_link(st.session_state.get('imp0_servicio_penitenciario',''),'imp0_servicio_penitenciario')
-    legajo_a       = dialog_link(st.session_state.get('imp0_legajo',''),'imp0_legajo')
-    delitos_a      = dialog_link(st.session_state.get('imp0_delitos',''),'imp0_delitos')
-    liberacion_a   = dialog_link(st.session_state.get('imp0_liberacion',''),'imp0_liberacion')
-    antecedentes_a = dialog_link(st.session_state.get('imp0_antecedentes',''),'imp0_antecedentes')
-    tratamientos_a = dialog_link(st.session_state.get('imp0_tratamientos',''),'imp0_tratamientos')
+    extincion_a    = dialog_link(imp_val('computo'), imp_key('computo'))
+    condena_a      = dialog_link(imp_val('condena'), imp_key('condena'))
+    servicio_a     = dialog_link(imp_val('servicio_penitenciario'), imp_key('servicio_penitenciario'))
+    legajo_a       = dialog_link(imp_val('legajo'), imp_key('legajo'))
+    delitos_a      = dialog_link(imp_val('delitos'), imp_key('delitos'))
+    liberacion_a   = dialog_link(imp_val('liberacion'), imp_key('liberacion'))
+    antecedentes_a = dialog_link(imp_val('antecedentes'), imp_key('antecedentes'))
+    tratamientos_a = dialog_link(imp_val('tratamientos'), imp_key('tratamientos'))
 
     cuerpo_html = "".join([
         f"<p align='justify' style='{LINE_STYLE}'><b>Al Sr. Titular del </b></p>",
@@ -773,14 +795,14 @@ with tabs[6]:
 
     car_a   = dialog_link(caratula, 'carat', bold=True)
     trib_a  = dialog_link(tribunal, 'trib', bold=True)
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    imp_a   = dialog_link(imp_val('datos'), imp_key('datos'))
     sent_n  = dialog_link(sent_num,'snum')
     sent_f  = dialog_link(sent_fecha,'sfecha')
     res_a   = dialog_link(resuelvo,'sres')
     firm_a  = dialog_link(firmantes,'sfirmantes')
     firmeza = dialog_link(sent_firmeza,'sfirmeza')
-    comp_txt = dialog_link(st.session_state.get('imp0_computo',''),'imp0_computo')
-    tipo     = st.session_state.get('imp0_computo_tipo','Efec.')
+    comp_txt = dialog_link(imp_val('computo'), imp_key('computo'))
+    tipo     = imp_val('computo_tipo', default='Efec.')
     if str(tipo).startswith('Efec'):
         comp_label = "el cómputo de pena respectivo"
     else:
@@ -817,10 +839,10 @@ with tabs[7]:
     sent_f  = dialog_link(sent_fecha,'sfecha')
     res_a   = dialog_link(resuelvo,'sres')
     firm_a  = dialog_link(firmantes,'sfirmantes')
-    establecimiento = st.session_state.get('imp0_servicio_penitenciario','').upper()
-    establecimiento_a = dialog_link(establecimiento, 'imp0_servicio_penitenciario')
-    nombre_a = dialog_link(st.session_state.get('imp0_nom',''),'imp0_nom')
-    dni_a    = dialog_link(st.session_state.get('imp0_dni',''),'imp0_dni')
+    establecimiento = imp_val('servicio_penitenciario').upper()
+    establecimiento_a = dialog_link(establecimiento, imp_key('servicio_penitenciario'))
+    nombre_a = dialog_link(imp_val('nom'), imp_key('nom'))
+    dni_a    = dialog_link(imp_val('dni'), imp_key('dni'))
 
     cuerpo_html = "".join([
         f"<p align='justify' style='{LINE_STYLE}'><b>AL SEÑOR DIRECTOR </b></p>",
@@ -849,16 +871,16 @@ with tabs[8]:
     sent_f  = dialog_link(sent_fecha,'sfecha')
     res_a   = dialog_link(resuelvo,'sres')
     firm_a  = dialog_link(firmantes,'sfirmantes')
-    juz = st.session_state.get('imp0_juz_navfyg', 'Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de ….. Nom. – Sec. N° …..')
+    juz = imp_val('juz_navfyg', default='Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de ….. Nom. – Sec. N° …..')
     if juz.startswith('Juzgado de Niñez,'):
         juz = juz.replace(', Violencia', ',\nViolencia').replace('Género de ', 'Género de \n')
     elif 'modalidad doméstica -causas graves-' in juz:
         juz = juz.replace(', modalidad', ',\nmodalidad').replace('-causas graves- de', '-causas graves-\nde')
-    juz_a = dialog_link(juz, 'imp0_juz_navfyg')
-    ee_rel = st.session_state.get('imp0_ee_relacionado', '………….')
-    ee_rel_a = dialog_link(ee_rel, 'imp0_ee_relacionado')
-    nombre_a = dialog_link(st.session_state.get('imp0_nom',''),'imp0_nom')
-    dni_a    = dialog_link(st.session_state.get('imp0_dni',''),'imp0_dni')
+    juz_a = dialog_link(juz, imp_key('juz_navfyg'))
+    ee_rel = imp_val('ee_relacionado', default='………….')
+    ee_rel_a = dialog_link(ee_rel, imp_key('ee_relacionado'))
+    nombre_a = dialog_link(imp_val('nom'), imp_key('nom'))
+    dni_a    = dialog_link(imp_val('dni'), imp_key('dni'))
 
     cuerpo_html = "".join([
         f"<p align='justify' style='{LINE_STYLE}'><b>{juz_a}</b></p>",
@@ -889,7 +911,7 @@ with tabs[9]:
     res_a   = dialog_link(resuelvo,'sres')
     firm_a  = dialog_link(firmantes,'sfirmantes')
     firmeza = dialog_link(sent_firmeza,'sfirmeza')
-    imp_a   = dialog_link(st.session_state.get('imp0_datos',''),'imp0_datos')
+    imp_a   = dialog_link(imp_val('datos'), imp_key('datos'))
 
     cuerpo_html = "".join([
         f"<p align='justify' style='{LINE_STYLE}'><b>SR. DIRECTOR DEL REGISTRO PROVINCIAL </b></p>",
