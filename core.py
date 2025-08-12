@@ -59,6 +59,79 @@ def _cargar_config() -> Dict[str, Any]:
 _cfg = _cargar_config()
 
 
+# ── listas de opciones para la UI web ───────────────────────────────
+PENITENCIARIOS = [
+    "Complejo Carcelario n.° 1 (Bouwer)",
+    "Establecimiento Penitenciario n.° 9 (UCA)",
+    "Establecimiento Penitenciario n.° 3 (para mujeres)",
+    "Complejo Carcelario n.° 2 (Cruz del Eje)",
+    "Establecimiento Penitenciario n.° 4 (Colonia Abierta Monte Cristo)",
+    "Establecimiento Penitenciario n.° 5 (Villa María)",
+    "Establecimiento Penitenciario n.° 6 (Río Cuarto)",
+    "Establecimiento Penitenciario n.° 7 (San Francisco)",
+    "Establecimiento Penitenciario n.° 8 (Villa Dolores)",
+]
+
+DEPOSITOS = [
+    "Depósito General de Efectos Secuestrados",
+    "Depósito de la Unidad Judicial de Lucha c/ Narcotráfico",
+    "Depósito de Armas (Tribunales II)",
+    "Depósito de Automotores 1 (Bouwer)",
+    "Depósito de Automotores 2 (Bouwer)",
+    "Depositado en Cuenta Judicial en pesos o dólares del Banco de Córdoba",
+    "Depósito de Armas y elementos secuestrados (Tribunales II)",
+]
+
+JUZ_NAVFYG = [
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 1ª Nom. – Sec.\u202fN°\u202f1",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 1ª Nom. – Sec.\u202fN°\u202f2",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 2ª Nom. – Sec.\u202fN°\u202f3",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 2ª Nom. – Sec.\u202fN°\u202f4",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 3ª Nom. – Sec.\u202fN°\u202f5",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 3ª Nom. – Sec.\u202fN°\u202f6",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 4ª Nom. – Sec.\u202fN°\u202f7",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 4ª Nom. – Sec.\u202fN°\u202f8",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 5ª Nom. – Sec.\u202fN°\u202f9",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 5ª Nom. – Sec.\u202fN°\u202f10",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 6ª Nom. – Sec.\u202fN°\u202f11",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 6ª Nom. – Sec.\u202fN°\u202f12",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 7ª Nom. – Sec.\u202fN°\u202f13",
+    "Juzgado de Niñez, Adolescencia, Violencia Familiar y de Género de 7ª Nom. – Sec.\u202fN°\u202f14",
+    "Juzgado de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f15",
+    "Juzgado de Violencia de Género, modalidad doméstica -causas graves- de 8ª Nom. – Sec.\u202fN°\u202f16",
+    "Juzgado de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f17",
+    "Juzgado de Violencia de Género, modalidad doméstica -causas graves- de 9ª Nom. – Sec.\u202fN°\u202f18",
+]
+
+TRIBUNALES = [
+    "la Cámara en lo Criminal y Correccional de Primera Nominación",
+    "la Cámara en lo Criminal y Correccional de Segunda Nominación",
+    "la Cámara en lo Criminal y Correccional de Tercera Nominación",
+    "la Cámara en lo Criminal y Correccional de Cuarta Nominación",
+    "la Cámara en lo Criminal y Correccional de Quinta Nominación",
+    "la Cámara en lo Criminal y Correccional de Sexta Nominación",
+    "la Cámara en lo Criminal y Correccional de Séptima Nominación",
+    "la Cámara en lo Criminal y Correccional de Octava Nominación",
+    "la Cámara en lo Criminal y Correccional de Novena Nominación",
+    "la Cámara en lo Criminal y Correccional de Décima Nominación",
+    "la Cámara en lo Criminal y Correccional de Onceava Nominación",
+    "la Cámara en lo Criminal y Correccional de Doceava Nominación",
+    "el Juzgado de Control en lo Penal Económico",
+    "el Juzgado de Control y Faltas N° 2",
+    "el Juzgado de Control y Faltas N° 3",
+    "el Juzgado de Control y Faltas N° 4",
+    "el Juzgado de Control y Faltas N° 5",
+    "el Juzgado de Control en Violencia de Género y Familiar N° 1",
+    "el Juzgado de Control en Violencia de Género y Familiar N° 2",
+    "el Juzgado de Control y Faltas N° 7",
+    "el Juzgado de Control y Faltas N° 8",
+    "el Juzgado de Control y Faltas N° 9",
+    "el Juzgado de Control y Faltas N° 10",
+    "el Juzgado de Control y Faltas N° 11",
+    "el Juzgado de Control de Lucha contra el Narcotráfico",
+]
+
+
 def _get_openai_client():
     """Return an OpenAI client compatible with v0 and v1 APIs."""
     api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", ""))
@@ -590,7 +663,14 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
 
 
 # ────────────────── API pública ─────────────────────────────
-__all__ = ["autocompletar", "autocompletar_caratula"]
+__all__ = [
+    "autocompletar",
+    "autocompletar_caratula",
+    "PENITENCIARIOS",
+    "DEPOSITOS",
+    "JUZ_NAVFYG",
+    "TRIBUNALES",
+]
 
 
 if __name__ == "__main__":
