@@ -380,17 +380,35 @@ DNI_REGEX = re.compile(
 
 ALIAS_RE   = re.compile(r'alias\s+[«“"\'’]?([^"»”\n]+)[»”"\'’]?', re.I)
 EDAD_RE    = re.compile(r'\b(\d{1,3})\s*años(?:\s*de\s*edad)?', re.I)
-NAC_RE     = re.compile(r'de\s+nacionalidad\s+([a-záéíóúñ]+)', re.I)
+NAC_RE = re.compile(r'(?:de\s+)?nacionalidad\s+([a-záéíóúñ]+)', re.I)
 ECIVIL_RE  = re.compile(r'de\s+estado\s+civil\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
 OCUP_RE    = re.compile(r'de\s+ocupaci[oó]n\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
 INSTR_RE   = re.compile(r'instrucci[oó]n\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
-DOM_RE     = re.compile(r'domiciliad[oa]\s+en\s+([^.\n]+)', re.I)
-FNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+(\d{1,2}/\d{1,2}/\d{2,4})', re.I)
+DOM_RE = re.compile(r'(?:domiciliad[oa]\s+en|con\s+domicilio\s+en)\s+([^.\n]+)', re.I)
+FNAC_RE = re.compile(r'(?:Nacid[oa]\s+el\s+|el\s*d[íi]a\s*)(\d{1,2}/\d{1,2}/\d{2,4})', re.I)
 LNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+\d{1,2}/\d{1,2}/\d{2,4},?\s+en\s+([^.,\n]+)', re.I)
 PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(?:[,.;]|\s$)', re.I)
 PRIO_RE    = re.compile(r'(?:Prio\.?|Pront\.?|Prontuario)\s*[:\-]?\s*([^\n.;]+)', re.I)
 DNI_TXT_RE = re.compile(r'(?:D\.?\s*N\.?\s*I\.?|DNI)\s*:?\s*([\d.]+)', re.I)
 NOMBRE_RE  = re.compile(r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?D\.?N\.?I\.?:?\s*[\d.]+', re.I | re.S)
+
+# ── NUEVO: helpers de segmentación ─────────────────────────
+MULTI_PERSONA_PAT = re.compile(r'(D\.?\s*N\.?\s*I\.?|Prontuario)', re.I)
+
+def es_multipersona(s: str) -> bool:
+    # ≥2 ocurrencias de DNI o Prontuario → probable texto con varias personas
+    return len(MULTI_PERSONA_PAT.findall(s or "")) >= 2
+
+def segmentar_imputados(texto: str) -> list[str]:
+    # Recorta la zona “traídos a proceso” → “La audiencia…”
+    m1 = re.search(r'han sido tra[íi]dos a proceso los imputados?:', texto, re.I)
+    m2 = re.search(r'\nLa audiencia de debate', texto, re.I)
+    zona = texto[m1.end(): (m2.start() if (m1 and m2) else len(texto))] if m1 else texto
+    # Cada ficha termina en "Prontuario ... ."
+    bloques = re.findall(r'.*?Prontuario[^\n.]*\.', zona, flags=re.I | re.S)
+    return [re.sub(r'\s+', ' ', b).strip() for b in bloques]
+
+
 
 def extraer_datos_personales(texto: str) -> dict:
     t = re.sub(r'\s+', ' ', texto)  # línea corrida para facilitar regex largas
@@ -520,16 +538,26 @@ def _flatten_resuelvo(text: str) -> str:
 
 
 def _format_datos_personales(raw):
+    # Si ya viene como dict, seguimos como estaba
     if isinstance(raw, dict):
         dp = raw
     else:
-        try:
-            dp = ast.literal_eval(str(raw))
-            if not isinstance(dp, dict):
-                raise ValueError
-        except Exception:
-            return str(raw)
+        # 1) Si parece multipersona, me quedo con el primer bloque y lo parseo
+        s = str(raw or "")
+        if es_multipersona(s):
+            bloques = segmentar_imputados(s)
+            if bloques:
+                dp = extraer_datos_personales(bloques[0])
+            else:
+                dp = extraer_datos_personales(s)
+        else:
+            # 2) Intento parsear el string como ficha de UNA persona
+            dp = extraer_datos_personales(s)
 
+        # Si no pude armar un dict creíble, devuelvo el string original
+        if not isinstance(dp, dict):
+            return s
+        
     partes = []
     if dp.get("nombre"): partes.append(dp["nombre"])
     if dp.get("edad"):   partes.append(f"{dp['edad']} años")
@@ -629,6 +657,18 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     else:
         rsp = client.ChatCompletion.create(**kwargs)  # type: ignore
     datos = json.loads(rsp.choices[0].message.content)
+
+    imps = datos.get("imputados") or []
+
+    def _dp_from_block(b: str) -> dict:
+        d = extraer_datos_personales(b)
+        return {"datos_personales": d, "dni": d.get("dni", ""), "nombre": d.get("nombre", "")}
+
+    # Si no hay imputados, o el primero trae un string largo (mal), rehago desde el texto
+    if not imps or any(isinstance(imp.get("datos_personales"), str) and es_multipersona(imp["datos_personales"]) for imp in imps):
+        bloques = segmentar_imputados(texto)
+        if bloques:
+            datos["imputados"] = [_dp_from_block(b) for b in bloques]
 
     # 3) Ajustes post-API
     g = datos.get("generales", {})
