@@ -582,7 +582,8 @@ with tabs[2]:
     cuerpo_html = "".join([
         f"<p align='justify' style='{LINE_STYLE}'><b>SR. JUEZ ELECTORAL:</b></p>",
         f"<p align='justify' style='{LINE_STYLE}'><b>S………………./………………D</b></p>",
-        f"<p align='justify' style='{LINE_STYLE}'><b>-Av. Concepción Arenales esq. W. Paunero, Córdoba-</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>-Av. Concepción Arenales esq. Wenceslao Paunero, Bº Rogelio Martínez, Córdoba.</b></p>",
+        f"<p align='justify' style='{LINE_STYLE}'><b>Tribunales Federales de Córdoba-</b></p>",
         f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, de la ciudad de Córdoba, Provincia de Córdoba, con la intervención de esta <b>Oficina de Servicios Procesales (OSPRO)</b>, se ha dispuesto librar a Ud. el presente oficio, a fin de informar lo resuelto por dicho Tribunal respecto de la persona cuyos datos personales se mencionan a continuación:</p>",
         f"<p align='justify' style='{LINE_STYLE}'>{imp_a}.</p>",
         f"<p align='justify' style='{LINE_STYLE}'>SENTENCIA N° {sent_n}, DE FECHA: {sent_f}. “Se Resuelve: {res_a}”. Fdo.: {firm_a}.</p>",
