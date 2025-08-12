@@ -698,6 +698,7 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
     st.session_state.sfecha   = _as_str(g.get("sent_fecha"))
     st.session_state.sres     = _flatten_resuelvo(_as_str(g.get("resuelvo")))
     st.session_state.sfirmaza = _as_str(g.get("firmantes"))
+    st.session_state.sfirmantes = _as_str(g.get("firmantes"))
 
     # ----- IMPUTADOS -----
     imps = datos.get("imputados", [])
