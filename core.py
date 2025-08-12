@@ -440,34 +440,30 @@ def _recortar_bloque_un_persona(b: str) -> str:
     return s.strip()
 
 def extraer_datos_personales(texto: str) -> dict:
-    t = re.sub(r'\s+', ' ', texto)  # línea corrida para facilitar regex largas
+    t = re.sub(r'\s+', ' ', texto)
     dp: dict[str, str | list] = {}
 
-    # Nombre cerca de "de XX años ... DNI"
-    m = NOMBRE_RE.search(t)
-    if m:
-        dp["nombre"] = capitalizar_frase(m.group(1).strip())
     # Nombre: prefiero el que está al INICIO del bloque; si no, el genérico
     m = NOMBRE_INICIO_RE.search(t) or NOMBRE_RE.search(t)
     if m:
         dp["nombre"] = capitalizar_frase(m.group(1).strip())
 
-    # DNI (robusto)
-    m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
-    if m:
-        dp["dni"] = normalizar_dni(m.group(1))
+    # DNI (robusto) — ¡aquí va el fix!
+    m_dni_txt = DNI_TXT_RE.search(t)    # ... D.N.I. N° 12.345.678 ...
+    m_dni_num = DNI_REGEX.search(t)     # ... 12345678 o 12.345.678 ...
+    first_dni = m_dni_txt or m_dni_num
+    if m_dni_txt:
+        dp["dni"] = normalizar_dni(m_dni_txt.group(1))   # tiene grupo (1)
+    elif m_dni_num:
+        dp["dni"] = normalizar_dni(m_dni_num.group(0))   # solo group(0)
 
-    # Alias: sólo lo tomo ANTES del primer DNI (evita “heredar” alias ajenos)
-    alias_scope = t[:m.start()] if m else t
-    if (m2 := ALIAS_RE.search(alias_scope)):   
-        dp["alias"] = m2.group(1).strip()
+    # Alias: SOLO busco antes del primer DNI para que no “herede” de otro imputado
+    alias_scope = t[:first_dni.start()] if first_dni else t
+    m_alias = ALIAS_RE.search(alias_scope)
+    if m_alias:
+        dp["alias"] = m_alias.group(1).strip()
 
-    # DNI (robusto)
-    m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
-    if m:
-        dp["dni"] = normalizar_dni(m.group(1))
-
-    if (m := ALIAS_RE.search(t)):   dp["alias"] = m.group(1).strip()
+    # Resto igual:
     if (m := EDAD_RE.search(t)):    dp["edad"]  = m.group(1)
     if (m := NAC_RE.search(t)):     dp["nacionalidad"] = m.group(1).strip()
     if (m := ECIVIL_RE.search(t)):  dp["estado_civil"] = m.group(1).strip()
@@ -484,6 +480,7 @@ def extraer_datos_personales(texto: str) -> dict:
         dp["prio"] = m.group(1).strip()
 
     return dp
+
 
 
 def extraer_dni(texto: str) -> str:
