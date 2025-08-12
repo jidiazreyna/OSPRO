@@ -7,7 +7,14 @@ from datetime import datetime
 
 import streamlit as st
 import streamlit.components.v1 as components
-from core import autocompletar, autocompletar_caratula  # lógica de autocompletado
+from core import (
+    autocompletar,
+    autocompletar_caratula,
+    PENITENCIARIOS,
+    DEPOSITOS,
+    JUZ_NAVFYG,
+    TRIBUNALES,
+)  # lógica de autocompletado y listas
 from helpers import dialog_link, strip_dialog_links, create_clipboard_html
 
 # ────────── util: copiar al portapapeles ────────────────────────────
@@ -108,6 +115,16 @@ def _html_compat(content: str, *, height: int = 0, width: int = 0):
 
     # ≤ 1.29
     return components.html(content, height=height, width=width)
+
+
+# ────────── combos editables (selectbox + texto libre) ──────────────
+def combo_editable(label: str, opciones: list[str], *, key: str) -> str:
+    """Combobox que permite elegir de la lista o escribir un valor nuevo."""
+    actual = st.session_state.get(key, "")
+    opts = list(opciones)
+    if actual and actual not in opts:
+        opts.append(actual)
+    return st.selectbox(label, opts, key=key)
 
 
 # ────────── inyección global para spans editables ───────────────────
@@ -322,7 +339,7 @@ with st.sidebar:
     )
     caratula = st.session_state.carat     # ← reemplaza a tu caratula_raw
 
-    tribunal  = st.text_input("Tribunal", key="trib")
+    tribunal  = combo_editable("Tribunal", TRIBUNALES, key="trib")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -334,6 +351,7 @@ with st.sidebar:
     resuelvo     = st.text_area("Resuelvo", height=80, key="sres")
     firmantes    = st.text_input("Firmantes", key="sfirmantes")  # Corregido key
     consulado    = st.text_input("Consulado", key="consulado")
+    deposito     = combo_editable("Depósito", DEPOSITOS, key="deposito")
 
     # Nº de imputados dinámico
     n = st.number_input(
@@ -367,13 +385,21 @@ with st.sidebar:
             st.text_input("Condena",           key=f"{k}_condena")
             st.text_area("Cómputo de pena", key=f"{k}_computo", height=80)
             st.selectbox("Tipo de cómputo", ["Efec.", "Cond."], key=f"{k}_computo_tipo")
-            st.text_input("Servicio Correccional o Penitenciario", key=f"{k}_servicio_penitenciario")
+            combo_editable(
+                "Servicio Correccional o Penitenciario",
+                PENITENCIARIOS,
+                key=f"{k}_servicio_penitenciario",
+            )
             st.text_input("Legajo", key=f"{k}_legajo")
             st.text_input("Delito (con el tipo de delito y la fecha)", key=f"{k}_delitos")
             st.text_input("Liberación (fecha y motivo)", key=f"{k}_liberacion")
             st.text_area("Historial de delitos y condenas anteriores", key=f"{k}_antecedentes", height=80)
             st.text_area("Tratamientos médicos y psicológicos", key=f"{k}_tratamientos", height=80)
-            st.text_input("Juzgado de Niñez, Adolescencia, V.F. y Género", key=f"{k}_juz_navfyg")
+            combo_editable(
+                "Juzgado de Niñez, Adolescencia, V.F. y Género",
+                JUZ_NAVFYG,
+                key=f"{k}_juz_navfyg",
+            )
             st.text_input("Expediente de V.F. relacionado", key=f"{k}_ee_relacionado")
 
 
