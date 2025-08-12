@@ -1831,7 +1831,7 @@ class MainWindow(QMainWindow):
             "<b>S______/_______D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de esta <b>Oficina de Servicios</b> "
-            "<b>Procesales ‑ OSPRO‑</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto "
+            "<b>Procesales ‑ OSPRO ‑</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto "
             f"por la Sentencia N° {sent_n_a} del {sent_f_a}, dictada por la Cámara mencionada, en virtud de la cual se ordenó el "
             "<b>DECOMISO</b> de los siguientes objetos:\n\n"
             f"<table border='1' cellspacing='0' cellpadding='2'>"

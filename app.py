@@ -1119,7 +1119,7 @@ with tabs[16]:
         f"<p align='justify' style='{LINE_STYLE}'><b>DEL TRIBUNAL SUPERIOR DE JUSTICIA</b></p>",
         f"<p align='justify' style='{LINE_STYLE}'><b>DRA. MARIA PUEYRREDON DE MONFARRELL</b></p>",
         f"<p align='justify' style='{LINE_STYLE}'><b>S______/_______D:</b></p>",
-        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con conocimiento e intervención de esta <b>Oficina de Servicios</b> <b>Procesales ‑ OSPRO‑</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto por la Sentencia N° {sent_n} del {sent_f}, dictada por la Cámara mencionada, en virtud de la cual se ordenó el <b>DECOMISO</b> de los siguientes objetos:</p>",
+        f"<p align='justify' style='{LINE_STYLE}'>En los autos caratulados: {car_a}, que se tramitan por ante {trib_a}, con conocimiento e intervención de esta <b>Oficina de Servicios</b> <b>Procesales ‑ OSPRO ‑</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto por la Sentencia N° {sent_n} del {sent_f}, dictada por la Cámara mencionada, en virtud de la cual se ordenó el <b>DECOMISO</b> de los siguientes objetos:</p>",
         f"<table border='1' cellspacing='0' cellpadding='2'><tr><th>TIPOS DE ELEMENTOS</th><th>UBICACIÓN ACTUAL</th></tr><tr><td>{rodado_a}</td><td>{deposito_a}</td></tr></table>",
         f"<p align='justify' style='{LINE_STYLE}'>Pongo en su conocimiento que la mencionada resolución se encuentra firme, transcribiéndose a continuación la parte pertinente de la misma: &ldquo;SE RESUELVE: {res_a}&rdquo;. (Fdo.: {firm_a}).</p>",
     ])
