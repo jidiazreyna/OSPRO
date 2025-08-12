@@ -84,6 +84,15 @@ span.editable {
     text-decoration: none !important;
     cursor: pointer !important;
 }
+/* Scroll horizontal para los títulos de las pestañas de oficios */
+div[role="tablist"] {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+}
+div[role="tablist"]::-webkit-scrollbar {
+    height: 8px;
+}
 </style>
 """, unsafe_allow_html=True)
 
