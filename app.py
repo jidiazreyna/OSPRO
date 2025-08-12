@@ -391,13 +391,16 @@ def connect_tabs(a: str, b: str) -> None:
         div.style.background = '#0068c9';
         div.style.height = '2px';
         div.style.top = (ra.bottom + window.scrollY) + 'px';
-        div.style.left = (ra.left + ra.width/2) + 'px';
-        div.style.width = (rb.left + rb.width/2 - (ra.left + ra.width/2)) + 'px';
+        div.style.left = (ra.left + window.scrollX + ra.width/2) + 'px';
+        div.style.width = (rb.left + window.scrollX + rb.width/2 - (ra.left + window.scrollX + ra.width/2)) + 'px';
         doc.body.appendChild(div);
       }}
       draw();
       doc.addEventListener('click', draw);
       window.addEventListener('resize', draw);
+      window.addEventListener('scroll', draw, {passive: true});
+      const tabList = doc.querySelector('div[role="tablist"]');
+      if (tabList) tabList.addEventListener('scroll', draw, {passive: true});
     }})();
     </script>
     """
