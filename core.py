@@ -392,7 +392,7 @@ DOM_RE = re.compile(r'(?:domiciliad[oa]\s+en|con\s+domicilio\s+en)\s+([^.\n]+)',
 FNAC_RE = re.compile(r'(?:Nacid[oa]\s+el\s+|el\s*d[íi]a\s*)(\d{1,2}/\d{1,2}/\d{2,4})', re.I)
 LNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+\d{1,2}/\d{1,2}/\d{2,4},?\s+en\s+([^.,\n]+)', re.I)
 PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(?:[,.;]|\s$)', re.I)
-PRIO_RE    = re.compile(r'(?:Prio\.?|Pront\.?|Prontuario)\s*[:\-]?\s*([^\n.;]+)', re.I)
+PRIO_RE    = re.compile(r'(?:Prontuario|Prio\.?|Pront\.?)\s*[:\-]?\s*([^\n.;]+)', re.I)
 DNI_TXT_RE = re.compile(r'(?:D\.?\s*N\.?\s*I\.?|DNI)\s*:?\s*([\d.]+)', re.I)
 NOMBRE_RE  = re.compile(r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?D\.?N\.?I\.?:?\s*[\d.]+', re.I | re.S)
 NOMBRE_INICIO_RE = re.compile(
@@ -422,21 +422,34 @@ def segmentar_imputados(texto: str) -> list[str]:
     if hits:
         for i, m in enumerate(hits):
             start = m.start()
-            end = hits[i+1].start() if i+1 < len(hits) else len(plano)
+            # Si antes del nombre hay un "Prontuario" cercano, incluyo desde allí
+            if (m_prio := re.search(r'Prontuario[^\n.]*\.\s*$', plano[:start], re.I)):
+                start = m_prio.start()
+            end = hits[i+1].start() if i + 1 < len(hits) else len(plano)
+            if m_prio_sig := re.search(r'Prontuario', plano[start + 1:end], re.I):
+                end = start + 1 + m_prio_sig.start()
             bloques.append(_recortar_bloque_un_persona(plano[start:end]))
         return bloques
 
-    # Fallback: si no pude, uso "…Prontuario." y recorto por DNI duplicado
-    candidatos = re.findall(r'.*?Prontuario[^\n.]*\.', plano, flags=re.I | re.S)
-    return [_recortar_bloque_un_persona(b) for b in candidatos]
+    # Fallback: si no pude, segmento por ocurrencias de "Prontuario"
+    prios = list(re.finditer(r'Prontuario', plano, re.I))
+    for i, m in enumerate(prios):
+        start = m.start()
+        end = prios[i + 1].start() if i + 1 < len(prios) else len(plano)
+        bloques.append(_recortar_bloque_un_persona(plano[start:end]))
+    return bloques
 
 
 def _recortar_bloque_un_persona(b: str) -> str:
     s = re.sub(r'\s+', ' ', b).strip()
-    # 1) Corto en el primer "Prontuario ... .", si existe
+    # 1) Corto en el primer "Prontuario ... .", si existe.
+    #    Pero si el nombre aparece después del prontuario, no recorto
+    #    para conservarlo.
     m_prio = re.search(r'Prontuario[^\n.]*\.', s, re.I)
     if m_prio:
-        s = s[:m_prio.end()]
+        resto = s[m_prio.end():]
+        if not (NOMBRE_INICIO_RE.search(resto) or NOMBRE_RE.search(resto)):
+            s = s[:m_prio.end()]
     # 2) Si hay 2 DNIs dentro del mismo bloque → me quedo hasta el 1º DNI
     dnis = list(DNI_TXT_RE.finditer(s))
     if len(dnis) >= 2:
@@ -491,7 +504,9 @@ def extraer_datos_personales(texto: str) -> dict:
         if m.group(2): padres.append(m.group(2).strip())
         dp["padres"] = padres
     if (m := PRIO_RE.search(t)):
-        dp["prio"] = m.group(1).strip()
+        prio = m.group(1).strip()
+        dp["prio"] = prio
+        dp.setdefault("prontuario", prio)
 
     return dp
 
