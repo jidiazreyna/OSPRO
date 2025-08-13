@@ -425,18 +425,27 @@ def segmentar_imputados(texto: str) -> list[str]:
     plano = re.sub(r'\s+', ' ', texto)
 
     NAME_START = re.compile(
-        r'(?<!\w)(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,3})\s*,\s*'
-        r'(?:(?i:de\s*\d{1,3}\s*años|D\.?\s*N\.?\s*I\.?|nacionalidad))'
+        r'(?<!\w)(?:[YyEe]\s+)?'
+        r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,3})'
+        r'(?:\s*\([^)]{0,80}\))?'
+        r'\s*,\s*'
+        r'(?:[^,]{0,50},\s*)?'
+        r'(?:(?i:(?:de\s+)?nacionalidad|de\s*\d{1,3}\s*años|D\.?\s*N\.?\s*I\.?))'
     )
     hits = list(NAME_START.finditer(plano))
 
-    # Heurística: recortamos al tramo donde se enuncian los imputados sólo si
-    # la palabra "imputado" aparece antes del primer nombre detectado.
-    if hits and (m_ini := re.search(r'\bimputad[oa]s?\b', plano, re.I)) and m_ini.start() < hits[0].start():
-        plano = plano[m_ini.start():]
+    if hits:
+        # Si antes del primer nombre aparece "imputados", recorto desde allí.
+        if (m_ini := re.search(r'\bimputad[oa]s?\b', plano, re.I)) and m_ini.start() < hits[0].start():
+            plano = plano[m_ini.start():]
+            hits = list(NAME_START.finditer(plano))
+
+        # En cualquier caso, si existe "ambos imputad" u otra frase similar,
+        # corto el texto antes de ella para evitar capturar víctimas u otras personas.
         if (m_fin := re.search(r'ambos\s+imputad', plano, re.I)):
-            plano = plano[:m_fin.start()]
-        hits = list(NAME_START.finditer(plano))
+            corte = m_fin.start()
+            plano = plano[:corte]
+            hits = [h for h in hits if h.start() < corte]
 
     # Intento segmentar por "Nombre, ..." que arranca una ficha
 
