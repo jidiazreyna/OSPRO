@@ -132,6 +132,10 @@ TRIBUNALES = [
 ]
 
 
+# Máximo de imputados soportados por la interfaz
+MAX_IMPUTADOS = 20
+
+
 def _get_openai_client():
     """Return an OpenAI client compatible with v0 and v1 APIs."""
     api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", ""))
@@ -819,7 +823,8 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
 
 
     # ----- IMPUTADOS -----
-    imps = datos.get("imputados", [])
+    # limitamos al máximo soportado por la UI
+    imps = datos.get("imputados", [])[:MAX_IMPUTADOS]
     st.session_state.n_imputados = max(1, len(imps))
 
     for i, imp in enumerate(imps):
@@ -849,6 +854,7 @@ __all__ = [
     "DEPOSITOS",
     "JUZ_NAVFYG",
     "TRIBUNALES",
+    "MAX_IMPUTADOS",
 ]
 
 
