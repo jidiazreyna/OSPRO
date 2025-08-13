@@ -406,18 +406,115 @@ class Worker(QObject):
             self.finished.emit({}, str(e))          # devolvemos el error
 
 # ---- Reexportes para compatibilidad con la API previa -----------------
-from ospro import (  # type: ignore
-    procesar_sentencia,
-    segmentar_imputados,
-    extraer_datos_personales,
-    autocompletar,
-    autocompletar_caratula,
-    PENITENCIARIOS,
-    DEPOSITOS,
-    JUZ_NAVFYG,
-    TRIBUNALES,
-    MAX_IMPUTADOS,
-)
+#
+# En la aplicación original estas funciones y constantes vivían en el módulo
+# ``ospro``.  Sin embargo, en entornos de pruebas o instalaciones mínimas ese
+# módulo puede no estar disponible (o faltarle alguna función), lo que hacía
+# que la importación fallase y la librería no pudiera utilizarse siquiera con
+# ``monkeypatch``.  Para evitar el ``ImportError`` realizamos una importación
+# perezosa: si ``ospro`` o alguno de sus atributos no existen se proveen
+# versiones de relleno que lanzan ``NotImplementedError`` cuando se utilizan.
+try:  # pragma: no cover - se ejecuta sólo cuando el módulo está instalado
+    import ospro as _ospro  # type: ignore
+except Exception:  # pragma: no cover - ausencia total del módulo
+    _ospro = None  # type: ignore
+
+
+def _missing(*_args, **_kwargs):  # pragma: no cover - función simple
+    """Marcador de posición para funcionalidades ausentes."""
+    raise NotImplementedError("La funcionalidad solicitada no está disponible")
+
+
+procesar_sentencia = getattr(_ospro, "procesar_sentencia", _missing)
+autocompletar = getattr(_ospro, "autocompletar", _missing)
+autocompletar_caratula = getattr(_ospro, "autocompletar_caratula", _missing)
+
+
+if _ospro and hasattr(_ospro, "segmentar_imputados"):
+    segmentar_imputados = _ospro.segmentar_imputados  # type: ignore
+else:
+    def segmentar_imputados(texto: str) -> list[str]:
+        """Divide el texto en bloques de imputados.
+
+        Separa por apariciones de ``"Prontuario"`` o por un punto seguido de
+        ``y``/``e`` + nombre propio.  Ignora segmentos que comiencen con
+        referencias a víctimas (``Sra."`, ``Sr."`, etc.).
+        """
+
+        texto = texto.replace("\n", " ")
+        partes = re.split(
+            r"(?=Prontuario\s+\d+\.)|\.\s+(?=(?:[yYeE])\s+[A-ZÁÉÍÓÚÑ])",
+            texto,
+        )
+        bloques: list[str] = []
+        for parte in partes:
+            seg = re.sub(r"^(?:[yYeE]\s+)", "", parte)
+            seg = re.sub(r"^(?:del\s+)?imputado\s+", "", seg, flags=re.IGNORECASE)
+            seg = seg.strip(" .")
+            if not seg:
+                continue
+            if re.match(r"^(Sra|Sr|Señor|Señora)\b", seg):
+                continue
+            bloques.append(seg)
+        return bloques
+
+
+if _ospro and hasattr(_ospro, "extraer_datos_personales"):
+    extraer_datos_personales = _ospro.extraer_datos_personales  # type: ignore
+else:
+    def extraer_datos_personales(texto: str) -> dict[str, str]:
+        """Extrae nombre, DNI y otros datos de un bloque de imputado."""
+
+        datos: dict[str, str] = {}
+        t = texto.strip()
+
+        # Prontuario / prio
+        m = re.search(r"Prontuario\s+(\d+)", t, flags=re.IGNORECASE)
+        if m:
+            datos["prontuario"] = m.group(1)
+        t = re.sub(r"^Prontuario\s+\d+\.\s*", "", t, flags=re.IGNORECASE)
+        m = re.search(r"Prio\.\s*([^\.]+)", t, flags=re.IGNORECASE)
+        if m:
+            datos["prio"] = m.group(1).strip(" ;.")
+
+        # DNI
+        m = re.search(
+            r"D\.?N\.?I\.?[:\s]*(?:n.?°)?\s*([0-9\.]+)",
+            t,
+            flags=re.IGNORECASE,
+        )
+        if m:
+            datos["dni"] = re.sub(r"\D", "", m.group(1))
+
+        # Fecha de nacimiento
+        m = re.search(r"Nacido\s+el\s+(\d{2}/\d{2}/\d{4})", t, flags=re.IGNORECASE)
+        if m:
+            datos["fecha_nacimiento"] = m.group(1)
+
+        # Alias
+        m = re.search(
+            r"alias\s+[\"“]?([A-Za-zÁÉÍÓÚÑüÜñ\s]+)[\"”]?(?:,|\.)",
+            t,
+            flags=re.IGNORECASE,
+        )
+        if m:
+            datos["alias"] = m.group(1).strip()
+
+        # Nombre (primera frase antes de la primera coma)
+        t = re.sub(r"^(?:Imputado:)?\s*", "", t, flags=re.IGNORECASE)
+        t = re.sub(r"^(?:[yYeE]\s+)", "", t)
+        t = re.sub(r"^(?:del\s+)?imputado\s+", "", t, flags=re.IGNORECASE)
+        m = re.match(r"([^,]+)", t)
+        if m:
+            datos["nombre"] = m.group(1).strip()
+
+        return datos
+
+PENITENCIARIOS = getattr(_ospro, "PENITENCIARIOS", [])
+DEPOSITOS = getattr(_ospro, "DEPOSITOS", [])
+JUZ_NAVFYG = getattr(_ospro, "JUZ_NAVFYG", [])
+TRIBUNALES = getattr(_ospro, "TRIBUNALES", [])
+MAX_IMPUTADOS = getattr(_ospro, "MAX_IMPUTADOS", 10)
 
 __all__ = [
     "limpiar_pies_de_pagina",
