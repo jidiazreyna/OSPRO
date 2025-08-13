@@ -820,12 +820,11 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         unicos: list[dict] = []
         for imp in imps_local:
             dni = imp.get("dni", "")
-            if dni and dni in vistos:
+            if not dni or dni in vistos:
                 continue
-            if dni:
-                vistos.add(dni)
+            vistos.add(dni)
             unicos.append(imp)
-        datos["imputados"] = unicos
+        datos["imputados"] = unicos or imps_local
     else:
         # Sólo si no pudimos segmentar, usamos lo que vino del modelo
         imps = datos.get("imputados") or []
@@ -838,7 +837,8 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     if not imps or any(isinstance(imp.get("datos_personales"), str) and es_multipersona(imp["datos_personales"]) for imp in imps):
         bloques = segmentar_imputados(texto)
         if bloques:
-            datos["imputados"] = [_dp_from_block(b) for b in bloques]
+            imps_seg = [_dp_from_block(b) for b in bloques]
+            datos["imputados"] = [imp for imp in imps_seg if imp.get("dni")]
 
     # 3) Ajustes post-API
     g = datos.get("generales", {})
@@ -890,6 +890,9 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         else:
             dni = dp.get("dni") or extraer_dni(json.dumps(dp, ensure_ascii=False))
         imp.setdefault("dni", dni)
+
+    # Eliminamos entradas sin DNI (ruido de la segmentación)
+    datos["imputados"] = [imp for imp in datos.get("imputados", []) if imp.get("dni")]
 
 
 
