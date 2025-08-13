@@ -9,7 +9,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 from core import (
     autocompletar,
-    autocompletar_caratula,
+    extraer_caratula,
+    normalizar_caratula,
     PENITENCIARIOS,
     DEPOSITOS,
     JUZ_NAVFYG,
@@ -303,7 +304,7 @@ def res_decomiso() -> str:
 # ────────── callback: normaliza la carátula después de editar ───────
 def _normalizar_caratula():
     raw  = st.session_state.carat
-    auto = autocompletar_caratula(raw)
+    auto = extraer_caratula(normalizar_caratula(raw))
     if auto != raw:
         st.session_state.carat = auto
         st.experimental_rerun()      # fuerza un ciclo nuevo y seguro
