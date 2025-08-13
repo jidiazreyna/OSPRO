@@ -359,7 +359,13 @@ class Worker(QObject):
 
             # -------- 3) Ajustes post-API --------
             # a) resuelvo definitivo (siempre tomar el bloque final real)
-            g = datos.get("generales", {})
+            # `datos` puede no traer la clave ``generales``.  En ese caso
+            # ``datos.get`` devolvería un dict independiente y las
+            # modificaciones realizadas sobre ``g`` no se reflejarían en
+            # ``datos``.  Utilizamos ``setdefault`` para obtener el
+            # sub‑diccionario y asegurarnos de que cualquier cambio quede
+            # almacenado dentro de ``datos``.
+            g = datos.setdefault("generales", {})
             g["resuelvo"] = extraer_resuelvo(texto)
             g["resuelvo"] = limpiar_pies_de_pagina(
                 re.sub(r"\s*\n\s*", " ", g["resuelvo"])
