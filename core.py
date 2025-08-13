@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import re
 from io import BytesIO
+from turtle import st
 
 import docx2txt
 import openai
@@ -51,7 +52,28 @@ def limpiar_pies_de_pagina(texto: str) -> str:
     """Elimina de `texto` los pies de página estándar de las sentencias."""
     return re.sub(_FOOTER_REGEX, " ", texto)
 
+# --- helpers de sentencia ---
+_SENT_NUM_RE   = re.compile(r'\bSentencia\s*N[°º]?\s*(\d+)\b', re.I)
+_SENT_FECHA_RE = re.compile(
+    r'\b(?:Sentencia\s*N[°º]?\s*\d+\s*,?\s*)?(?:de\s*)?fecha\s*[:\- ]*\s*'
+    r'(\d{1,2}/\d{1,2}/\d{2,4}|\d{1,2}\s+de\s+[A-Za-zÁÉÍÓÚáéíóú]+(?:\s+de)?\s+\d{4})',
+    re.I)
+_FIRMEZA_RE    = re.compile(
+    r'\b(qued[óo]\s+firme|firmeza)\b.*?(?:el\s*)?'
+    r'(\d{1,2}/\d{1,2}/\d{2,4}|\d{1,2}\s+de\s+[A-Za-zÁÉÍÓÚáéíóú]+(?:\s+de)?\s+\d{4})',
+    re.I | re.S)
 
+def extraer_sent_num(texto: str) -> str:
+    m = _SENT_NUM_RE.search(texto or "")
+    return (m.group(1) if m else "").strip()
+
+def extraer_sent_fecha(texto: str) -> str:
+    m = _SENT_FECHA_RE.search(texto or "")
+    return (m.group(1) if m else "").strip()
+
+def extraer_firmeza(texto: str) -> str:
+    m = _FIRMEZA_RE.search(texto or "")
+    return (m.group(2) if m else "").strip()
 # ­­­ ---- bloque RESUELVE / RESUELVO ───────────────────────────────
 _RESUELVO_REGEX = re.compile(
     r"""
@@ -158,7 +180,7 @@ _FIRMA_FIN_PAT = re.compile(
         (?:
             (?:Texto\s+)?Firmad[oa]\s+digitalmente(?:\s+por:)?  # "Firmado digitalmente por:"
           | Firmad[oa]
-          | Firma\s+digital
+          | Firm(a|a)\s+(digital|electr[oó]nica)
           | Texto\s+Firmado
           | Fdo\.?
           | Fecha\s*:\s*\d{4}                         # Fecha: 2025-08-02
@@ -178,31 +200,31 @@ def extraer_resuelvo(texto: str) -> str:
         return ""
     texto = limpiar_pies_de_pagina(texto)
 
-    idx = max(texto.lower().rfind("resuelve"),
-              texto.lower().rfind("resuelvo"))
+    m = _RESUELVO_REGEX.search(texto)
+    if m:
+        bloque = m.group("bloque")
+        return re.sub(r"\s+", " ", bloque).strip()
+    # fallback simple
+    idx = max(texto.lower().rfind("resuelve"), texto.lower().rfind("resuelvo"))
     if idx == -1:
         return ""
-
     frag = texto[idx:]
     m_fin = _FIRMA_FIN_PAT.search(frag)
     if m_fin:
         frag = frag[:m_fin.start()]
-
-    frag = frag.strip()
-    frag = re.sub(r"^resuelv[eo]\s*:?\s*", "", frag, flags=re.I)
-    return frag
+    frag = re.sub(r"^resuelv[eo]\s*:?\s*", "", frag, flags=re.I).strip()
+    return re.sub(r"\s+", " ", frag)
 
 
 
 # ── helper para capturar FIRMANTES ────────────────────────────
 _FIRMAS_REGEX = re.compile(r'''
     (?:^|\n)\s*
-    (?: (?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s* )?
+    (?: (?:Texto\s+)?Firmad[oa]\s+(?:digitalmente|electr[oó]nicamente)\s+por:\s* )?
     (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)\s*
     (?: ,\s* | \n\s* )
     (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)
     (?: [,\s]* \n?\s* (?:CUIL|DNI|ID)\s* (?P<doc>[\d.\-]+) )?
-    (?= (?:[^\n]*\n){0,2}\s*Fecha\s*:\s*\d{4}[./-]\d{2}[./-]\d{2} )
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
 
 
@@ -375,7 +397,10 @@ class Worker(QObject):
 
             # listo
             self.finished.emit(datos, "")
-
+            # respaldos si la IA no los trajo
+            g.setdefault("sent_num",     extraer_sent_num(texto))
+            g.setdefault("sent_fecha",   extraer_sent_fecha(texto))
+            g.setdefault("sent_firmeza", extraer_firmeza(texto))
         except Exception as e:
             self.finished.emit({}, str(e))          # devolvemos el error
 
@@ -415,6 +440,9 @@ else:
             "tribunal": extraer_tribunal(texto),
             "resuelvo": extraer_resuelvo(texto),
             "firmantes": extraer_firmantes(texto),
+            "sent_num":   extraer_sent_num(texto),
+            "sent_fecha": extraer_sent_fecha(texto),
+            "sent_firmeza": extraer_firmeza(texto),
         }
 
         imputados = [
@@ -440,14 +468,20 @@ else:
 
         datos = procesar_sentencia(file_bytes, filename)
         gen = datos.get("generales", {}) if isinstance(datos, dict) else {}
-
+    
+        # ---- volcá TODOS los campos generales a los keys que usa la UI ----
+        st.session_state["carat"]    = gen.get("caratula", "") or st.session_state.get("carat", "")
+        st.session_state["trib"]     = gen.get("tribunal", "") or st.session_state.get("trib", "")
+        st.session_state["snum"]     = gen.get("sent_num", "") or st.session_state.get("snum", "")
+        st.session_state["sfecha"]   = gen.get("sent_fecha", "") or st.session_state.get("sfecha", "")
+        st.session_state["sfirmeza"] = gen.get("sent_firmeza", "") or st.session_state.get("sfirmeza", "")
+    
+        # Resuelvo → texto llano
         res = gen.get("resuelvo", "")
-        if isinstance(res, list):
-            res_txt = ", ".join(str(r).strip() for r in res)
-        else:
-            res_txt = str(res).replace("\n", " ")
+        res_txt = ", ".join(str(r).strip() for r in res) if isinstance(res, list) else str(res).replace("\n", " ")
         st.session_state["sres"] = res_txt
-
+    
+        # Firmantes → SIEMPRE en 'sfirmantes' (no 'sfirmaza')
         firmas = gen.get("firmantes")
         if firmas is not None:
             if isinstance(firmas, list):
@@ -455,14 +489,69 @@ else:
                     partes = []
                     for f in firmas:
                         nombre = f.get("nombre")
-                        cargo = f.get("cargo")
+                        cargo  = f.get("cargo")
                         partes.append(", ".join(p for p in [nombre, cargo] if p))
                     firmas_txt = "; ".join(partes)
                 else:
                     firmas_txt = ", ".join(str(f) for f in firmas)
             else:
                 firmas_txt = str(firmas)
-            st.session_state["sfirmaza"] = firmas_txt
+            st.session_state["sfirmantes"] = firmas_txt
+        # si no vino nada, no pisamos lo que tenga el usuario
+    
+        # ---- imputados ----
+        imputados = datos.get("imputados", []) if isinstance(datos, dict) else []
+        st.session_state["n_imputados"] = min(len(imputados) or 1, st.session_state.get("n_imp", 1))
+    
+        def _format_dp(raw: object) -> str:
+            import ast
+            if isinstance(raw, str):
+                try:
+                    raw_obj = ast.literal_eval(raw)
+                    if isinstance(raw_obj, dict):
+                        dp = raw_obj
+                    else:
+                        return str(raw)
+                except Exception:
+                    return str(raw)
+            elif isinstance(raw, dict):
+                dp = raw
+            else:
+                return str(raw)
+            partes: list[str] = []
+            if dp.get("nombre"): partes.append(dp["nombre"])
+            if dp.get("dni"): partes.append(f"D.N.I. {dp['dni']}")
+            if dp.get("nacionalidad"): partes.append(dp["nacionalidad"])
+            if dp.get("edad"): partes.append(f"{dp['edad']} años")
+            if dp.get("estado_civil"): partes.append(dp["estado_civil"])
+            if dp.get("instruccion"): partes.append(dp["instruccion"])
+            if dp.get("ocupacion"): partes.append(dp["ocupacion"])
+            if dp.get("fecha_nacimiento"): partes.append(f"Nacido el {dp['fecha_nacimiento']}")
+            if dp.get("lugar_nacimiento"): partes.append(f"en {dp['lugar_nacimiento']}")
+            if dp.get("domicilio"): partes.append(f"Domicilio: {dp['domicilio']}")
+            if (pv := dp.get("padres")):
+                if isinstance(pv, str):
+                    padres = pv
+                elif isinstance(pv, list):
+                    nombres = []
+                    for item in pv:
+                        nombres.append(item.get("nombre", str(item)) if isinstance(item, dict) else str(item))
+                    padres = ", ".join(nombres)
+                else:
+                    padres = str(pv)
+                partes.append(f"Hijo de {padres}")
+            pront = dp.get("prontuario") or dp.get("prio") or dp.get("pront")
+            if pront: partes.append(f"Pront. {pront}")
+            return ", ".join(partes)
+    
+        for idx, imp in enumerate(imputados):
+            bruto = imp.get("datos_personales", imp) or {}
+            # popular también nombre/dni explícitos para las tabs que los requieren
+            nom = (bruto or {}).get("nombre", "")
+            dni = (bruto or {}).get("dni", "")
+            st.session_state[f"imp{idx}_nom"]   = nom
+            st.session_state[f"imp{idx}_dni"]   = dni
+            st.session_state[f"imp{idx}_datos"] = _format_dp(bruto)
 
         def _format_dp(raw: object) -> str:
             import ast
@@ -510,11 +599,6 @@ else:
             if pront:
                 partes.append(f"Pront. {pront}")
             return ", ".join(partes)
-
-        imputados = datos.get("imputados", []) if isinstance(datos, dict) else []
-        for idx, imp in enumerate(imputados):
-            bruto = imp.get("datos_personales", imp)
-            st.session_state[f"imp{idx}_datos"] = _format_dp(bruto)
 
         st.session_state.setdefault("datos_autocompletados", {})
         st.session_state["datos_autocompletados"].update(datos)
