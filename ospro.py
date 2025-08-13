@@ -84,34 +84,6 @@ OPENAI_API_KEY_DEFAULT = _CONFIG.get("api_key", "")
 PROXY_URL_DEFAULT = _CONFIG.get("proxy", "")
 
 # ──────────────────── utilidades menores ────────────────────
-
-def _get_openai_client():
-    """Return an OpenAI client for both old and new SDKs."""
-    api_key = os.environ.get("OPENAI_API_KEY", OPENAI_API_KEY_DEFAULT)
-    if not api_key:
-        raise RuntimeError(
-            "Falta la clave de API de OpenAI. Definí OPENAI_API_KEY o actualizá config.json."
-        )
-    proxy = PROXY_URL_DEFAULT
-    try:
-        from openai import OpenAI  # type: ignore
-        kwargs = {"api_key": api_key}
-        if proxy:
-            try:
-                import httpx  # type: ignore
-                kwargs["http_client"] = httpx.Client(proxy=proxy)
-            except Exception:
-                pass
-        return OpenAI(**kwargs)
-    except Exception:
-        openai.api_key = api_key  # type: ignore[attr-defined]
-        if proxy and requests:
-            session = requests.Session()
-            session.proxies.update({"http": proxy, "https": proxy})
-            openai.requestssession = session  # type: ignore[attr-defined]
-        return openai
-
-
 class NoWheelComboBox(QComboBox):
     """Evita que la rueda del mouse cambie accidentalmente la opción."""
     def wheelEvent(self, event): event.ignore()
@@ -388,15 +360,38 @@ _FOOTER_REGEX = re.compile(
 
 
 def limpiar_pies_de_pagina(texto: str) -> str:
-    """Elimina de ``texto`` los pies de página estándar de las sentencias."""
+    """Elimina de `texto los pies de página estándar de las sentencias."""
     return re.sub(_FOOTER_REGEX, " ", texto)
 
+# ­­­ ---- bloque RESUELVE / RESUELVO ───────────────────────────────
+_RESUELVO_REGEX = re.compile(
+    r"""
+    resuelv[eo]\s*:?\s*                           # “RESUELVE:” / “RESUELVO:”
+    (?P<bloque>                                   # ← bloque que queremos extraer
+        (?:
+            (?:                                   # ─ un inciso: I) / 1. / II.- …
+                \s*(?:[IVXLCDM]+|\d+)             #   núm. romano o arábigo
+                \s*(?:\)|\.-|\.|-|-)              #   )  .  -  -  o .-   ← ¡cambio!
+                \s+
+                .*?                               #   texto del inciso (lazy)
+                (?:                               #   líneas del mismo inciso
+                    \n(?!\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-|-)).*?
+                )*
+            )
+        )+                                        # uno o más incisos
+    )
+    (?=                                           # -- corte del bloque --
+        \s*(?:Protocol[íi]?cese|Notifíquese|
+            Hágase\s+saber|Of[íi]ciese)           # fórmulas de cierre
+        |\Z                                       # o fin de texto
+    )
+    """,
+    re.IGNORECASE | re.DOTALL | re.VERBOSE,
+)
+
 # ── CARÁTULA ──────────────────────────────────────────────────────────
-_PAT_CARAT_1 = re.compile(          # 1) bloque completo con o sin paréntesis
-    r'([^"\n]*?["“][^"”]+?["”])\s*'
-    r'(?:\(\s*(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+)\s*\)'
-    r'|(?:SAC|Expte\.?)\s*(?:N\s*[°º\.]*\s*)?([\d.]+))',
-    re.I)
+_PAT_CARAT_1 = re.compile(          # 1) entre comillas
+    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)\s*\)', re.I)
 
 _PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
@@ -418,20 +413,8 @@ def extraer_caratula(txt: str) -> str:
 
     m = _PAT_CARAT_1.search(plano)
     if m:
-        bloque, n1, n2 = m.groups()
-        nro = n1 or n2
-        bloque = bloque.strip()
-        mq = re.search(r'["“][^"”]+["”]', bloque)
-        if mq:
-            quoted = mq.group(0)
-            prefix = bloque[:mq.start()].strip()
-            if prefix and len(prefix) <= 80:
-                bloque = f'{prefix} {quoted}'
-            else:
-                bloque = quoted
-        if bloque.startswith(('"', '“')) and bloque.endswith(('"', '”')):
-            bloque = bloque[1:-1]
-        return f'{bloque.strip()} (SAC N° {nro})'
+        titulo, nro = m.groups()
+        return f'“{titulo.strip()}” (SAC N° {nro})'
 
     m = _PAT_CARAT_2.search(plano)
     if m:
@@ -563,11 +546,9 @@ _FIRMAS_REGEX = re.compile(r'''
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
 
 # ── validaciones de campos ─────────────────────────────────────────────
-# Carátula: debe incluir comillas y un número de expediente o SAC.
-# Se permite texto previo y variantes de "Expte."/"SAC"/"N°".
+# Carátula: debe incluir comillas y un número de expediente o SAC
 CARATULA_REGEX = QRegularExpression(
-    r'(?i)^\s*[^"“\n]*["“][^"”]+["”]\s*\((?:Expte\.?\s*)?(?:SAC|Expte\.?)\s*'
-    r'(?:N\s*[°ºo\.]*\s*)?[\d.]+\)$'
+    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*\d+\))?["”](?:\s*\((?:SAC|Expte\.?\s*)\s*N°\s*\d+\))?$'
 )
 # Tribunal: al menos una letra minúscula y empezar en mayúscula
 TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
@@ -579,7 +560,7 @@ DNI_REGEX = re.compile(
 )
 
 def extraer_dni(texto: str) -> str:
-    """Devuelve sólo los dígitos del primer DNI hallado en `texto`."""
+    """Devuelve sólo los dígitos del primer DNI hallado en texto."""
     if not texto:
         return ""
     m = DNI_REGEX.search(texto)
@@ -607,15 +588,6 @@ def normalizar_caratula(txt: str) -> str:
     txt = txt.replace("\u201c", '"').replace("\u201d", '"')
     txt = txt.replace("'", '"')
     return txt
-
-
-def autocompletar_caratula(txt: str) -> str:
-    """Intenta extraer y normalizar la carátula desde ``txt``."""
-    txt = normalizar_caratula(txt)
-    if not txt:
-        return ""
-    extraida = extraer_caratula(txt)
-    return extraida or txt
 
 
 def normalizar_dni(txt: str) -> str:
@@ -667,8 +639,7 @@ class Worker(QObject):
             texto = limpiar_pies_de_pagina(texto)
 
             # -------- 2) OpenAI JSON mode --------
-            client = _get_openai_client()
-            kwargs = dict(
+            respuesta = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 temperature=0,
                 response_format={"type": "json_object"},
@@ -679,7 +650,7 @@ class Worker(QObject):
                             "Devolvé un JSON con: "
                             "generales (caratula, tribunal, sent_num, sent_fecha, resuelvo, firmantes) "
                             "e imputados (lista).  Cada imputado debe traer un objeto "
-                            "`datos_personales` **con TODAS ESTAS CLAVES**:\n"
+                            "datos_personales **con TODAS ESTAS CLAVES**:\n"
                             "nombre, dni, nacionalidad, fecha_nacimiento, lugar_nacimiento, edad, "
                             "estado_civil, domicilio, instruccion, ocupacion, padres, "
                             "prontuario, seccion_prontuario.\n"
@@ -694,10 +665,6 @@ class Worker(QObject):
                     {"role": "user", "content": texto[:120000]},
                 ],
             )
-            if hasattr(client, "chat"):
-                respuesta = client.chat.completions.create(**kwargs)  # type: ignore
-            else:
-                respuesta = client.ChatCompletion.create(**kwargs)  # type: ignore
             datos = json.loads(respuesta.choices[0].message.content)
 
             # -------- 3) Ajustes post-API --------
@@ -762,8 +729,8 @@ class MainWindow(QMainWindow):
                           weight: int = QFont.Normal,
                           rich: bool = False) -> None:
         """
-        Agrega uno o varios párrafos a `te` con la alineación indicada
-        (Left, Right, Center o Justify).  Cada salto de línea en `text`
+        Agrega uno o varios párrafos a te con la alineación indicada
+        (Left, Right, Center o Justify).  Cada salto de línea en text
         genera un bloque nuevo.
         """
         cursor = te.textCursor()
@@ -1831,7 +1798,7 @@ class MainWindow(QMainWindow):
             "<b>S______/_______D:</b>\n\n"
             f"En los autos caratulados: {car_a}, que se tramitan por ante "
             f"{trib_a}, con conocimiento e intervención de esta <b>Oficina de Servicios</b> "
-            "<b>Procesales ‑ OSPRO ‑</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto "
+            "<b>Procesales ‑ OSPRO‑</b>, se ha dispuesto librar a Ud. el presente a fin de poner en conocimiento lo resuelto "
             f"por la Sentencia N° {sent_n_a} del {sent_f_a}, dictada por la Cámara mencionada, en virtud de la cual se ordenó el "
             "<b>DECOMISO</b> de los siguientes objetos:\n\n"
             f"<table border='1' cellspacing='0' cellpadding='2'>"
@@ -2407,8 +2374,8 @@ class MainWindow(QMainWindow):
         )
         if ok:
             texto = texto.strip()
-            # ``QInputDialog`` may normalize spaces (e.g. replace narrow no-break
-            # spaces with regular ones) which prevents ``setCurrentText`` from
+            # `QInputDialog may normalize spaces (e.g. replace narrow no-break
+            # spaces with regular ones) which prevents `setCurrentText from
             # matching the existing combo item and updating its current data.
             # Map normalized item texts to their indices to ensure we select the
             # correct entry when possible.
@@ -2422,7 +2389,7 @@ class MainWindow(QMainWindow):
 
     def _check_caratula(self) -> None:
         """Valida el formato de la carátula al finalizar la edición."""
-        txt = autocompletar_caratula(self.entry_caratula.text())
+        txt = normalizar_caratula(self.entry_caratula.text())
         self.entry_caratula.setText(txt)
         if txt and not CARATULA_REGEX.match(txt):
             QMessageBox.warning(
@@ -2574,17 +2541,18 @@ def _obtener_api_key() -> str:
     return OPENAI_API_KEY_DEFAULT
 
 def _configurar_proxy() -> None:
-    """Configura variables de entorno para proxy si está definido."""
-    if PROXY_URL_DEFAULT:
-        os.environ["HTTP_PROXY"] = PROXY_URL_DEFAULT
-        os.environ["HTTPS_PROXY"] = PROXY_URL_DEFAULT
+    """Configura la sesión de requests para usar un proxy si está definido."""
+    if PROXY_URL_DEFAULT and requests:
+        session = requests.Session()
+        session.proxies.update({"http": PROXY_URL_DEFAULT, "https": PROXY_URL_DEFAULT})
+        openai.requestssession = session
 
     
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path("icono4.ico")))
     # ahora SÍ podés usar QMessageBox
-    _obtener_api_key()
+    openai.api_key = _obtener_api_key()
     _configurar_proxy()
 
 
