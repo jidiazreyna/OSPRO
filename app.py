@@ -377,6 +377,7 @@ def connect_tabs(a: str, b: str) -> None:
     <script>
     (function() {{
       const doc = parent.document;
+      const win = parent;
       function draw() {{
         const id = {json.dumps(uid)};
         const old = doc.getElementById(id); if (old) old.remove();
@@ -386,20 +387,22 @@ def connect_tabs(a: str, b: str) -> None:
         if (!ta || !tb) return;
         const ra = ta.getBoundingClientRect();
         const rb = tb.getBoundingClientRect();
+        const sx = win.scrollX || doc.documentElement.scrollLeft;
+        const sy = win.scrollY || doc.documentElement.scrollTop;
         const div = doc.createElement('div');
         div.id = id;
         div.style.position = 'absolute';
         div.style.background = '#0068c9';
         div.style.height = '2px';
-        div.style.top = (ra.bottom + window.scrollY) + 'px';
-        div.style.left = (ra.left + window.scrollX + ra.width/2) + 'px';
-        div.style.width = (rb.left + window.scrollX + rb.width/2 - (ra.left + window.scrollX + ra.width/2)) + 'px';
+        div.style.top = (ra.bottom + sy) + 'px';
+        div.style.left = (ra.left + sx + ra.width/2) + 'px';
+        div.style.width = (rb.left + sx + rb.width/2 - (ra.left + sx + ra.width/2)) + 'px';
         doc.body.appendChild(div);
       }}
       draw();
       doc.addEventListener('click', draw);
-      window.addEventListener('resize', draw);
-      window.addEventListener('scroll', draw, {{passive: true}});
+      win.addEventListener('resize', draw);
+      win.addEventListener('scroll', draw, {{passive: true}});
       const tabList = doc.querySelector('div[role="tablist"]');
       if (tabList) tabList.addEventListener('scroll', draw, {{passive: true}});
     }})();
