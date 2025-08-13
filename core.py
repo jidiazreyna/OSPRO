@@ -55,36 +55,23 @@ def limpiar_pies_de_pagina(texto: str) -> str:
 # ­­­ ---- bloque RESUELVE / RESUELVO ───────────────────────────────
 _RESUELVO_REGEX = re.compile(
     r"""
-    resuelv[eo]\s*:?\s*                           # “RESUELVE:” / “RESUELVO:”
-    (?P<bloque>                                   # ← bloque que queremos extraer
+    resuelv[eo]\s*:?\s*
+    (?P<bloque>
         (?:
-            (?:                                   # ─ un inciso: I) / 1. / II.- …
-                \s*(?:[IVXLCDM]+|\d+)             #   núm. romano o arábigo
-                \s*(?:\)|\.-|\.|-)                #   )  .  -  o .-
-                \s+
-                .*?                               #   texto del inciso (lazy)
-                (?:                               #   líneas del mismo inciso
-                    \n(?!\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-) ).*?
-                )*
-            )
-        )+                                        # uno o más incisos
+            (?:\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-|-)\s+
+               .*?(?:\n(?!\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-|-)).*?)*)
+        )+
     )
-    (?=                                           # -- corte del bloque --
-        \s*(?:Protocol[íi]?cese|Notifíquese|
-            Hágase\s+saber|Of[íi]ciese)           # fórmulas de cierre
-        |\Z                                       # o fin de texto
-    )
+    (?=\s*(?:Protocol[íi]?cese|Notifíquese|Hágase\s+saber|Of[íi]ciese)|\Z)
     """,
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
 )
 
+
 # ── CARÁTULA ──────────────────────────────────────────────────────────
-# 1) bloque completo “X” (SAC/Expte./EE N° 123) o “X” SAC N° 123
+# 1) “X” (SAC/Expte./EE N° 123)
 _PAT_CARAT_1 = re.compile(
-    r'(.+?)\s*'
-    r'(?:\(\s*(?:Expte\.\s*)?(?:SAC|Expte\.?|EE)\s*(?:N\s*[°º\.]*\s*)?([\d.]+)\s*\)'
-    r'|(?:Expte\.\s*)?(?:SAC|Expte\.?|EE)\s*(?:N\s*[°º\.]*\s*)?([\d.]+))',
-    re.I,
+    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?|EE)\s*N°?\s*([\d.]+)\s*\)', re.I
 )
 
 # 2) autos caratulados “X”
@@ -102,37 +89,24 @@ _PAT_CARAT_3 = re.compile(
 
 def extraer_caratula(txt: str) -> str:
     """
-    Devuelve la carátula formal “…” (SAC/Expte./EE N° …) o '' si no encuentra nada creíble.
+    Devuelve la carátula formal “…” (SAC N° …) o '' si no encuentra nada creíble.
     Orden de prueba:
-      1. Entre comillas + (SAC/Expte./EE [N°] …) o “…” SAC N° …
-      2. Frase “… autos caratulados ‘X’ …”
-      3. Encabezado “EXPEDIENTE SAC/Expte./EE: 123 – X – …”
+      1. “X” (SAC/Expte./EE N° …)
+      2. “… autos caratulados ‘X’ …”
+      3. “EXPEDIENTE SAC/Expte./EE: 123 – X – …”
     """
     plano = re.sub(r'\s+', ' ', txt)
 
     m = _PAT_CARAT_1.search(plano)
     if m:
-        bloque, n1, n2 = m.groups()
-        nro = n1 or n2
-        bloque = bloque.strip()
-        mq = re.search(r"[\"“'‘`][^\"”'’`]+[\"”'’`]", bloque)
-        if mq:
-            inner = mq.group(0)[1:-1]
-            quoted = f'“{inner}”'
-            prefix = bloque[:mq.start()].strip()
-            if prefix and len(prefix) <= 150:
-                bloque = f"{prefix} {quoted}"
-            else:
-                bloque = quoted
-        else:
-            bloque = f'“{bloque}”'
-        return f'{bloque.strip()} (SAC N° {nro})'
+        titulo, nro = m.groups()
+        return f'“{titulo.strip()}” (SAC N° {nro})'
 
     m = _PAT_CARAT_2.search(plano)
     if m:
         titulo = m.group(1).strip()
-        mnum = re.search(r'(?:SAC|Expte\.?|EE)\s*(?:N°\s*)?([\d.]+)', plano)
-        nro = mnum.group(1) if mnum else '…'
+        mnum = re.search(r'(?:SAC|Expte\.?|EE)\s*N°?\s*([\d.]+)', plano)
+        nro  = mnum.group(1) if mnum else '…'
         return f'“{titulo}” (SAC N° {nro})'
 
     encabezados = _PAT_CARAT_3.findall(plano[:5000])
@@ -194,30 +168,22 @@ _FIRMA_FIN_PAT = re.compile(
 
 def extraer_resuelvo(texto: str) -> str:
     """
-    Devuelve el ÚLTIMO bloque dispositivo con sus incisos (hasta fórmulas de cierre).
-    Estrategia:
-      A) usar _RESUELVO_REGEX (incisos I)/1.) … hasta 'Protocolícese/Notifíquese/Ofíciese')
-      B) si falla, fallback: desde la última “RESUELVE/RESUELVO” hasta antes de firmas/fechas
+    Devuelve el ÚLTIMO bloque dispositivo completo.
+    Estrategia (igual que la base):
+      1) quitar pies de página repetitivos
+      2) buscar la última aparición de RESUELVE/RESUELVO
+      3) cortar justo antes de firmas/fechas/meta-datos
     """
     if not texto:
         return ""
     texto = limpiar_pies_de_pagina(texto)
 
-    # --- A) Regex de incisos hasta fórmulas de cierre ---
-    ultimo = None
-    for m in _RESUELVO_REGEX.finditer(texto):
-        ultimo = m
-    if ultimo:
-        bloque = ultimo.group("bloque").strip()
-        return bloque
-
-    # --- B) Fallback robusto previo ---
     idx = max(texto.lower().rfind("resuelve"),
               texto.lower().rfind("resuelvo"))
     if idx == -1:
         return ""
 
-    frag = texto[idx:]  # desde RESUELVE hasta el final
+    frag = texto[idx:]
     m_fin = _FIRMA_FIN_PAT.search(frag)
     if m_fin:
         frag = frag[:m_fin.start()]
@@ -225,6 +191,7 @@ def extraer_resuelvo(texto: str) -> str:
     frag = frag.strip()
     frag = re.sub(r"^resuelv[eo]\s*:?\s*", "", frag, flags=re.I)
     return frag
+
 
 
 # ── helper para capturar FIRMANTES ────────────────────────────
@@ -240,11 +207,11 @@ _FIRMAS_REGEX = re.compile(r'''
 
 
 # ── validaciones de campos ─────────────────────────────────────────────
-# Carátula: entre comillas y con un número (SAC/Expte./EE), permitiendo N° opcional
+# Carátula: comillas + número de expediente/SAC/EE
 CARATULA_REGEX = QRegularExpression(
-    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*[\d.]+\))?["”](?:\s*\((?:SAC|Expte\.?|EE)\s*(?:N°\s*)?[\d.]+\))?$'
+    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*[\d.]+\))?["”](?:\s*\((?:SAC|Expte\.?|EE)\s*N°\s*[\d.]+\)\s*)?$'
 )
-# Tribunal: al menos una minúscula y empezar en mayúscula
+# Tribunal: igual que la base
 TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
 
 
@@ -365,6 +332,7 @@ class Worker(QObject):
             # a) resuelvo definitivo (siempre tomar el bloque final real)
             #    usar setdefault para que el subdict quede guardado en `datos`.
             g = datos.setdefault("generales", {})
+
             g["resuelvo"] = extraer_resuelvo(texto)
             g["resuelvo"] = limpiar_pies_de_pagina(
                 re.sub(r"\s*\n\s*", " ", g["resuelvo"])
@@ -379,6 +347,7 @@ class Worker(QObject):
             firmas = extraer_firmantes(texto)
             if firmas:
                 g["firmantes"] = firmas
+
 
             # c) verificar / completar carátula y tribunal
             carat_raw = g.get("caratula", "").strip()
