@@ -438,8 +438,9 @@ else:
         """Devuelve datos básicos extraídos de una sentencia.
 
         Se intenta leer el contenido del archivo ``filename`` (PDF, DOCX o
-        texto) para obtener el apartado "resuelvo" y los datos personales de
-        los imputados.  En caso de fallo se devuelven estructuras vacías.
+        texto) para obtener la carátula, el tribunal, el apartado "resuelvo",
+        los firmantes y los datos personales de los imputados.  En caso de
+        fallo se devuelven estructuras vacías.
         """
 
         nombre = filename.lower()
@@ -453,18 +454,23 @@ else:
         except Exception:
             texto = ""
 
-        resuelvo: list[str] = []
-        m = re.search(r"resuelv[oe](.*)", texto, flags=re.IGNORECASE | re.DOTALL)
-        if m:
-            bloque = m.group(1).split("\n\n", 1)[0]
-            resuelvo = [ln.strip(" -") for ln in bloque.splitlines() if ln.strip()]
+        texto = limpiar_pies_de_pagina(texto)
+
+        generales = {
+            "caratula": extraer_caratula(texto),
+            "tribunal": extraer_tribunal(texto),
+            "resuelvo": extraer_resuelvo(texto),
+            "firmantes": extraer_firmantes(texto),
+        }
 
         imputados = [
             {"datos_personales": extraer_datos_personales(b)}
             for b in segmentar_imputados(texto)
         ]
 
-        return {"generales": {"resuelvo": resuelvo}, "imputados": imputados}
+        generales["imputados_num"] = len(imputados)
+
+        return {"generales": generales, "imputados": imputados}
 
 if _ospro and hasattr(_ospro, "autocompletar"):
     autocompletar = _ospro.autocompletar  # type: ignore
@@ -623,14 +629,10 @@ else:
         if m:
             datos["prio"] = m.group(1).strip(" ;.")
 
-        # DNI
-        m = re.search(
-            r"D\.?N\.?I\.?[:\s]*(?:n.?°)?\s*([0-9\.]+)",
-            t,
-            flags=re.IGNORECASE,
-        )
-        if m:
-            datos["dni"] = re.sub(r"\D", "", m.group(1))
+        # DNI (primer número hallado)
+        dni = extraer_dni(t)
+        if dni:
+            datos["dni"] = dni
 
         # Fecha de nacimiento
         m = re.search(r"Nacido\s+el\s+(\d{2}/\d{2}/\d{4})", t, flags=re.IGNORECASE)
