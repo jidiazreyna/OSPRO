@@ -48,9 +48,11 @@ _FOOTER_REGEX = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
+
 def limpiar_pies_de_pagina(texto: str) -> str:
-    """Elimina de `texto` los pies de página estándar de las sentencias."""
+    """Elimina de `texto los pies de página estándar de las sentencias."""
     return re.sub(_FOOTER_REGEX, " ", texto)
+
 
 # --- helpers de sentencia ---
 _SENT_NUM_RE   = re.compile(r'\bSentencia\s*N[°º]?\s*(\d+)\b', re.I)
@@ -75,48 +77,55 @@ def extraer_firmeza(texto: str) -> str:
     m = _FIRMEZA_RE.search(texto or "")
     return (m.group(2) if m else "").strip()
 # ­­­ ---- bloque RESUELVE / RESUELVO ───────────────────────────────
+# ­­­ ---- bloque RESUELVE / RESUELVO ───────────────────────────────
 _RESUELVO_REGEX = re.compile(
     r"""
-    resuelv[eo]\s*:?\s*
-    (?P<bloque>
+    resuelv[eo]\s*:?\s*                           # “RESUELVE:” / “RESUELVO:”
+    (?P<bloque>                                   # ← bloque que queremos extraer
         (?:
-            (?:\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-|-)\s+
-               .*?(?:\n(?!\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-|-)).*?)*)
-        )+
+            (?:                                   # ─ un inciso: I) / 1. / II.- …
+                \s*(?:[IVXLCDM]+|\d+)             #   núm. romano o arábigo
+                \s*(?:\)|\.-|\.|-|-)              #   )  .  -  -  o .-   ← ¡cambio!
+                \s+
+                .*?                               #   texto del inciso (lazy)
+                (?:                               #   líneas del mismo inciso
+                    \n(?!\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-|-)).*?
+                )*
+            )
+        )+                                        # uno o más incisos
     )
-    (?=\s*(?:Protocol[íi]?cese|Notifíquese|Hágase\s+saber|Of[íi]ciese)|\Z)
+    (?=                                           # -- corte del bloque --
+        \s*(?:Protocol[íi]?cese|Notifíquese|
+            Hágase\s+saber|Of[íi]ciese)           # fórmulas de cierre
+        |\Z                                       # o fin de texto
+    )
     """,
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
 )
 
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
-# 1) “X” (SAC/Expte./EE N° 123)
-_PAT_CARAT_1 = re.compile(
-    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?|EE)\s*N°?\s*([\d.]+)\s*\)', re.I
-)
 
-# 2) autos caratulados “X”
-_PAT_CARAT_2 = re.compile(
+# ── CARÁTULA ──────────────────────────────────────────────────────────
+_PAT_CARAT_1 = re.compile(          # 1) entre comillas
+    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)\s*\)', re.I)
+
+_PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
-    r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?',
-    re.I,
-)
+    r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?', re.I)
 
-# 3) encabezado “EXPEDIENTE SAC/Expte./EE: … - …”
-_PAT_CARAT_3 = re.compile(
-    r'EXPEDIENTE\s+(?:SAC|Expte\.?|EE)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)',
-    re.I,
-)
+_PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …”
+    r'EXPEDIENTE\s+(?:SAC|Expte\.?)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
 
 def extraer_caratula(txt: str) -> str:
     """
     Devuelve la carátula formal “…” (SAC N° …) o '' si no encuentra nada creíble.
-    Orden de prueba:
-      1. “X” (SAC/Expte./EE N° …)
-      2. “… autos caratulados ‘X’ …”
-      3. “EXPEDIENTE SAC/Expte./EE: 123 – X – …”
+    Se prueban, en orden, tres patrones:
+      1. Entre comillas + (SAC/Expte N° …)
+      2. Frase “… autos caratulados ‘X’ …”
+      3. Encabezado “EXPEDIENTE SAC: 123 – X – …”
     """
+    # normalizo blancos para evitar saltos de línea entre tokens
     plano = re.sub(r'\s+', ' ', txt)
 
     m = _PAT_CARAT_1.search(plano)
@@ -127,10 +136,12 @@ def extraer_caratula(txt: str) -> str:
     m = _PAT_CARAT_2.search(plano)
     if m:
         titulo = m.group(1).strip()
-        mnum = re.search(r'(?:SAC|Expte\.?|EE)\s*N°?\s*([\d.]+)', plano)
+        # intento buscar el número SAC/Expte más próximo
+        mnum = re.search(r'(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)', plano)
         nro  = mnum.group(1) if mnum else '…'
         return f'“{titulo}” (SAC N° {nro})'
 
+    # El encabezado suele estar en la primera página; me quedo con la 1ª coincidencia
     encabezados = _PAT_CARAT_3.findall(plano[:5000])
     if encabezados:
         nro, resto = encabezados[0]
@@ -138,21 +149,27 @@ def extraer_caratula(txt: str) -> str:
         return f'“{titulo}” (SAC N° {nro})'
     return ""
 
-
 # ── TRIBUNAL ──────────────────────────────────────────────────────────
-_CLAVES_TRIB = (r'Cámara|Juzgado|Tribunal|Sala|Corte')
+# Lista de palabras clave válidas al inicio de la descripción
+_CLAVES_TRIB = (
+    r'Cámara|Juzgado|Tribunal|Sala|Corte'  # extensible
+)
 
+# 1) “… en esta Cámara / en el Juzgado …”
 _PAT_TRIB_1 = re.compile(
     rf'en\s+(?:esta|este|el|la)\s+({_CLAVES_TRIB}[^,;.]+)', re.I)
 
+# 2) encabezado en versales: “CAMARA EN LO CRIMINAL Y CORRECCIONAL 3ª NOM.”
 _PAT_TRIB_2 = re.compile(
     r'(CAMARA\s+EN\s+LO\s+CRIMINAL[^/]+NOM\.)', re.I)
 
 def _formatea_tribunal(raw: str) -> str:
+    """Pasa a minúsculas y respeta mayúsculas iniciales."""
     raw = raw.lower()
     return capitalizar_frase(raw)
 
 def extraer_tribunal(txt: str) -> str:
+    """Devuelve la mención al órgano: 'la Cámara …' / 'el Juzgado …'."""
     plano = re.sub(r'\s+', ' ', txt)
 
     m = _PAT_TRIB_1.search(plano)
@@ -162,14 +179,14 @@ def extraer_tribunal(txt: str) -> str:
             t = 'la ' + t
         return t.strip(' .')
 
-    m = _PAT_TRIB_2.search(plano[:2000])
+    m = _PAT_TRIB_2.search(plano[:2000])  # suele estar arriba de todo
     if m:
         nom = m.group(1)
         nom = (nom
                .replace('CAMARA', 'la Cámara')
                .replace('NOM.-', 'Nominación')
                .replace('NOM.',  'Nominación')
-               .title())
+               .title())        # Cámara En Lo…
         return nom
     return ""
 
@@ -179,63 +196,80 @@ _FIRMA_FIN_PAT = re.compile(
         ^\s*(?:[\-\u2022*·]\s*)?   # posible viñeta o puntuación inicial
         (?:
             (?:Texto\s+)?Firmad[oa]\s+digitalmente(?:\s+por:)?  # "Firmado digitalmente por:"
-          | Firmad[oa]
-          | Firm(a|a)\s+(digital|electr[oó]nica)
-          | Texto\s+Firmado
-          | Fdo\.?
-          | Fecha\s*:\s*\d{4}                         # Fecha: 2025-08-02
-          | Expediente\s+SAC
+          | Firmad[oa]                                 # Firmado / Firmada
+          | Firma\s+digital                            # Firma digital
+          | Texto\s+Firmado                            # Texto Firmado digitalmente
+          | Fdo\.?                                     # Fdo.:
+          | Fecha\s*:\s*\d{4}                         # Fecha: 2025‑08‑02
+          | Expediente\s+SAC                           # Expediente SAC …
         )
     ''', re.I | re.M | re.X)
 
 def extraer_resuelvo(texto: str) -> str:
     """
-    Devuelve el ÚLTIMO bloque dispositivo completo.
-    Estrategia (igual que la base):
-      1) quitar pies de página repetitivos
-      2) buscar la última aparición de RESUELVE/RESUELVO
-      3) cortar justo antes de firmas/fechas/meta-datos
+    Devuelve el ÚLTIMO bloque dispositvo completo (incluidas las fórmulas
+    'Protocolícese', 'Notifíquese', 'Ofíciese', etc.).  Algoritmo:
+
+    1.  Quita pies de página repetitivos.
+    2.  Busca la última aparición de 'RESUELVE' / 'RESUELVO'.
+    3.  Toma desde allí hasta la primera línea que parezca una firma
+        o meta‑dato (o hasta el final del documento si no hay nada).
     """
-    if not texto:
-        return ""
     texto = limpiar_pies_de_pagina(texto)
 
-    m = _RESUELVO_REGEX.search(texto)
-    if m:
-        bloque = m.group("bloque")
-        return re.sub(r"\s+", " ", bloque).strip()
-    # fallback simple
-    idx = max(texto.lower().rfind("resuelve"), texto.lower().rfind("resuelvo"))
+    # 1) posición de la última palabra RESUELVE / RESUELVO
+    idx = max(texto.lower().rfind("resuelve"),
+              texto.lower().rfind("resuelvo"))
     if idx == -1:
         return ""
-    frag = texto[idx:]
+
+    frag = texto[idx:]                        # desde RESUELVE hasta el final
+
+    # 2) cortar justo antes de firmas / fechas
     m_fin = _FIRMA_FIN_PAT.search(frag)
     if m_fin:
         frag = frag[:m_fin.start()]
-    frag = re.sub(r"^resuelv[eo]\s*:?\s*", "", frag, flags=re.I).strip()
-    return re.sub(r"\s+", " ", frag)
+
+    # 3) prolijo
+    frag = frag.strip()
+
+    # quitar encabezado "RESUELVE:" / "RESUELVO:" si quedó incluido
+    frag = re.sub(r"^resuelv[eo]\s*:?\s*", "", frag, flags=re.I)
+
+    return frag
 
 
 
 # ── helper para capturar FIRMANTES ────────────────────────────
+# ── helper para capturar FIRMANTES ────────────────────────────
 _FIRMAS_REGEX = re.compile(r'''
+    # Cabecera opcional: "Firmado digitalmente por:" (con o sin "Texto")
     (?:^|\n)\s*
-    (?: (?:Texto\s+)?Firmad[oa]\s+(?:digitalmente|electr[oó]nicamente)\s+por:\s* )?
-    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)\s*
+    (?: (?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s* )?      
+
+    # Nombre (mayúsculas con espacios, puntos o guiones)
+    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)\s*                
+
+    # Separador: coma o salto de línea
     (?: ,\s* | \n\s* )
-    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)
-    (?: [,\s]* \n?\s* (?:CUIL|DNI|ID)\s* (?P<doc>[\d.\-]+) )?
+
+    # Cargo (toma todo hasta salto de línea o coma)
+    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)                              
+
+    # Documento opcional en la misma línea o inmediata
+    (?: [,\s]* \n?\s* (?:CUIL|DNI|ID)\s* (?P<doc>[\d.\-]+) )?    
+
+    # Debe haber una línea "Fecha: aaaa.mm.dd" a ≤2 renglones
+    (?= (?:[^\n]*\n){0,2}\s*Fecha\s*:\s*\d{4}[./-]\d{2}[./-]\d{2} )
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
 
-
 # ── validaciones de campos ─────────────────────────────────────────────
-# Carátula: comillas + número de expediente/SAC/EE
+# Carátula: debe incluir comillas y un número de expediente o SAC
 CARATULA_REGEX = QRegularExpression(
-    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*[\d.]+\))?["”](?:\s*\((?:SAC|Expte\.?|EE)\s*N°\s*[\d.]+\)\s*)?$'
+    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*\d+\))?["”](?:\s*\((?:SAC|Expte\.?\s*)\s*N°\s*\d+\))?$'
 )
-# Tribunal: igual que la base
+# Tribunal: al menos una letra minúscula y empezar en mayúscula
 TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
-
 
 # ── NUEVO BLOQUE ─────────────────────────────────────────────
 DNI_REGEX = re.compile(
@@ -249,7 +283,7 @@ def extraer_dni(texto: str) -> str:
         return ""
     m = DNI_REGEX.search(texto)
     return normalizar_dni(m.group(0)) if m else ""
-
+# ─────────────────────────────────────────────────────────────
 
 def capitalizar_frase(txt: str) -> str:
     """Devuelve la frase en mayúsculas y minúsculas tipo título."""
@@ -280,6 +314,7 @@ def normalizar_dni(txt: str) -> str:
     return re.sub(r"\D", "", str(txt))
 
 
+
 def extraer_firmantes(texto: str) -> list[dict]:
     """
     Devuelve [{'nombre':…, 'cargo':…, 'doc':…}, …] con cada
@@ -290,7 +325,7 @@ def extraer_firmantes(texto: str) -> list[dict]:
         firmas.append({
             "nombre": capitalizar_frase(m.group("nombre")).strip(),
             "cargo" : capitalizar_frase(m.group("cargo")).strip(),
-            "doc"   : normalizar_dni(m.group("doc") or ""),
+            "doc"   : (m.group("doc") or "").strip(),
         })
     return firmas
 
@@ -352,9 +387,7 @@ class Worker(QObject):
 
             # -------- 3) Ajustes post-API --------
             # a) resuelvo definitivo (siempre tomar el bloque final real)
-            #    usar setdefault para que el subdict quede guardado en `datos`.
-            g = datos.setdefault("generales", {})
-
+            g = datos.get("generales", {})
             g["resuelvo"] = extraer_resuelvo(texto)
             g["resuelvo"] = limpiar_pies_de_pagina(
                 re.sub(r"\s*\n\s*", " ", g["resuelvo"])
@@ -368,23 +401,24 @@ class Worker(QObject):
             # b) firmantes de respaldo
             firmas = extraer_firmantes(texto)
             if firmas:
-                g["firmantes"] = firmas
-
-
+                datos.setdefault("generales", {})["firmantes"] = firmas
             # c) verificar / completar carátula y tribunal
             carat_raw = g.get("caratula", "").strip()
             trib_raw  = g.get("tribunal", "").strip()
 
+            # ¿La IA trajo algo plausible?
             carat_ok = CARATULA_REGEX.match(carat_raw)
             trib_ok  = TRIBUNAL_REGEX.match(trib_raw)
 
             # Heurística de “campos invertidos”
             if not carat_ok and ('cámara' in carat_raw.lower() or 'juzgado' in carat_raw.lower()):
-                carat_raw, trib_raw = "", carat_raw
+                # probablemente los invirtió
+                carat_raw, trib_raw = "", carat_raw    # fuerza re‑extracción abajo
 
             if not trib_ok and trib_raw.lower().startswith('dr'):
-                trib_raw = ""
+                trib_raw = ""                          # forzamos re‑extracción
 
+            # Relleno / corrección
             if not carat_ok:
                 nueva_carat = extraer_caratula(texto)
                 if nueva_carat:
@@ -394,13 +428,9 @@ class Worker(QObject):
                 nuevo_trib = extraer_tribunal(texto)
                 if nuevo_trib:
                     g['tribunal'] = nuevo_trib
+            # listo: emitimos
+            self.finished.emit(datos, "")          # sin error
 
-            # listo
-            self.finished.emit(datos, "")
-            # respaldos si la IA no los trajo
-            g.setdefault("sent_num",     extraer_sent_num(texto))
-            g.setdefault("sent_fecha",   extraer_sent_fecha(texto))
-            g.setdefault("sent_firmeza", extraer_firmeza(texto))
         except Exception as e:
             self.finished.emit({}, str(e))          # devolvemos el error
 
