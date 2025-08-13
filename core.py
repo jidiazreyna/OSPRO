@@ -424,12 +424,21 @@ def es_multipersona(s: str) -> bool:
 def segmentar_imputados(texto: str) -> list[str]:
     plano = re.sub(r'\s+', ' ', texto)
 
-    # Intento segmentar por "Nombre, ..." que arranca una ficha
     NAME_START = re.compile(
         r'(?<!\w)(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,3})\s*,\s*'
         r'(?:(?i:de\s*\d{1,3}\s*años|D\.?\s*N\.?\s*I\.?|nacionalidad))'
     )
     hits = list(NAME_START.finditer(plano))
+
+    # Heurística: recortamos al tramo donde se enuncian los imputados sólo si
+    # la palabra "imputado" aparece antes del primer nombre detectado.
+    if hits and (m_ini := re.search(r'\bimputad[oa]s?\b', plano, re.I)) and m_ini.start() < hits[0].start():
+        plano = plano[m_ini.start():]
+        if (m_fin := re.search(r'ambos\s+imputad', plano, re.I)):
+            plano = plano[:m_fin.start()]
+        hits = list(NAME_START.finditer(plano))
+
+    # Intento segmentar por "Nombre, ..." que arranca una ficha
 
     bloques: list[str] = []
     if hits:
@@ -797,7 +806,17 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     # ✅ Siempre preferimos nuestra segmentación local: es más confiable
     bloques = segmentar_imputados(texto)
     if bloques:
-        datos["imputados"] = [_dp_from_block(b) for b in bloques]
+        imps_local = [_dp_from_block(b) for b in bloques]
+        vistos: set[str] = set()
+        unicos: list[dict] = []
+        for imp in imps_local:
+            dni = imp.get("dni", "")
+            if dni and dni in vistos:
+                continue
+            if dni:
+                vistos.add(dni)
+            unicos.append(imp)
+        datos["imputados"] = unicos
     else:
         # Sólo si no pudimos segmentar, usamos lo que vino del modelo
         imps = datos.get("imputados") or []
