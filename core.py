@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import re
+from io import BytesIO
 
 import docx2txt
 import openai
@@ -424,8 +425,40 @@ def _missing(*_args, **_kwargs):  # pragma: no cover - función simple
     """Marcador de posición para funcionalidades ausentes."""
     raise NotImplementedError("La funcionalidad solicitada no está disponible")
 
+if _ospro and hasattr(_ospro, "procesar_sentencia"):
+    procesar_sentencia = _ospro.procesar_sentencia  # type: ignore[misc]
+else:
+    def procesar_sentencia(file_bytes: bytes, filename: str) -> dict:
+        """Devuelve datos básicos extraídos de una sentencia.
 
-procesar_sentencia = getattr(_ospro, "procesar_sentencia", _missing)
+        Se intenta leer el contenido del archivo ``filename`` (PDF, DOCX o
+        texto) para obtener el apartado "resuelvo" y los datos personales de
+        los imputados.  En caso de fallo se devuelven estructuras vacías.
+        """
+
+        nombre = filename.lower()
+        try:
+            if nombre.endswith(".pdf"):
+                texto = extract_text(BytesIO(file_bytes))
+            elif nombre.endswith(".docx"):
+                texto = docx2txt.process(BytesIO(file_bytes))
+            else:
+                texto = file_bytes.decode("utf-8", errors="ignore")
+        except Exception:
+            texto = ""
+
+        resuelvo: list[str] = []
+        m = re.search(r"resuelv[oe](.*)", texto, flags=re.IGNORECASE | re.DOTALL)
+        if m:
+            bloque = m.group(1).split("\n\n", 1)[0]
+            resuelvo = [ln.strip(" -") for ln in bloque.splitlines() if ln.strip()]
+
+        imputados = [
+            {"datos_personales": extraer_datos_personales(b)}
+            for b in segmentar_imputados(texto)
+        ]
+
+        return {"generales": {"resuelvo": resuelvo}, "imputados": imputados}
 
 if _ospro and hasattr(_ospro, "autocompletar"):
     autocompletar = _ospro.autocompletar  # type: ignore
