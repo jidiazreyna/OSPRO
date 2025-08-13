@@ -79,24 +79,32 @@ _RESUELVO_REGEX = re.compile(
 )
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
-# 1) entre comillas: “… ” (SAC|Expte.|EE [N°] 123)
+# 1) bloque completo “X” (SAC/Expte./EE N° 123) o “X” SAC N° 123
 _PAT_CARAT_1 = re.compile(
-    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?|EE)\s*(?:N°\s*)?([\d.]+)\s*\)', re.I)
+    r'(.+?)\s*'
+    r'(?:\(\s*(?:Expte\.\s*)?(?:SAC|Expte\.?|EE)\s*(?:N\s*[°º\.]*\s*)?([\d.]+)\s*\)'
+    r'|(?:Expte\.\s*)?(?:SAC|Expte\.?|EE)\s*(?:N\s*[°º\.]*\s*)?([\d.]+))',
+    re.I,
+)
 
 # 2) autos caratulados “X”
 _PAT_CARAT_2 = re.compile(
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
-    r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?', re.I)
+    r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?',
+    re.I,
+)
 
 # 3) encabezado “EXPEDIENTE SAC/Expte./EE: … - …”
 _PAT_CARAT_3 = re.compile(
-    r'EXPEDIENTE\s+(?:SAC|Expte\.?|EE)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
+    r'EXPEDIENTE\s+(?:SAC|Expte\.?|EE)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)',
+    re.I,
+)
 
 def extraer_caratula(txt: str) -> str:
     """
     Devuelve la carátula formal “…” (SAC/Expte./EE N° …) o '' si no encuentra nada creíble.
     Orden de prueba:
-      1. Entre comillas + (SAC/Expte./EE [N°] …)
+      1. Entre comillas + (SAC/Expte./EE [N°] …) o “…” SAC N° …
       2. Frase “… autos caratulados ‘X’ …”
       3. Encabezado “EXPEDIENTE SAC/Expte./EE: 123 – X – …”
     """
@@ -104,15 +112,27 @@ def extraer_caratula(txt: str) -> str:
 
     m = _PAT_CARAT_1.search(plano)
     if m:
-        titulo, nro = m.groups()
-        return f'“{titulo.strip()}” (SAC N° {nro})'
+        bloque, n1, n2 = m.groups()
+        nro = n1 or n2
+        bloque = bloque.strip()
+        mq = re.search(r"[\"“'‘`][^\"”'’`]+[\"”'’`]", bloque)
+        if mq:
+            inner = mq.group(0)[1:-1]
+            quoted = f'“{inner}”'
+            prefix = bloque[:mq.start()].strip()
+            if prefix and len(prefix) <= 150:
+                bloque = f"{prefix} {quoted}"
+            else:
+                bloque = quoted
+        else:
+            bloque = f'“{bloque}”'
+        return f'{bloque.strip()} (SAC N° {nro})'
 
     m = _PAT_CARAT_2.search(plano)
     if m:
         titulo = m.group(1).strip()
-        # número más próximo (SAC/Expte./EE)
         mnum = re.search(r'(?:SAC|Expte\.?|EE)\s*(?:N°\s*)?([\d.]+)', plano)
-        nro  = mnum.group(1) if mnum else '…'
+        nro = mnum.group(1) if mnum else '…'
         return f'“{titulo}” (SAC N° {nro})'
 
     encabezados = _PAT_CARAT_3.findall(plano[:5000])
@@ -281,7 +301,7 @@ def extraer_firmantes(texto: str) -> list[dict]:
         firmas.append({
             "nombre": capitalizar_frase(m.group("nombre")).strip(),
             "cargo" : capitalizar_frase(m.group("cargo")).strip(),
-            "doc"   : (m.group("doc") or "").strip(),
+            "doc"   : normalizar_dni(m.group("doc") or ""),
         })
     return firmas
 
@@ -434,6 +454,7 @@ else:
         ]
 
         generales["imputados_num"] = len(imputados)
+        generales["firmantes_num"] = len(generales.get("firmantes", []))
 
         return {"generales": generales, "imputados": imputados}
 
@@ -592,9 +613,15 @@ else:
         t = re.sub(r"^(?:Imputado:)?\s*", "", t, flags=re.IGNORECASE)
         t = re.sub(r"^(?:[yYeE]\s+)", "", t)
         t = re.sub(r"^(?:del\s+)?imputado\s+", "", t, flags=re.IGNORECASE)
-        m = re.match(r"([^,]+)", t)
-        if m:
-            datos["nombre"] = m.group(1).strip()
+
+        # Nombres del tipo "Apellido, Nombre" evitando capturar datos posteriores
+        m = re.match(r"([^,]+),\s*([^,]+)", t)
+        if m and not re.match(r"(?i)(dni|d\.n\.i|de\b|alias|prontuario)", m.group(2).strip()):
+            datos["nombre"] = f"{m.group(1).strip()} {m.group(2).strip()}"
+        else:
+            m = re.match(r"([^,]+)", t)
+            if m:
+                datos["nombre"] = m.group(1).strip()
 
         return datos
 
