@@ -406,7 +406,11 @@ NOMBRE_DNI_RE = re.compile(
 )
 
 # ── NUEVO: helpers de segmentación ─────────────────────────
-MULTI_PERSONA_PAT = re.compile(r'(D\.?\s*N\.?\s*I\.?|Prontuario)', re.I)
+# Añadimos "Prio." como abreviatura de "Prontuario" para ampliar la detección.
+MULTI_PERSONA_PAT = re.compile(
+    r'(D\.?\s*N\.?\s*I\.?|Prontuario|Prio\.?)',
+    re.I,
+)
 
 def es_multipersona(s: str) -> bool:
     # ≥2 ocurrencias de DNI o Prontuario → probable texto con varias personas
@@ -418,8 +422,7 @@ def segmentar_imputados(texto: str) -> list[str]:
     # Intento segmentar por "Nombre, ..." que arranca una ficha
     NAME_START = re.compile(
         r'(?<!\w)([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ.\-]+){1,3})\s*,\s*'
-        r'(?:de\s*\d{1,3}\s*años|D\.?\s*N\.?\s*I\.?|nacionalidad)',
-        re.I
+        r'(?:(?i:de\s*\d{1,3}\s*años|D\.?\s*N\.?\s*I\.?|nacionalidad))'
     )
     hits = list(NAME_START.finditer(plano))
 
@@ -427,17 +430,15 @@ def segmentar_imputados(texto: str) -> list[str]:
     if hits:
         for i, m in enumerate(hits):
             start = m.start()
-            # Si antes del nombre hay un "Prontuario" cercano, incluyo desde allí
-            if (m_prio := re.search(r'Prontuario[^\n.]*\.\s*$', plano[:start], re.I)):
+            # Si antes del nombre hay un "Prontuario" o "Prio." cercano, incluyo desde allí
+            if (m_prio := re.search(r"(?:Prontuario|Prio\.?)[^\n.]*\.\s*$", plano[:start], re.I)):
                 start = m_prio.start()
             end = hits[i+1].start() if i + 1 < len(hits) else len(plano)
-            if m_prio_sig := re.search(r'Prontuario', plano[start + 1:end], re.I):
-                end = start + 1 + m_prio_sig.start()
             bloques.append(_recortar_bloque_un_persona(plano[start:end]))
         return bloques
 
-    # Fallback: si no pude, segmento por ocurrencias de "Prontuario"
-    prios = list(re.finditer(r'Prontuario', plano, re.I))
+    # Fallback: si no pude, segmento por ocurrencias de "Prontuario" o "Prio."
+    prios = list(re.finditer(r"(?:Prontuario|Prio\.?)", plano, re.I))
     for i, m in enumerate(prios):
         start = m.start()
         end = prios[i + 1].start() if i + 1 < len(prios) else len(plano)
@@ -447,10 +448,9 @@ def segmentar_imputados(texto: str) -> list[str]:
 
 def _recortar_bloque_un_persona(b: str) -> str:
     s = re.sub(r'\s+', ' ', b).strip()
-    # 1) Corto en el primer "Prontuario ... .", si existe.
+    # 1) Corto en el primer "Prontuario/Prio. ... .", si existe.
     #    Pero si el nombre aparece después del prontuario, no recorto
-    #    para conservarlo.
-    m_prio = re.search(r'Prontuario[^\n.]*\.', s, re.I)
+    m_prio = re.search(r"(?:Prontuario|Prio\.?)[^\n.;]*[.;]", s, re.I)
     if m_prio:
         resto = s[m_prio.end():]
         if not (NOMBRE_INICIO_RE.search(resto) or NOMBRE_RE.search(resto)):
