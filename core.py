@@ -399,6 +399,11 @@ NOMBRE_INICIO_RE = re.compile(
     r'^\s*([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ.\-]+){1,3})\s*,',
     re.M
 )
+# Fallback: nombre justo antes de "DNI" (sin edad requerida)
+NOMBRE_DNI_RE = re.compile(
+    r'^\s*(?:imputad[oa]:?\s*)?([A-ZÁÉÍÓÚÑ][^,\n]+?)\s*(?:,\s*)?(?:D\.?\s*N\.?\s*I\.?|DNI)',
+    re.I | re.M,
+)
 
 # ── NUEVO: helpers de segmentación ─────────────────────────
 MULTI_PERSONA_PAT = re.compile(r'(D\.?\s*N\.?\s*I\.?|Prontuario)', re.I)
@@ -467,6 +472,8 @@ def extraer_datos_personales(texto: str) -> dict:
     # Nombre: prefiero el que está al INICIO del bloque; si no, el genérico
     m = NOMBRE_INICIO_RE.search(t) or NOMBRE_RE.search(t)
     if m:
+        dp["nombre"] = capitalizar_frase(m.group(1).strip())
+    elif m is None and (m := NOMBRE_DNI_RE.search(t)):
         dp["nombre"] = capitalizar_frase(m.group(1).strip())
 
     # DNI (robusto)
