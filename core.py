@@ -426,7 +426,114 @@ def _missing(*_args, **_kwargs):  # pragma: no cover - función simple
 
 
 procesar_sentencia = getattr(_ospro, "procesar_sentencia", _missing)
-autocompletar = getattr(_ospro, "autocompletar", _missing)
+
+if _ospro and hasattr(_ospro, "autocompletar"):
+    autocompletar = _ospro.autocompletar  # type: ignore
+else:
+    def autocompletar(file_bytes: bytes, filename: str) -> dict:
+        """Procesa una sentencia y vuelca resultados en ``st.session_state``."""
+
+        try:  # importación perezosa para entornos sin Streamlit
+            import streamlit as st  # type: ignore
+        except Exception as exc:  # pragma: no cover - fallback defensivo
+            raise RuntimeError("Streamlit es requerido para autocompletar") from exc
+
+        datos = procesar_sentencia(file_bytes, filename)
+        gen = datos.get("generales", {}) if isinstance(datos, dict) else {}
+
+        res = gen.get("resuelvo", "")
+        if isinstance(res, list):
+            res_txt = ", ".join(str(r).strip() for r in res)
+        else:
+            res_txt = str(res).replace("\n", " ")
+        st.session_state["sres"] = res_txt
+
+        firmas = gen.get("firmantes")
+        if firmas is not None:
+            if isinstance(firmas, list):
+                if firmas and isinstance(firmas[0], dict):
+                    partes = []
+                    for f in firmas:
+                        nombre = f.get("nombre")
+                        cargo = f.get("cargo")
+                        partes.append(
+                            ", ".join(p for p in [nombre, cargo] if p)
+                        )
+                    firmas_txt = "; ".join(partes)
+                else:
+                    firmas_txt = ", ".join(str(f) for f in firmas)
+            else:
+                firmas_txt = str(firmas)
+            st.session_state["sfirmaza"] = firmas_txt
+
+        def _format_dp(raw: object) -> str:
+            import ast
+
+            if isinstance(raw, str):
+                try:
+                    raw_obj = ast.literal_eval(raw)
+                    if isinstance(raw_obj, dict):
+                        dp = raw_obj
+                    else:
+                        return str(raw)
+                except Exception:
+                    return str(raw)
+            elif isinstance(raw, dict):
+                dp = raw
+            else:
+                return str(raw)
+
+            partes: list[str] = []
+            if dp.get("nombre"):
+                partes.append(dp["nombre"])
+            if dp.get("dni"):
+                partes.append(f"D.N.I. {dp['dni']}")
+            if dp.get("nacionalidad"):
+                partes.append(dp["nacionalidad"])
+            if dp.get("edad"):
+                partes.append(f"{dp['edad']} años")
+            if dp.get("estado_civil"):
+                partes.append(dp["estado_civil"])
+            if dp.get("instruccion"):
+                partes.append(dp["instruccion"])
+            if dp.get("ocupacion"):
+                partes.append(dp["ocupacion"])
+            if dp.get("fecha_nacimiento"):
+                partes.append(f"Nacido el {dp['fecha_nacimiento']}")
+            if dp.get("lugar_nacimiento"):
+                partes.append(f"en {dp['lugar_nacimiento']}")
+            if dp.get("domicilio"):
+                partes.append(f"Domicilio: {dp['domicilio']}")
+            if dp.get("padres"):
+                padres_val = dp["padres"]
+                if isinstance(padres_val, str):
+                    padres = padres_val
+                elif isinstance(padres_val, list):
+                    nombres = []
+                    for item in padres_val:
+                        if isinstance(item, dict):
+                            nombres.append(item.get("nombre", str(item)))
+                        else:
+                            nombres.append(str(item))
+                    padres = ", ".join(nombres)
+                else:
+                    padres = str(padres_val)
+                partes.append(f"Hijo de {padres}")
+            pront = dp.get("prontuario") or dp.get("prio") or dp.get("pront")
+            if pront:
+                partes.append(f"Pront. {pront}")
+            return ", ".join(partes)
+
+        imputados = datos.get("imputados", []) if isinstance(datos, dict) else []
+        for idx, imp in enumerate(imputados):
+            bruto = imp.get("datos_personales", imp)
+            st.session_state[f"imp{idx}_datos"] = _format_dp(bruto)
+
+        st.session_state.setdefault("datos_autocompletados", {})
+        st.session_state["datos_autocompletados"].update(datos)
+
+        return datos
+
 autocompletar_caratula = getattr(_ospro, "autocompletar_caratula", _missing)
 
 
