@@ -459,7 +459,12 @@ def extraer_datos_personales(texto: str) -> dict:
     # DNI (robusto)
     m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
     if m:
-        dp["dni"] = normalizar_dni(m.group(1))
+        # DNI_TXT_RE posee un grupo de captura con el número, pero
+        # DNI_REGEX no.  En este último caso, `group(1)` levanta
+        # ``IndexError: no such group``.  Usamos el grupo 1 sólo si
+        # existe; de lo contrario, tomamos el grupo completo.
+        dni_match = m.group(1) if m.lastindex else m.group(0)
+        dp["dni"] = normalizar_dni(dni_match)
 
     # Alias: sólo lo tomo ANTES del primer DNI (evita “heredar” alias ajenos)
     alias_scope = t[:m.start()] if m else t
@@ -469,7 +474,8 @@ def extraer_datos_personales(texto: str) -> dict:
     # DNI (robusto)
     m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
     if m:
-        dp["dni"] = normalizar_dni(m.group(1))
+        dni_match = m.group(1) if m.lastindex else m.group(0)
+        dp["dni"] = normalizar_dni(dni_match)
 
     if (m := ALIAS_RE.search(t)):   dp["alias"] = m.group(1).strip()
     if (m := EDAD_RE.search(t)):    dp["edad"]  = m.group(1)
