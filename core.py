@@ -47,7 +47,6 @@ _FOOTER_REGEX = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-
 def limpiar_pies_de_pagina(texto: str) -> str:
     """Elimina de `texto` los pies de página estándar de las sentencias."""
     return re.sub(_FOOTER_REGEX, " ", texto)
@@ -61,11 +60,11 @@ _RESUELVO_REGEX = re.compile(
         (?:
             (?:                                   # ─ un inciso: I) / 1. / II.- …
                 \s*(?:[IVXLCDM]+|\d+)             #   núm. romano o arábigo
-                \s*(?:\)|\.-|\.|-|-)              #   )  .  -  -  o .-   ← ¡cambio!
+                \s*(?:\)|\.-|\.|-)                #   )  .  -  o .-
                 \s+
                 .*?                               #   texto del inciso (lazy)
                 (?:                               #   líneas del mismo inciso
-                    \n(?!\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-|-) ).*?
+                    \n(?!\s*(?:[IVXLCDM]+|\d+)\s*(?:\)|\.-|\.|-) ).*?
                 )*
             )
         )+                                        # uno o más incisos
@@ -80,25 +79,27 @@ _RESUELVO_REGEX = re.compile(
 )
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
-_PAT_CARAT_1 = re.compile(          # 1) entre comillas
-    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)\s*\)', re.I)
+# 1) entre comillas: “… ” (SAC|Expte.|EE [N°] 123)
+_PAT_CARAT_1 = re.compile(
+    r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?|EE)\s*(?:N°\s*)?([\d.]+)\s*\)', re.I)
 
-_PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
+# 2) autos caratulados “X”
+_PAT_CARAT_2 = re.compile(
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
     r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?', re.I)
 
-_PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …”
-    r'EXPEDIENTE\s+(?:SAC|Expte\.?)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
+# 3) encabezado “EXPEDIENTE SAC/Expte./EE: … - …”
+_PAT_CARAT_3 = re.compile(
+    r'EXPEDIENTE\s+(?:SAC|Expte\.?|EE)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
 
 def extraer_caratula(txt: str) -> str:
     """
-    Devuelve la carátula formal “…” (SAC N° …) o '' si no encuentra nada creíble.
-    Se prueban, en orden, tres patrones:
-      1. Entre comillas + (SAC/Expte N° …)
+    Devuelve la carátula formal “…” (SAC/Expte./EE N° …) o '' si no encuentra nada creíble.
+    Orden de prueba:
+      1. Entre comillas + (SAC/Expte./EE [N°] …)
       2. Frase “… autos caratulados ‘X’ …”
-      3. Encabezado “EXPEDIENTE SAC: 123 – X – …”
+      3. Encabezado “EXPEDIENTE SAC/Expte./EE: 123 – X – …”
     """
-    # normalizo blancos para evitar saltos de línea entre tokens
     plano = re.sub(r'\s+', ' ', txt)
 
     m = _PAT_CARAT_1.search(plano)
@@ -109,12 +110,11 @@ def extraer_caratula(txt: str) -> str:
     m = _PAT_CARAT_2.search(plano)
     if m:
         titulo = m.group(1).strip()
-        # intento buscar el número SAC/Expte más próximo
-        mnum = re.search(r'(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)', plano)
+        # número más próximo (SAC/Expte./EE)
+        mnum = re.search(r'(?:SAC|Expte\.?|EE)\s*(?:N°\s*)?([\d.]+)', plano)
         nro  = mnum.group(1) if mnum else '…'
         return f'“{titulo}” (SAC N° {nro})'
 
-    # El encabezado suele estar en la primera página; me quedo con la 1ª coincidencia
     encabezados = _PAT_CARAT_3.findall(plano[:5000])
     if encabezados:
         nro, resto = encabezados[0]
@@ -122,27 +122,21 @@ def extraer_caratula(txt: str) -> str:
         return f'“{titulo}” (SAC N° {nro})'
     return ""
 
-# ── TRIBUNAL ──────────────────────────────────────────────────────────
-# Lista de palabras clave válidas al inicio de la descripción
-_CLAVES_TRIB = (
-    r'Cámara|Juzgado|Tribunal|Sala|Corte'  # extensible
-)
 
-# 1) “… en esta Cámara / en el Juzgado …”
+# ── TRIBUNAL ──────────────────────────────────────────────────────────
+_CLAVES_TRIB = (r'Cámara|Juzgado|Tribunal|Sala|Corte')
+
 _PAT_TRIB_1 = re.compile(
     rf'en\s+(?:esta|este|el|la)\s+({_CLAVES_TRIB}[^,;.]+)', re.I)
 
-# 2) encabezado en versales: “CAMARA EN LO CRIMINAL Y CORRECCIONAL 3ª NOM.”
 _PAT_TRIB_2 = re.compile(
     r'(CAMARA\s+EN\s+LO\s+CRIMINAL[^/]+NOM\.)', re.I)
 
 def _formatea_tribunal(raw: str) -> str:
-    """Pasa a minúsculas y respeta mayúsculas iniciales."""
     raw = raw.lower()
     return capitalizar_frase(raw)
 
 def extraer_tribunal(txt: str) -> str:
-    """Devuelve la mención al órgano: 'la Cámara …' / 'el Juzgado …'."""
     plano = re.sub(r'\s+', ' ', txt)
 
     m = _PAT_TRIB_1.search(plano)
@@ -152,14 +146,14 @@ def extraer_tribunal(txt: str) -> str:
             t = 'la ' + t
         return t.strip(' .')
 
-    m = _PAT_TRIB_2.search(plano[:2000])  # suele estar arriba de todo
+    m = _PAT_TRIB_2.search(plano[:2000])
     if m:
         nom = m.group(1)
         nom = (nom
                .replace('CAMARA', 'la Cámara')
                .replace('NOM.-', 'Nominación')
                .replace('NOM.',  'Nominación')
-               .title())        # Cámara En Lo…
+               .title())
         return nom
     return ""
 
@@ -169,79 +163,70 @@ _FIRMA_FIN_PAT = re.compile(
         ^\s*(?:[\-\u2022*·]\s*)?   # posible viñeta o puntuación inicial
         (?:
             (?:Texto\s+)?Firmad[oa]\s+digitalmente(?:\s+por:)?  # "Firmado digitalmente por:"
-          | Firmad[oa]                                 # Firmado / Firmada
-          | Firma\s+digital                            # Firma digital
-          | Texto\s+Firmado                            # Texto Firmado digitalmente
-          | Fdo\.?                                     # Fdo.:
-          | Fecha\s*:\s*\d{4}                         # Fecha: 2025‑08‑02
-          | Expediente\s+SAC                           # Expediente SAC …
+          | Firmad[oa]
+          | Firma\s+digital
+          | Texto\s+Firmado
+          | Fdo\.?
+          | Fecha\s*:\s*\d{4}                         # Fecha: 2025-08-02
+          | Expediente\s+SAC
         )
     ''', re.I | re.M | re.X)
 
 def extraer_resuelvo(texto: str) -> str:
     """
-    Devuelve el ÚLTIMO bloque dispositvo completo (incluidas las fórmulas
-    'Protocolícese', 'Notifíquese', 'Ofíciese', etc.).  Algoritmo:
-
-    1.  Quita pies de página repetitivos.
-    2.  Busca la última aparición de 'RESUELVE' / 'RESUELVO'.
-    3.  Toma desde allí hasta la primera línea que parezca una firma
-        o meta‑dato (o hasta el final del documento si no hay nada).
+    Devuelve el ÚLTIMO bloque dispositivo con sus incisos (hasta fórmulas de cierre).
+    Estrategia:
+      A) usar _RESUELVO_REGEX (incisos I)/1.) … hasta 'Protocolícese/Notifíquese/Ofíciese')
+      B) si falla, fallback: desde la última “RESUELVE/RESUELVO” hasta antes de firmas/fechas
     """
+    if not texto:
+        return ""
     texto = limpiar_pies_de_pagina(texto)
 
-    # 1) posición de la última palabra RESUELVE / RESUELVO
+    # --- A) Regex de incisos hasta fórmulas de cierre ---
+    ultimo = None
+    for m in _RESUELVO_REGEX.finditer(texto):
+        ultimo = m
+    if ultimo:
+        bloque = ultimo.group("bloque").strip()
+        return bloque
+
+    # --- B) Fallback robusto previo ---
     idx = max(texto.lower().rfind("resuelve"),
               texto.lower().rfind("resuelvo"))
     if idx == -1:
         return ""
 
-    frag = texto[idx:]                        # desde RESUELVE hasta el final
-
-    # 2) cortar justo antes de firmas / fechas
+    frag = texto[idx:]  # desde RESUELVE hasta el final
     m_fin = _FIRMA_FIN_PAT.search(frag)
     if m_fin:
         frag = frag[:m_fin.start()]
 
-    # 3) prolijo
     frag = frag.strip()
-
-    # quitar encabezado "RESUELVE:" / "RESUELVO:" si quedó incluido
     frag = re.sub(r"^resuelv[eo]\s*:?\s*", "", frag, flags=re.I)
-
     return frag
 
 
 # ── helper para capturar FIRMANTES ────────────────────────────
-# ── helper para capturar FIRMANTES ────────────────────────────
 _FIRMAS_REGEX = re.compile(r'''
-    # Cabecera opcional: "Firmado digitalmente por:" (con o sin "Texto")
     (?:^|\n)\s*
-    (?: (?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s* )?      
-
-    # Nombre (mayúsculas con espacios, puntos o guiones)
-    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)\s*                
-
-    # Separador: coma o salto de línea
+    (?: (?:Texto\s+)?Firmad[oa]\s+digitalmente\s+por:\s* )?
+    (?P<nombre>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s.\-]+?)\s*
     (?: ,\s* | \n\s* )
-
-    # Cargo (toma todo hasta salto de línea o coma)
-    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)                              
-
-    # Documento opcional en la misma línea o inmediata
-    (?: [,\s]* \n?\s* (?:CUIL|DNI|ID)\s* (?P<doc>[\d.\-]+) )?    
-
-    # Debe haber una línea "Fecha: aaaa.mm.dd" a ≤2 renglones
+    (?P<cargo>[A-ZÁÉÍÓÚÑ/][^\n,]+)
+    (?: [,\s]* \n?\s* (?:CUIL|DNI|ID)\s* (?P<doc>[\d.\-]+) )?
     (?= (?:[^\n]*\n){0,2}\s*Fecha\s*:\s*\d{4}[./-]\d{2}[./-]\d{2} )
 ''', re.IGNORECASE | re.MULTILINE | re.UNICODE | re.VERBOSE)
 
+
 # ── validaciones de campos ─────────────────────────────────────────────
-# Carátula: debe incluir comillas y un número de expediente o SAC
+# Carátula: entre comillas y con un número (SAC/Expte./EE), permitiendo N° opcional
 CARATULA_REGEX = QRegularExpression(
-    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*\d+\))?["”](?:\s*\((?:SAC|Expte\.?)\s*N°\s*\d+\))?$'
+    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*[\d.]+\))?["”](?:\s*\((?:SAC|Expte\.?|EE)\s*(?:N°\s*)?[\d.]+\))?$'
 )
-# Tribunal: al menos una letra minúscula y empezar en mayúscula
+# Tribunal: al menos una minúscula y empezar en mayúscula
 TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
+
 
 # ── NUEVO BLOQUE ─────────────────────────────────────────────
 DNI_REGEX = re.compile(
@@ -255,7 +240,6 @@ def extraer_dni(texto: str) -> str:
         return ""
     m = DNI_REGEX.search(texto)
     return normalizar_dni(m.group(0)) if m else ""
-# ─────────────────────────────────────────────────────────────
 
 
 def capitalizar_frase(txt: str) -> str:
@@ -287,7 +271,6 @@ def normalizar_dni(txt: str) -> str:
     return re.sub(r"\D", "", str(txt))
 
 
-
 def extraer_firmantes(texto: str) -> list[dict]:
     """
     Devuelve [{'nombre':…, 'cargo':…, 'doc':…}, …] con cada
@@ -301,6 +284,7 @@ def extraer_firmantes(texto: str) -> list[dict]:
             "doc"   : (m.group("doc") or "").strip(),
         })
     return firmas
+
 
 # ----------------------------------------------------------------------
 class Worker(QObject):
@@ -359,12 +343,7 @@ class Worker(QObject):
 
             # -------- 3) Ajustes post-API --------
             # a) resuelvo definitivo (siempre tomar el bloque final real)
-            # `datos` puede no traer la clave ``generales``.  En ese caso
-            # ``datos.get`` devolvería un dict independiente y las
-            # modificaciones realizadas sobre ``g`` no se reflejarían en
-            # ``datos``.  Utilizamos ``setdefault`` para obtener el
-            # sub‑diccionario y asegurarnos de que cualquier cambio quede
-            # almacenado dentro de ``datos``.
+            #    usar setdefault para que el subdict quede guardado en `datos`.
             g = datos.setdefault("generales", {})
             g["resuelvo"] = extraer_resuelvo(texto)
             g["resuelvo"] = limpiar_pies_de_pagina(
@@ -379,24 +358,22 @@ class Worker(QObject):
             # b) firmantes de respaldo
             firmas = extraer_firmantes(texto)
             if firmas:
-                datos.setdefault("generales", {})["firmantes"] = firmas
+                g["firmantes"] = firmas
+
             # c) verificar / completar carátula y tribunal
             carat_raw = g.get("caratula", "").strip()
             trib_raw  = g.get("tribunal", "").strip()
 
-            # ¿La IA trajo algo plausible?
             carat_ok = CARATULA_REGEX.match(carat_raw)
             trib_ok  = TRIBUNAL_REGEX.match(trib_raw)
 
             # Heurística de “campos invertidos”
             if not carat_ok and ('cámara' in carat_raw.lower() or 'juzgado' in carat_raw.lower()):
-                # probablemente los invirtió
-                carat_raw, trib_raw = "", carat_raw    # fuerza re‑extracción abajo
+                carat_raw, trib_raw = "", carat_raw
 
             if not trib_ok and trib_raw.lower().startswith('dr'):
-                trib_raw = ""                          # forzamos re‑extracción
+                trib_raw = ""
 
-            # Relleno / corrección
             if not carat_ok:
                 nueva_carat = extraer_caratula(texto)
                 if nueva_carat:
@@ -406,43 +383,31 @@ class Worker(QObject):
                 nuevo_trib = extraer_tribunal(texto)
                 if nuevo_trib:
                     g['tribunal'] = nuevo_trib
-            # listo: emitimos
-            self.finished.emit(datos, "")          # sin error
+
+            # listo
+            self.finished.emit(datos, "")
 
         except Exception as e:
             self.finished.emit({}, str(e))          # devolvemos el error
 
+
 # ---- Reexportes para compatibilidad con la API previa -----------------
-#
-# En la aplicación original estas funciones y constantes vivían en el módulo
-# ``ospro``.  Sin embargo, en entornos de pruebas o instalaciones mínimas ese
-# módulo puede no estar disponible (o faltarle alguna función), lo que hacía
-# que la importación fallase y la librería no pudiera utilizarse siquiera con
-# ``monkeypatch``.  Para evitar el ``ImportError`` realizamos una importación
-# perezosa: si ``ospro`` o alguno de sus atributos no existen se proveen
-# versiones de relleno que lanzan ``NotImplementedError`` cuando se utilizan.
-try:  # pragma: no cover - se ejecuta sólo cuando el módulo está instalado
+try:  # pragma: no cover
     import ospro as _ospro  # type: ignore
-except Exception:  # pragma: no cover - ausencia total del módulo
+except Exception:  # pragma: no cover
     _ospro = None  # type: ignore
 
 
-def _missing(*_args, **_kwargs):  # pragma: no cover - función simple
+def _missing(*_args, **_kwargs):  # pragma: no cover
     """Marcador de posición para funcionalidades ausentes."""
     raise NotImplementedError("La funcionalidad solicitada no está disponible")
+
 
 if _ospro and hasattr(_ospro, "procesar_sentencia"):
     procesar_sentencia = _ospro.procesar_sentencia  # type: ignore[misc]
 else:
     def procesar_sentencia(file_bytes: bytes, filename: str) -> dict:
-        """Devuelve datos básicos extraídos de una sentencia.
-
-        Se intenta leer el contenido del archivo ``filename`` (PDF, DOCX o
-        texto) para obtener la carátula, el tribunal, el apartado "resuelvo",
-        los firmantes y los datos personales de los imputados.  En caso de
-        fallo se devuelven estructuras vacías.
-        """
-
+        """Devuelve datos básicos extraídos de una sentencia."""
         nombre = filename.lower()
         try:
             if nombre.endswith(".pdf"):
@@ -472,15 +437,15 @@ else:
 
         return {"generales": generales, "imputados": imputados}
 
+
 if _ospro and hasattr(_ospro, "autocompletar"):
     autocompletar = _ospro.autocompletar  # type: ignore
 else:
     def autocompletar(file_bytes: bytes, filename: str) -> dict:
         """Procesa una sentencia y vuelca resultados en ``st.session_state``."""
-
-        try:  # importación perezosa para entornos sin Streamlit
+        try:
             import streamlit as st  # type: ignore
-        except Exception as exc:  # pragma: no cover - fallback defensivo
+        except Exception as exc:  # pragma: no cover
             raise RuntimeError("Streamlit es requerido para autocompletar") from exc
 
         datos = procesar_sentencia(file_bytes, filename)
@@ -501,9 +466,7 @@ else:
                     for f in firmas:
                         nombre = f.get("nombre")
                         cargo = f.get("cargo")
-                        partes.append(
-                            ", ".join(p for p in [nombre, cargo] if p)
-                        )
+                        partes.append(", ".join(p for p in [nombre, cargo] if p))
                     firmas_txt = "; ".join(partes)
                 else:
                     firmas_txt = ", ".join(str(f) for f in firmas)
@@ -513,7 +476,6 @@ else:
 
         def _format_dp(raw: object) -> str:
             import ast
-
             if isinstance(raw, str):
                 try:
                     raw_obj = ast.literal_eval(raw)
@@ -529,26 +491,16 @@ else:
                 return str(raw)
 
             partes: list[str] = []
-            if dp.get("nombre"):
-                partes.append(dp["nombre"])
-            if dp.get("dni"):
-                partes.append(f"D.N.I. {dp['dni']}")
-            if dp.get("nacionalidad"):
-                partes.append(dp["nacionalidad"])
-            if dp.get("edad"):
-                partes.append(f"{dp['edad']} años")
-            if dp.get("estado_civil"):
-                partes.append(dp["estado_civil"])
-            if dp.get("instruccion"):
-                partes.append(dp["instruccion"])
-            if dp.get("ocupacion"):
-                partes.append(dp["ocupacion"])
-            if dp.get("fecha_nacimiento"):
-                partes.append(f"Nacido el {dp['fecha_nacimiento']}")
-            if dp.get("lugar_nacimiento"):
-                partes.append(f"en {dp['lugar_nacimiento']}")
-            if dp.get("domicilio"):
-                partes.append(f"Domicilio: {dp['domicilio']}")
+            if dp.get("nombre"): partes.append(dp["nombre"])
+            if dp.get("dni"): partes.append(f"D.N.I. {dp['dni']}")
+            if dp.get("nacionalidad"): partes.append(dp["nacionalidad"])
+            if dp.get("edad"): partes.append(f"{dp['edad']} años")
+            if dp.get("estado_civil"): partes.append(dp["estado_civil"])
+            if dp.get("instruccion"): partes.append(dp["instruccion"])
+            if dp.get("ocupacion"): partes.append(dp["ocupacion"])
+            if dp.get("fecha_nacimiento"): partes.append(f"Nacido el {dp['fecha_nacimiento']}")
+            if dp.get("lugar_nacimiento"): partes.append(f"en {dp['lugar_nacimiento']}")
+            if dp.get("domicilio"): partes.append(f"Domicilio: {dp['domicilio']}")
             if dp.get("padres"):
                 padres_val = dp["padres"]
                 if isinstance(padres_val, str):
@@ -576,8 +528,8 @@ else:
 
         st.session_state.setdefault("datos_autocompletados", {})
         st.session_state["datos_autocompletados"].update(datos)
-
         return datos
+
 
 autocompletar_caratula = getattr(_ospro, "autocompletar_caratula", _missing)
 
@@ -586,13 +538,7 @@ if _ospro and hasattr(_ospro, "segmentar_imputados"):
     segmentar_imputados = _ospro.segmentar_imputados  # type: ignore
 else:
     def segmentar_imputados(texto: str) -> list[str]:
-        """Divide el texto en bloques de imputados.
-
-        Separa por apariciones de ``"Prontuario"`` o por un punto seguido de
-        ``y``/``e`` + nombre propio.  Ignora segmentos que comiencen con
-        referencias a víctimas (``Sra."`, ``Sr."`, etc.).
-        """
-
+        """Divide el texto en bloques de imputados."""
         texto = texto.replace("\n", " ")
         partes = re.split(
             r"(?=Prontuario\s+\d+\.)|\.\s+(?=(?:[yYeE])\s+[A-ZÁÉÍÓÚÑ])",
@@ -616,11 +562,9 @@ if _ospro and hasattr(_ospro, "extraer_datos_personales"):
 else:
     def extraer_datos_personales(texto: str) -> dict[str, str]:
         """Extrae nombre, DNI y otros datos de un bloque de imputado."""
-
         datos: dict[str, str] = {}
         t = texto.strip()
 
-        # Prontuario / prio
         m = re.search(r"Prontuario\s+(\d+)", t, flags=re.IGNORECASE)
         if m:
             datos["prontuario"] = m.group(1)
@@ -629,17 +573,14 @@ else:
         if m:
             datos["prio"] = m.group(1).strip(" ;.")
 
-        # DNI (primer número hallado)
         dni = extraer_dni(t)
         if dni:
             datos["dni"] = dni
 
-        # Fecha de nacimiento
         m = re.search(r"Nacido\s+el\s+(\d{2}/\d{2}/\d{4})", t, flags=re.IGNORECASE)
         if m:
             datos["fecha_nacimiento"] = m.group(1)
 
-        # Alias
         m = re.search(
             r"alias\s+[\"“]?([A-Za-zÁÉÍÓÚÑüÜñ\s]+)[\"”]?(?:,|\.)",
             t,
@@ -648,7 +589,6 @@ else:
         if m:
             datos["alias"] = m.group(1).strip()
 
-        # Nombre (primera frase antes de la primera coma)
         t = re.sub(r"^(?:Imputado:)?\s*", "", t, flags=re.IGNORECASE)
         t = re.sub(r"^(?:[yYeE]\s+)", "", t)
         t = re.sub(r"^(?:del\s+)?imputado\s+", "", t, flags=re.IGNORECASE)
@@ -657,6 +597,7 @@ else:
             datos["nombre"] = m.group(1).strip()
 
         return datos
+
 
 PENITENCIARIOS = getattr(_ospro, "PENITENCIARIOS", [])
 DEPOSITOS = getattr(_ospro, "DEPOSITOS", [])
