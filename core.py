@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import re
 from io import BytesIO
-from turtle import st
 
 import docx2txt
 import openai
@@ -50,33 +49,10 @@ _FOOTER_REGEX = re.compile(
 
 
 def limpiar_pies_de_pagina(texto: str) -> str:
-    """Elimina de `texto los pies de página estándar de las sentencias."""
+    """Elimina de `texto` los pies de página estándar de las sentencias."""
     return re.sub(_FOOTER_REGEX, " ", texto)
 
 
-# --- helpers de sentencia ---
-_SENT_NUM_RE   = re.compile(r'\bSentencia\s*N[°º]?\s*(\d+)\b', re.I)
-_SENT_FECHA_RE = re.compile(
-    r'\b(?:Sentencia\s*N[°º]?\s*\d+\s*,?\s*)?(?:de\s*)?fecha\s*[:\- ]*\s*'
-    r'(\d{1,2}/\d{1,2}/\d{2,4}|\d{1,2}\s+de\s+[A-Za-zÁÉÍÓÚáéíóú]+(?:\s+de)?\s+\d{4})',
-    re.I)
-_FIRMEZA_RE    = re.compile(
-    r'\b(qued[óo]\s+firme|firmeza)\b.*?(?:el\s*)?'
-    r'(\d{1,2}/\d{1,2}/\d{2,4}|\d{1,2}\s+de\s+[A-Za-zÁÉÍÓÚáéíóú]+(?:\s+de)?\s+\d{4})',
-    re.I | re.S)
-
-def extraer_sent_num(texto: str) -> str:
-    m = _SENT_NUM_RE.search(texto or "")
-    return (m.group(1) if m else "").strip()
-
-def extraer_sent_fecha(texto: str) -> str:
-    m = _SENT_FECHA_RE.search(texto or "")
-    return (m.group(1) if m else "").strip()
-
-def extraer_firmeza(texto: str) -> str:
-    m = _FIRMEZA_RE.search(texto or "")
-    return (m.group(2) if m else "").strip()
-# ­­­ ---- bloque RESUELVE / RESUELVO ───────────────────────────────
 # ­­­ ---- bloque RESUELVE / RESUELVO ───────────────────────────────
 _RESUELVO_REGEX = re.compile(
     r"""
@@ -85,7 +61,7 @@ _RESUELVO_REGEX = re.compile(
         (?:
             (?:                                   # ─ un inciso: I) / 1. / II.- …
                 \s*(?:[IVXLCDM]+|\d+)             #   núm. romano o arábigo
-                \s*(?:\)|\.-|\.|-|-)              #   )  .  -  -  o .-   ← ¡cambio!
+                \s*(?:\)|\.-|\.|-|-)              #   )  .  -  -  o .-
                 \s+
                 .*?                               #   texto del inciso (lazy)
                 (?:                               #   líneas del mismo inciso
@@ -102,9 +78,6 @@ _RESUELVO_REGEX = re.compile(
     """,
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
 )
-
-
-# ── CARÁTULA ──────────────────────────────────────────────────────────
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
 _PAT_CARAT_1 = re.compile(          # 1) entre comillas
@@ -200,47 +173,44 @@ _FIRMA_FIN_PAT = re.compile(
           | Firma\s+digital                            # Firma digital
           | Texto\s+Firmado                            # Texto Firmado digitalmente
           | Fdo\.?                                     # Fdo.:
-          | Fecha\s*:\s*\d{4}                         # Fecha: 2025‑08‑02
+          | Fecha\s*:\s*\d{4}                         # Fecha: 2025-08-02
           | Expediente\s+SAC                           # Expediente SAC …
         )
     ''', re.I | re.M | re.X)
 
 def extraer_resuelvo(texto: str) -> str:
     """
-    Devuelve el ÚLTIMO bloque dispositvo completo (incluidas las fórmulas
-    'Protocolícese', 'Notifíquese', 'Ofíciese', etc.).  Algoritmo:
-
-    1.  Quita pies de página repetitivos.
-    2.  Busca la última aparición de 'RESUELVE' / 'RESUELVO'.
-    3.  Toma desde allí hasta la primera línea que parezca una firma
-        o meta‑dato (o hasta el final del documento si no hay nada).
+    Devuelve el bloque dispositivo.
+    1) Intenta extraer los incisos enumerados usando `_RESUELVO_REGEX`.
+    2) Si falla, usa un fallback: desde la última aparición de RESUELVE/RESUELVO
+       hasta antes de firmas/fechas/metadatos.
     """
     texto = limpiar_pies_de_pagina(texto)
 
-    # 1) posición de la última palabra RESUELVE / RESUELVO
+    # 1) extracción precisa de incisos si están enumerados
+    m = _RESUELVO_REGEX.search(texto)
+    if m:
+        bloque = m.group("bloque")
+        bloque = re.sub(r"\s*\n\s*", " ", bloque)
+        return bloque.strip()
+
+    # 2) fallback robusto
     idx = max(texto.lower().rfind("resuelve"),
               texto.lower().rfind("resuelvo"))
     if idx == -1:
         return ""
 
-    frag = texto[idx:]                        # desde RESUELVE hasta el final
+    frag = texto[idx:]  # desde RESUELVE hasta el final
 
-    # 2) cortar justo antes de firmas / fechas
     m_fin = _FIRMA_FIN_PAT.search(frag)
     if m_fin:
         frag = frag[:m_fin.start()]
 
-    # 3) prolijo
     frag = frag.strip()
-
-    # quitar encabezado "RESUELVE:" / "RESUELVO:" si quedó incluido
     frag = re.sub(r"^resuelv[eo]\s*:?\s*", "", frag, flags=re.I)
-
     return frag
 
 
-
-# ── helper para capturar FIRMANTES ────────────────────────────
 # ── helper para capturar FIRMANTES ────────────────────────────
 _FIRMAS_REGEX = re.compile(r'''
     # Cabecera opcional: "Firmado digitalmente por:" (con o sin "Texto")
@@ -285,6 +255,7 @@ def extraer_dni(texto: str) -> str:
     return normalizar_dni(m.group(0)) if m else ""
 # ─────────────────────────────────────────────────────────────
 
+
 def capitalizar_frase(txt: str) -> str:
     """Devuelve la frase en mayúsculas y minúsculas tipo título."""
     minus = {"de", "del", "la", "las", "y", "en", "el", "los"}
@@ -328,7 +299,6 @@ def extraer_firmantes(texto: str) -> list[dict]:
             "doc"   : (m.group("doc") or "").strip(),
         })
     return firmas
-
 
 # ----------------------------------------------------------------------
 class Worker(QObject):
@@ -387,7 +357,8 @@ class Worker(QObject):
 
             # -------- 3) Ajustes post-API --------
             # a) resuelvo definitivo (siempre tomar el bloque final real)
-            g = datos.get("generales", {})
+            # usar setdefault para que los cambios queden guardados en `datos`
+            g = datos.setdefault("generales", {})
             g["resuelvo"] = extraer_resuelvo(texto)
             g["resuelvo"] = limpiar_pies_de_pagina(
                 re.sub(r"\s*\n\s*", " ", g["resuelvo"])
@@ -402,6 +373,7 @@ class Worker(QObject):
             firmas = extraer_firmantes(texto)
             if firmas:
                 datos.setdefault("generales", {})["firmantes"] = firmas
+
             # c) verificar / completar carátula y tribunal
             carat_raw = g.get("caratula", "").strip()
             trib_raw  = g.get("tribunal", "").strip()
@@ -413,10 +385,10 @@ class Worker(QObject):
             # Heurística de “campos invertidos”
             if not carat_ok and ('cámara' in carat_raw.lower() or 'juzgado' in carat_raw.lower()):
                 # probablemente los invirtió
-                carat_raw, trib_raw = "", carat_raw    # fuerza re‑extracción abajo
+                carat_raw, trib_raw = "", carat_raw    # fuerza re-extracción abajo
 
             if not trib_ok and trib_raw.lower().startswith('dr'):
-                trib_raw = ""                          # forzamos re‑extracción
+                trib_raw = ""                          # forzamos re-extracción
 
             # Relleno / corrección
             if not carat_ok:
@@ -428,30 +400,44 @@ class Worker(QObject):
                 nuevo_trib = extraer_tribunal(texto)
                 if nuevo_trib:
                     g['tribunal'] = nuevo_trib
+
             # listo: emitimos
             self.finished.emit(datos, "")          # sin error
 
         except Exception as e:
             self.finished.emit({}, str(e))          # devolvemos el error
 
-
 # ---- Reexportes para compatibilidad con la API previa -----------------
-try:  # pragma: no cover
+#
+# En la aplicación original estas funciones y constantes vivían en el módulo
+# ``ospro``.  Sin embargo, en entornos de pruebas o instalaciones mínimas ese
+# módulo puede no estar disponible (o faltarle alguna función), lo que hacía
+# que la importación fallase y la librería no pudiera utilizarse siquiera con
+# ``monkeypatch``.  Para evitar el ``ImportError`` realizamos una importación
+# perezosa: si ``ospro`` o alguno de sus atributos no existen se proveen
+# versiones de relleno que lanzan ``NotImplementedError`` cuando se utilizan.
+try:  # pragma: no cover - se ejecuta sólo cuando el módulo está instalado
     import ospro as _ospro  # type: ignore
-except Exception:  # pragma: no cover
+except Exception:  # pragma: no cover - ausencia total del módulo
     _ospro = None  # type: ignore
 
 
-def _missing(*_args, **_kwargs):  # pragma: no cover
+def _missing(*_args, **_kwargs):  # pragma: no cover - función simple
     """Marcador de posición para funcionalidades ausentes."""
     raise NotImplementedError("La funcionalidad solicitada no está disponible")
-
 
 if _ospro and hasattr(_ospro, "procesar_sentencia"):
     procesar_sentencia = _ospro.procesar_sentencia  # type: ignore[misc]
 else:
     def procesar_sentencia(file_bytes: bytes, filename: str) -> dict:
-        """Devuelve datos básicos extraídos de una sentencia."""
+        """Devuelve datos básicos extraídos de una sentencia.
+
+        Se intenta leer el contenido del archivo ``filename`` (PDF, DOCX o
+        texto) para obtener la carátula, el tribunal, el apartado "resuelvo",
+        los firmantes y los datos personales de los imputados.  En caso de
+        fallo se devuelven estructuras vacías.
+        """
+
         nombre = filename.lower()
         try:
             if nombre.endswith(".pdf"):
@@ -470,9 +456,6 @@ else:
             "tribunal": extraer_tribunal(texto),
             "resuelvo": extraer_resuelvo(texto),
             "firmantes": extraer_firmantes(texto),
-            "sent_num":   extraer_sent_num(texto),
-            "sent_fecha": extraer_sent_fecha(texto),
-            "sent_firmeza": extraer_firmeza(texto),
         }
 
         imputados = [
@@ -481,37 +464,30 @@ else:
         ]
 
         generales["imputados_num"] = len(imputados)
-        generales["firmantes_num"] = len(generales.get("firmantes", []))
 
         return {"generales": generales, "imputados": imputados}
-
 
 if _ospro and hasattr(_ospro, "autocompletar"):
     autocompletar = _ospro.autocompletar  # type: ignore
 else:
     def autocompletar(file_bytes: bytes, filename: str) -> dict:
         """Procesa una sentencia y vuelca resultados en ``st.session_state``."""
-        try:
+
+        try:  # importación perezosa para entornos sin Streamlit
             import streamlit as st  # type: ignore
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:  # pragma: no cover - fallback defensivo
             raise RuntimeError("Streamlit es requerido para autocompletar") from exc
 
         datos = procesar_sentencia(file_bytes, filename)
         gen = datos.get("generales", {}) if isinstance(datos, dict) else {}
-    
-        # ---- volcá TODOS los campos generales a los keys que usa la UI ----
-        st.session_state["carat"]    = gen.get("caratula", "") or st.session_state.get("carat", "")
-        st.session_state["trib"]     = gen.get("tribunal", "") or st.session_state.get("trib", "")
-        st.session_state["snum"]     = gen.get("sent_num", "") or st.session_state.get("snum", "")
-        st.session_state["sfecha"]   = gen.get("sent_fecha", "") or st.session_state.get("sfecha", "")
-        st.session_state["sfirmeza"] = gen.get("sent_firmeza", "") or st.session_state.get("sfirmeza", "")
-    
-        # Resuelvo → texto llano
+
         res = gen.get("resuelvo", "")
-        res_txt = ", ".join(str(r).strip() for r in res) if isinstance(res, list) else str(res).replace("\n", " ")
+        if isinstance(res, list):
+            res_txt = ", ".join(str(r).strip() for r in res)
+        else:
+            res_txt = str(res).replace("\n", " ")
         st.session_state["sres"] = res_txt
-    
-        # Firmantes → SIEMPRE en 'sfirmantes' (no 'sfirmaza')
+
         firmas = gen.get("firmantes")
         if firmas is not None:
             if isinstance(firmas, list):
@@ -519,72 +495,20 @@ else:
                     partes = []
                     for f in firmas:
                         nombre = f.get("nombre")
-                        cargo  = f.get("cargo")
-                        partes.append(", ".join(p for p in [nombre, cargo] if p))
+                        cargo = f.get("cargo")
+                        partes.append(
+                            ", ".join(p for p in [nombre, cargo] if p)
+                        )
                     firmas_txt = "; ".join(partes)
                 else:
                     firmas_txt = ", ".join(str(f) for f in firmas)
             else:
                 firmas_txt = str(firmas)
-            st.session_state["sfirmantes"] = firmas_txt
-        # si no vino nada, no pisamos lo que tenga el usuario
-    
-        # ---- imputados ----
-        imputados = datos.get("imputados", []) if isinstance(datos, dict) else []
-        st.session_state["n_imputados"] = min(len(imputados) or 1, st.session_state.get("n_imp", 1))
-    
-        def _format_dp(raw: object) -> str:
-            import ast
-            if isinstance(raw, str):
-                try:
-                    raw_obj = ast.literal_eval(raw)
-                    if isinstance(raw_obj, dict):
-                        dp = raw_obj
-                    else:
-                        return str(raw)
-                except Exception:
-                    return str(raw)
-            elif isinstance(raw, dict):
-                dp = raw
-            else:
-                return str(raw)
-            partes: list[str] = []
-            if dp.get("nombre"): partes.append(dp["nombre"])
-            if dp.get("dni"): partes.append(f"D.N.I. {dp['dni']}")
-            if dp.get("nacionalidad"): partes.append(dp["nacionalidad"])
-            if dp.get("edad"): partes.append(f"{dp['edad']} años")
-            if dp.get("estado_civil"): partes.append(dp["estado_civil"])
-            if dp.get("instruccion"): partes.append(dp["instruccion"])
-            if dp.get("ocupacion"): partes.append(dp["ocupacion"])
-            if dp.get("fecha_nacimiento"): partes.append(f"Nacido el {dp['fecha_nacimiento']}")
-            if dp.get("lugar_nacimiento"): partes.append(f"en {dp['lugar_nacimiento']}")
-            if dp.get("domicilio"): partes.append(f"Domicilio: {dp['domicilio']}")
-            if (pv := dp.get("padres")):
-                if isinstance(pv, str):
-                    padres = pv
-                elif isinstance(pv, list):
-                    nombres = []
-                    for item in pv:
-                        nombres.append(item.get("nombre", str(item)) if isinstance(item, dict) else str(item))
-                    padres = ", ".join(nombres)
-                else:
-                    padres = str(pv)
-                partes.append(f"Hijo de {padres}")
-            pront = dp.get("prontuario") or dp.get("prio") or dp.get("pront")
-            if pront: partes.append(f"Pront. {pront}")
-            return ", ".join(partes)
-    
-        for idx, imp in enumerate(imputados):
-            bruto = imp.get("datos_personales", imp) or {}
-            # popular también nombre/dni explícitos para las tabs que los requieren
-            nom = (bruto or {}).get("nombre", "")
-            dni = (bruto or {}).get("dni", "")
-            st.session_state[f"imp{idx}_nom"]   = nom
-            st.session_state[f"imp{idx}_dni"]   = dni
-            st.session_state[f"imp{idx}_datos"] = _format_dp(bruto)
+            st.session_state["sfirmaza"] = firmas_txt
 
         def _format_dp(raw: object) -> str:
             import ast
+
             if isinstance(raw, str):
                 try:
                     raw_obj = ast.literal_eval(raw)
@@ -600,16 +524,26 @@ else:
                 return str(raw)
 
             partes: list[str] = []
-            if dp.get("nombre"): partes.append(dp["nombre"])
-            if dp.get("dni"): partes.append(f"D.N.I. {dp['dni']}")
-            if dp.get("nacionalidad"): partes.append(dp["nacionalidad"])
-            if dp.get("edad"): partes.append(f"{dp['edad']} años")
-            if dp.get("estado_civil"): partes.append(dp["estado_civil"])
-            if dp.get("instruccion"): partes.append(dp["instruccion"])
-            if dp.get("ocupacion"): partes.append(dp["ocupacion"])
-            if dp.get("fecha_nacimiento"): partes.append(f"Nacido el {dp['fecha_nacimiento']}")
-            if dp.get("lugar_nacimiento"): partes.append(f"en {dp['lugar_nacimiento']}")
-            if dp.get("domicilio"): partes.append(f"Domicilio: {dp['domicilio']}")
+            if dp.get("nombre"):
+                partes.append(dp["nombre"])
+            if dp.get("dni"):
+                partes.append(f"D.N.I. {dp['dni']}")
+            if dp.get("nacionalidad"):
+                partes.append(dp["nacionalidad"])
+            if dp.get("edad"):
+                partes.append(f"{dp['edad']} años")
+            if dp.get("estado_civil"):
+                partes.append(dp["estado_civil"])
+            if dp.get("instruccion"):
+                partes.append(dp["instruccion"])
+            if dp.get("ocupacion"):
+                partes.append(dp["ocupacion"])
+            if dp.get("fecha_nacimiento"):
+                partes.append(f"Nacido el {dp['fecha_nacimiento']}")
+            if dp.get("lugar_nacimiento"):
+                partes.append(f"en {dp['lugar_nacimiento']}")
+            if dp.get("domicilio"):
+                partes.append(f"Domicilio: {dp['domicilio']}")
             if dp.get("padres"):
                 padres_val = dp["padres"]
                 if isinstance(padres_val, str):
@@ -630,10 +564,15 @@ else:
                 partes.append(f"Pront. {pront}")
             return ", ".join(partes)
 
+        imputados = datos.get("imputados", []) if isinstance(datos, dict) else []
+        for idx, imp in enumerate(imputados):
+            bruto = imp.get("datos_personales", imp)
+            st.session_state[f"imp{idx}_datos"] = _format_dp(bruto)
+
         st.session_state.setdefault("datos_autocompletados", {})
         st.session_state["datos_autocompletados"].update(datos)
-        return datos
 
+        return datos
 
 autocompletar_caratula = getattr(_ospro, "autocompletar_caratula", _missing)
 
@@ -642,7 +581,13 @@ if _ospro and hasattr(_ospro, "segmentar_imputados"):
     segmentar_imputados = _ospro.segmentar_imputados  # type: ignore
 else:
     def segmentar_imputados(texto: str) -> list[str]:
-        """Divide el texto en bloques de imputados."""
+        """Divide el texto en bloques de imputados.
+
+        Separa por apariciones de ``"Prontuario"`` o por un punto seguido de
+        ``y``/``e`` + nombre propio.  Ignora segmentos que comiencen con
+        referencias a víctimas (``Sra."`, ``Sr."`, etc.).
+        """
+
         texto = texto.replace("\n", " ")
         partes = re.split(
             r"(?=Prontuario\s+\d+\.)|\.\s+(?=(?:[yYeE])\s+[A-ZÁÉÍÓÚÑ])",
@@ -666,9 +611,11 @@ if _ospro and hasattr(_ospro, "extraer_datos_personales"):
 else:
     def extraer_datos_personales(texto: str) -> dict[str, str]:
         """Extrae nombre, DNI y otros datos de un bloque de imputado."""
+
         datos: dict[str, str] = {}
         t = texto.strip()
 
+        # Prontuario / prio
         m = re.search(r"Prontuario\s+(\d+)", t, flags=re.IGNORECASE)
         if m:
             datos["prontuario"] = m.group(1)
@@ -677,14 +624,17 @@ else:
         if m:
             datos["prio"] = m.group(1).strip(" ;.")
 
+        # DNI (primer número hallado)
         dni = extraer_dni(t)
         if dni:
             datos["dni"] = dni
 
+        # Fecha de nacimiento
         m = re.search(r"Nacido\s+el\s+(\d{2}/\d{2}/\d{4})", t, flags=re.IGNORECASE)
         if m:
             datos["fecha_nacimiento"] = m.group(1)
 
+        # Alias
         m = re.search(
             r"alias\s+[\"“]?([A-Za-zÁÉÍÓÚÑüÜñ\s]+)[\"”]?(?:,|\.)",
             t,
@@ -693,21 +643,15 @@ else:
         if m:
             datos["alias"] = m.group(1).strip()
 
+        # Nombre (primera frase antes de la primera coma)
         t = re.sub(r"^(?:Imputado:)?\s*", "", t, flags=re.IGNORECASE)
         t = re.sub(r"^(?:[yYeE]\s+)", "", t)
         t = re.sub(r"^(?:del\s+)?imputado\s+", "", t, flags=re.IGNORECASE)
-
-        # Nombres del tipo "Apellido, Nombre" evitando capturar datos posteriores
-        m = re.match(r"([^,]+),\s*([^,]+)", t)
-        if m and not re.match(r"(?i)(dni|d\.n\.i|de\b|alias|prontuario)", m.group(2).strip()):
-            datos["nombre"] = f"{m.group(1).strip()} {m.group(2).strip()}"
-        else:
-            m = re.match(r"([^,]+)", t)
-            if m:
-                datos["nombre"] = m.group(1).strip()
+        m = re.match(r"([^,]+)", t)
+        if m:
+            datos["nombre"] = m.group(1).strip()
 
         return datos
-
 
 PENITENCIARIOS = getattr(_ospro, "PENITENCIARIOS", [])
 DEPOSITOS = getattr(_ospro, "DEPOSITOS", [])
