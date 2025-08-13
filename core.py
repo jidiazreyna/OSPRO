@@ -461,6 +461,47 @@ def _recortar_bloque_un_persona(b: str) -> str:
         s = s[:dnis[1].start()]
     return s.strip()
 
+
+def _nombre_aparente_valido(nombre: str) -> bool:
+    """Heurística simple para detectar si `nombre` parece un nombre real."""
+    if not nombre:
+        return False
+    if any(ch.isdigit() for ch in nombre):
+        return False
+    texto = nombre.lower()
+    return not any(pal in texto for pal in ("imputado", "acusado", "alias", "dni"))
+
+
+def _extraer_nombre_gpt(texto: str) -> str:
+    """Usa GPT como última instancia para extraer el nombre."""
+    try:
+        client = _get_openai_client()
+    except Exception:
+        return ""
+    kwargs = dict(
+        model="gpt-4o-mini",
+        temperature=0,
+        messages=[
+            {
+                "role": "system",
+                "content": "Devuelve únicamente el nombre completo de la primera persona mencionada.",
+            },
+            {"role": "user", "content": texto[:1000]},
+        ],
+        max_tokens=20,
+    )
+    try:
+        if hasattr(client, "chat"):
+            rsp = client.chat.completions.create(**kwargs)  # type: ignore
+            nombre = rsp.choices[0].message.content.strip()
+        else:
+            rsp = client.ChatCompletion.create(**kwargs)  # type: ignore
+            nombre = rsp["choices"][0]["message"]["content"].strip()
+    except Exception:
+        return ""
+    return capitalizar_frase(nombre.split("\n")[0].strip())
+
+
 def extraer_datos_personales(texto: str) -> dict:
     t = re.sub(r'\s+', ' ', texto)  # línea corrida para facilitar regex largas
     dp: dict[str, str | list] = {}
@@ -475,6 +516,10 @@ def extraer_datos_personales(texto: str) -> dict:
         dp["nombre"] = capitalizar_frase(m.group(1).strip())
     elif m is None and (m := NOMBRE_DNI_RE.search(t)):
         dp["nombre"] = capitalizar_frase(m.group(1).strip())
+    if not _nombre_aparente_valido(dp.get("nombre", "")):
+        nombre_ai = _extraer_nombre_gpt(t)
+        if nombre_ai:
+            dp["nombre"] = nombre_ai
 
     # DNI (robusto)
     m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
