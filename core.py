@@ -371,8 +371,9 @@ _FIRMAS_REGEX = re.compile(r'''
 # Se admite un texto previo con o sin comillas y diferentes variantes de
 # "Expte."/"SAC"/"N°" al final.
 CARATULA_REGEX = QRegularExpression(
-    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*\d+\))?["”](?:\s*\((?:SAC|Expte\.?)\s*N°\s*\d+\))?$'
+    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*\d+\))?["”](?:\s*\((?:SAC|Expte\.?\s*)\s*N°\s*\d+\))?$'
 )
+
 # Tribunal: al menos una letra minúscula y empezar en mayúscula
 TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
 
@@ -453,9 +454,7 @@ def segmentar_imputados(texto: str) -> list[str]:
     if hits:
         for i, m in enumerate(hits):
             start = m.start(1)
-            # Si antes del nombre hay un "Prontuario" o "Prio." cercano, incluyo desde allí
-            if (m_prio := re.search(r"(?:Prontuario|Prio\.?)[^\n.]*\.\s*$", plano[:start], re.I)):
-                start = m_prio.start()
+
             end = hits[i+1].start(1) if i + 1 < len(hits) else len(plano)
             bloques.append(_recortar_bloque_un_persona(plano[start:end]))
         return bloques
@@ -554,16 +553,18 @@ def extraer_datos_personales(texto: str) -> dict:
         dni_match = m.group(1) if m.lastindex else m.group(0)
         dp["dni"] = normalizar_dni(dni_match)
 
-    # Alias: sólo lo tomo ANTES del primer DNI (evita “heredar” alias ajenos)
-    alias_scope = t[:m.start()] if m else t
-    if (m2 := ALIAS_RE.search(alias_scope)):   
-        dp["alias"] = m2.group(1).strip()
-
-    # DNI (robusto)
-    m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
-    if m:
-        dni_match = m.group(1) if m.lastindex else m.group(0)
+    # DNI (robusto) — primero, para acotar alias al texto anterior al 1er DNI
+    m_dni = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
+    if m_dni:
+        dni_match = m_dni.group(1) if m_dni.lastindex else m_dni.group(0)
         dp["dni"] = normalizar_dni(dni_match)
+
+    # Alias: solo ANTES del primer DNI (evita “heredar” alias ajenos)
+    alias_scope = t[:m_dni.start()] if m_dni else t
+    if (m2 := ALIAS_RE.search(alias_scope)):
+        alias_txt = m2.group(1).strip()
+        if alias_txt.lower() not in {"sin apodo", "sin alias", "sin sobrenombre"}:
+            dp["alias"] = alias_txt
 
     if (m := ALIAS_RE.search(t)):   dp["alias"] = m.group(1).strip()
     if (m := EDAD_RE.search(t)):    dp["edad"]  = m.group(1)
@@ -812,33 +813,19 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
             "nombre": d.get("nombre", ""),
         }
 
-    # ✅ Siempre preferimos nuestra segmentación local: es más confiable
+    # Preferimos SIEMPRE la segmentación local si logra detectar imputados
     bloques = segmentar_imputados(texto)
     if bloques:
-        imps_local = [_dp_from_block(b) for b in bloques]
-        vistos: set[str] = set()
-        unicos: list[dict] = []
-        for imp in imps_local:
-            dni = imp.get("dni", "")
-            if not dni or dni in vistos:
-                continue
-            vistos.add(dni)
-            unicos.append(imp)
-        datos["imputados"] = unicos or imps_local
+        datos["imputados"] = [_dp_from_block(b) for b in bloques]
     else:
-        # Sólo si no pudimos segmentar, usamos lo que vino del modelo
+        # Último respaldo si GPT no trajo imputados y no pudimos segmentar
         imps = datos.get("imputados") or []
         if not imps:
             dp_auto = extraer_datos_personales(texto)
             if dp_auto:
                 datos["imputados"] = [{"datos_personales": dp_auto, "dni": dp_auto.get("dni","")}]
 
-    # Si no hay imputados, o el primero trae un string largo (mal), rehago desde el texto
-    if not imps or any(isinstance(imp.get("datos_personales"), str) and es_multipersona(imp["datos_personales"]) for imp in imps):
-        bloques = segmentar_imputados(texto)
-        if bloques:
-            imps_seg = [_dp_from_block(b) for b in bloques]
-            datos["imputados"] = [imp for imp in imps_seg if imp.get("dni")]
+
 
     # 3) Ajustes post-API
     g = datos.get("generales", {})
@@ -890,10 +877,6 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         else:
             dni = dp.get("dni") or extraer_dni(json.dumps(dp, ensure_ascii=False))
         imp.setdefault("dni", dni)
-
-    # Eliminamos entradas sin DNI (ruido de la segmentación)
-    datos["imputados"] = [imp for imp in datos.get("imputados", []) if imp.get("dni")]
-
 
 
     # Completar/imputar datos personales
