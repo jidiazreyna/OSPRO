@@ -383,7 +383,10 @@ DNI_REGEX = re.compile(
     r'|\b\d{7,8}\b'                # 12345678 sin puntos
 )
 
-ALIAS_RE   = re.compile(r'alias\s+[«“"\'’]?([^"»”\n]+)[»”"\'’]?', re.I)
+ALIAS_RE = re.compile(
+    r'\b(?:alias|apodo)\s+[«“"\'’]?\s*([^"»”,;.:()\n]+)',
+    re.I
+)
 EDAD_RE    = re.compile(r'\b(\d{1,3})\s*años(?:\s*de\s*edad)?', re.I)
 NAC_RE = re.compile(r'(?:de\s+)?nacionalidad\s+([a-záéíóúñ]+)', re.I)
 ECIVIL_RE  = re.compile(r'de\s+estado\s+civil\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
@@ -418,21 +421,40 @@ MULTI_PERSONA_PAT = re.compile(
     re.I,
 )
 
+_IMPUTADOS_BLOQUE_RE = re.compile(
+    r'En los autos.*?imputados:\s*(?P<lista>.+?)\s*'
+    r'(?=La audiencia de debate|Conforme la requisitoria|A LA PRIMERA|I\.)',
+    re.I | re.S
+)
+
+def extraer_bloque_imputados(texto: str) -> str:
+    plano = re.sub(r'\s+', ' ', texto)
+    if (m := _IMPUTADOS_BLOQUE_RE.search(plano)):
+        return m.group('lista').strip()
+    return ""
+
 def es_multipersona(s: str) -> bool:
     # ≥2 ocurrencias de DNI o Prontuario → probable texto con varias personas
     return len(MULTI_PERSONA_PAT.findall(s or "")) >= 2
-
 def segmentar_imputados(texto: str) -> list[str]:
+    """Devuelve bloques 'Nombre, ...' robustos, sin falsos positivos tipo 'años de edad'."""
     plano = re.sub(r'\s+', ' ', texto)
 
+    # Importante: SIN re.I para que exija mayúscula real al inicio del nombre.
     NAME_START = re.compile(
-        r'(?<!\w)(?:[YyEe]\s+)?'
-        r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,3})'
-        r'(?:\s*\([^)]{0,80}\))?'
+        r'(?<!\w)(?:[YyEe]\s+)?'                                  # y/e opcional
+        r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+'                # 1ª palabra
+        r'(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,4})'    # +1 a +4 palabras
+        r'(?:\s*\([^)]{0,80}\))?'                                 # paréntesis opcionales
         r'\s*,\s*'
-        r'(?:[^,]{0,50},\s*)?'
-        r'(?:(?i:(?:de\s+)?nacionalidad|de\s*\d{1,3}\s*años|D\.?\s*N\.?\s*I\.?))'
+        r'(?:[^,]{0,50},\s*)?'                                    # "sin apodo", "alias ...", etc.
+        r'(?:'                                                    # condiciones que confirman la ficha
+        r'(?:de\s+)?nacionalidad'                                 # "de nacionalidad" O "nacionalidad"
+        r'|de\s*\d{1,3}\s*años'                                   # "de 35 años"
+        r'|(?i:D\.?\s*N\.?\s*I\.?)'                               # "DNI" en cualquier variante
+        r')'
     )
+
     hits = list(NAME_START.finditer(plano))
 
     if hits:
@@ -441,31 +463,45 @@ def segmentar_imputados(texto: str) -> list[str]:
             plano = plano[m_ini.start():]
             hits = list(NAME_START.finditer(plano))
 
-        # En cualquier caso, si existe "ambos imputad" u otra frase similar,
-        # corto el texto antes de ella para evitar capturar víctimas u otras personas.
+        # Si aparece una frase tipo "ambos imputados ..." corto para no traer víctimas/testigos.
         if (m_fin := re.search(r'ambos\s+imputad', plano, re.I)):
             corte = m_fin.start()
-            plano = plano[:corte]
             hits = [h for h in hits if h.start() < corte]
-
-    # Intento segmentar por "Nombre, ..." que arranca una ficha
 
     bloques: list[str] = []
     if hits:
         for i, m in enumerate(hits):
             start = m.start(1)
-
             end = hits[i+1].start(1) if i + 1 < len(hits) else len(plano)
-            bloques.append(_recortar_bloque_un_persona(plano[start:end]))
+            b = _recortar_bloque_un_persona(plano[start:end])
+            if _es_bloque_valido(b):       # filtro de sanidad
+                bloques.append(b)
         return bloques
 
-    # Fallback: si no pude, segmento por ocurrencias de "Prontuario" o "Prio."
+    # Fallback: por "Prontuario/Prio."
     prios = list(re.finditer(r"(?:Prontuario|Prio\.?)", plano, re.I))
     for i, m in enumerate(prios):
         start = m.start()
         end = prios[i + 1].start() if i + 1 < len(prios) else len(plano)
-        bloques.append(_recortar_bloque_un_persona(plano[start:end]))
+        b = _recortar_bloque_un_persona(plano[start:end])
+        if _es_bloque_valido(b):
+            bloques.append(b)
     return bloques
+
+
+def _es_bloque_valido(b: str) -> bool:
+    """
+    Acepto el bloque si:
+      - empieza con algo que parece nombre (no 'años de edad'), y
+      - contiene al menos un DNI o un Prontuario.
+    """
+    b = b.strip()
+    # Nombre creíble al inicio
+    tiene_nombre = bool(NOMBRE_INICIO_RE.search(b) or NOMBRE_RE.search(b))
+    # Un identificador fuerte
+    tiene_id = bool(DNI_TXT_RE.search(b) or DNI_REGEX.search(b) or PRIO_RE.search(b))
+    return tiene_nombre and tiene_id
+
 
 
 def _recortar_bloque_un_persona(b: str) -> str:
@@ -483,6 +519,24 @@ def _recortar_bloque_un_persona(b: str) -> str:
         s = s[:dnis[1].start()]
     return s.strip()
 
+def _es_ficha_real(b: str) -> bool:
+    s = re.sub(r'\s+', ' ', b)
+    return bool(DNI_TXT_RE.search(s) or PRIO_RE.search(s))  # exige DNI o Prontuario
+
+def _dedup_por_dni(imps: list[dict]) -> list[dict]:
+    vistos = set()
+    out = []
+    for imp in imps:
+        dni = (imp.get("dni") 
+               or (imp.get("datos_personales") or {}).get("dni") 
+               or "")
+        dni = normalizar_dni(dni)
+        if not dni or dni in vistos:
+            continue
+        vistos.add(dni)
+        imp["dni"] = dni
+        out.append(imp)
+    return out
 
 def _nombre_aparente_valido(nombre: str) -> bool:
     """Heurística simple para detectar si `nombre` parece un nombre real."""
@@ -559,12 +613,15 @@ def extraer_datos_personales(texto: str) -> dict:
         dni_match = m_dni.group(1) if m_dni.lastindex else m_dni.group(0)
         dp["dni"] = normalizar_dni(dni_match)
 
-    # Alias: solo ANTES del primer DNI (evita “heredar” alias ajenos)
+    # Alias SOLO antes del primer DNI
     alias_scope = t[:m_dni.start()] if m_dni else t
     if (m2 := ALIAS_RE.search(alias_scope)):
-        alias_txt = m2.group(1).strip()
+        alias_txt = m2.group(1)
+        # corta en la primera coma/punto/; por si vino sin comillas
+        alias_txt = re.split(r'[,;.:]\s*', alias_txt, 1)[0].strip()
         if alias_txt.lower() not in {"sin apodo", "sin alias", "sin sobrenombre"}:
             dp["alias"] = alias_txt
+
 
     if (m := ALIAS_RE.search(t)):   dp["alias"] = m.group(1).strip()
     if (m := EDAD_RE.search(t)):    dp["edad"]  = m.group(1)
@@ -764,8 +821,32 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         raise ValueError("Formato no soportado (PDF o DOCX)")
 
     texto = limpiar_pies(texto)
-# Heurística local para datos personales (complementa a GPT)
-    dp_auto = extraer_datos_personales(texto)
+    # justo después de: texto = limpiar_pies(texto)
+    texto_base = extraer_bloque_imputados(texto) or texto
+    datos: Dict[str, Any] = {"generales": {}, "imputados": []}
+    # Heurística local:
+    dp_auto = extraer_datos_personales(texto_base)
+
+    # Segmentación:
+    bloques = segmentar_imputados(texto_base)
+
+    def _dp_from_block(b: str) -> dict:
+        d = extraer_datos_personales(b)
+        return {"datos_personales": d, "dni": d.get("dni", ""), "nombre": d.get("nombre", "")}
+
+    # Trabajamos en variables locales, sin tocar `datos` todavía
+    imps_pre: list[dict] = []
+    if bloques:
+        bloques_ok = [b for b in bloques if _es_ficha_real(b)]
+        imps_pre = [_dp_from_block(b) for b in bloques_ok]
+
+    imps_pre = _dedup_por_dni(imps_pre)[:MAX_IMPUTADOS]
+
+    if not imps_pre:
+        if dp_auto:
+            imps_pre = [{"datos_personales": dp_auto,
+                        "dni": dp_auto.get("dni", ""),
+                        "nombre": dp_auto.get("nombre", "")}]
 
     # 2) GPT-4o mini en modo JSON
     client = _get_openai_client()
@@ -797,10 +878,15 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         ],
     )
     if hasattr(client, "chat"):
-        rsp = client.chat.completions.create(**kwargs)  # type: ignore
+        rsp = client.chat.completions.create(**kwargs)
     else:
-        rsp = client.ChatCompletion.create(**kwargs)  # type: ignore
-    datos = json.loads(rsp.choices[0].message.content)
+        rsp = client.ChatCompletion.create(**kwargs)
+    datos_api = json.loads(rsp.choices[0].message.content)
+
+    # Nos quedamos con "generales" del JSON y con nuestros imputados ya saneados
+    datos["generales"] = datos_api.get("generales", {})
+    datos["imputados"] = imps_pre
+
 
     imps = datos.get("imputados") or []
 
@@ -813,17 +899,11 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
             "nombre": d.get("nombre", ""),
         }
 
-    # Preferimos SIEMPRE la segmentación local si logra detectar imputados
-    bloques = segmentar_imputados(texto)
-    if bloques:
-        datos["imputados"] = [_dp_from_block(b) for b in bloques]
-    else:
-        # Último respaldo si GPT no trajo imputados y no pudimos segmentar
-        imps = datos.get("imputados") or []
-        if not imps:
-            dp_auto = extraer_datos_personales(texto)
-            if dp_auto:
-                datos["imputados"] = [{"datos_personales": dp_auto, "dni": dp_auto.get("dni","")}]
+    # Opcional: enriquecer con otra pasada (sin pisar)
+    bloques_base = segmentar_imputados(texto_base)
+    if bloques_base:
+        extra = [_dp_from_block(b) for b in bloques_base]
+        datos["imputados"] = _dedup_por_dni((datos["imputados"] or []) + extra)[:MAX_IMPUTADOS]
 
 
 
