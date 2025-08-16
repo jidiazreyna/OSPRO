@@ -421,12 +421,13 @@ MULTI_PERSONA_PAT = re.compile(
     re.I,
 )
 
+_ROMAN_CORTE = r'(?<=\s)(?:[IVXLCDM]+)\s*(?:\)|\.-|\.|-)'
+
 _IMPUTADOS_BLOQUE_RE = re.compile(
-    r'En los autos.*?imputados:\s*(?P<lista>.+?)\s*'
-    r'(?=La audiencia de debate|Conforme la requisitoria|A LA PRIMERA|I\.)',
+    rf'En los autos.*?imputados:\s*(?P<lista>.+?)\s*'
+    rf'(?=(?:La audiencia de debate|Conforme la requisitoria|A LA PRIMERA|El Tribunal unipersonal|{_ROMAN_CORTE}))',
     re.I | re.S
 )
-
 def extraer_bloque_imputados(texto: str) -> str:
     plano = re.sub(r'\s+', ' ', texto)
     if (m := _IMPUTADOS_BLOQUE_RE.search(plano)):
