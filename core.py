@@ -138,8 +138,8 @@ MAX_IMPUTADOS = 20
 
 def _get_openai_client():
     """
-    Devuelve SIEMPRE un cliente OpenAI() del SDK nuevo (openai>=1.x).
-    Nunca retorna el módulo ni el SDK viejo.
+    Devuelve SIEMPRE un cliente OpenAI() del SDK nuevo (openai>=1.x),
+    usando un httpx.Client propio para evitar el wrapper interno.
     """
     api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", "")).strip()
     if not api_key or api_key == "TU_API_KEY":
@@ -175,17 +175,28 @@ def _get_openai_client():
             _no_proxy = f"{_no_proxy};{host}" if _no_proxy else host
     os.environ["NO_PROXY"] = _no_proxy
 
-    # Cliente del SDK nuevo
-    from openai import OpenAI
-    kwargs = {"api_key": api_key}
-    if proxy:
-        try:
-            import httpx
-            kwargs["http_client"] = httpx.Client(proxies=proxy, timeout=30.0)
-        except Exception:
-            pass
+    # httpx.Client propio (siempre), con o sin proxy
+    import httpx
+    timeout = httpx.Timeout(30.0)  # o lo que prefieras
+    limits  = httpx.Limits(max_keepalive_connections=10, max_connections=20)
 
-    return OpenAI(**kwargs)
+    if proxy:
+        http_client = httpx.Client(
+            proxies=proxy,
+            timeout=timeout,
+            limits=limits,
+            follow_redirects=True,
+        )
+    else:
+        http_client = httpx.Client(
+            timeout=timeout,
+            limits=limits,
+            follow_redirects=True,
+        )
+
+    from openai import OpenAI
+    return OpenAI(api_key=api_key, http_client=http_client)
+
 
 
 # ── limpiar pies de página recurrentes ────────────────────────────────
