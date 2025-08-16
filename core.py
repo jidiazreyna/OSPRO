@@ -23,7 +23,7 @@ import os
 import ast
 
 import docx2txt
-import openai
+
 import streamlit as st            # ← para volcar datos en la UI
 from pdfminer.high_level import extract_text
 
@@ -137,26 +137,27 @@ MAX_IMPUTADOS = 20
 
 
 def _get_openai_client():
-    """Return an OpenAI client compatible with v0 and v1 APIs, ignorando proxies inválidos."""
-    api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", ""))
+    """
+    Devuelve SIEMPRE un cliente OpenAI() del SDK nuevo (openai>=1.x).
+    Nunca retorna el módulo ni el SDK viejo.
+    """
+    api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", "")).strip()
     if not api_key or api_key == "TU_API_KEY":
         raise RuntimeError(
-            "Falta la clave de API de OpenAI. Definí OPENAI_API_KEY o actualizá config.json."
+            "Falta la clave de API de OpenAI. Definí OPENAI_API_KEY en los Secrets o en config.json."
         )
 
-    # 1) Tomo proxy de env o config y lo valido
+    # Proxy opcional (validado)
     raw_proxy = (os.environ.get("PROXY_URL") or _cfg.get("proxy", "") or "").strip()
 
     def _proxy_valido(s: str) -> str:
         if not s:
             return ""
-        # descartar placeholders y cosas sospechosas
         if any(bad in s for bad in ("usuario:contraseña@host:puerto", "<", ">", " ")):
             return ""
         try:
             from urllib.parse import urlparse
             u = urlparse(s)
-            # Debe tener esquema http/https y netloc (host:puerto o host)
             if u.scheme not in ("http", "https") or not u.netloc:
                 return ""
             return s
@@ -165,35 +166,27 @@ def _get_openai_client():
 
     proxy = _proxy_valido(raw_proxy)
 
-    # 2) SDK nuevo (openai>=1.x) con httpx
-    try:
-        from openai import OpenAI  # type: ignore
-        kwargs = {"api_key": api_key}
+    # Limpieza de proxies heredados
+    for _k in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
+        os.environ.pop(_k, None)
+    _no_proxy = os.environ.get("NO_PROXY", "")
+    for host in ("api.openai.com", "api.openai.com:443"):
+        if host not in _no_proxy:
+            _no_proxy = f"{_no_proxy};{host}" if _no_proxy else host
+    os.environ["NO_PROXY"] = _no_proxy
 
-        if proxy:
-            try:
-                import httpx  # type: ignore
-                # OJO: en httpx es "proxies" (no "proxy")
-                kwargs["http_client"] = httpx.Client(proxies=proxy)
-            except Exception:
-                # Si no podemos crear el cliente con proxy, lo ignoramos
-                pass
+    # Cliente del SDK nuevo
+    from openai import OpenAI
+    kwargs = {"api_key": api_key}
+    if proxy:
+        try:
+            import httpx
+            kwargs["http_client"] = httpx.Client(proxies=proxy, timeout=30.0)
+        except Exception:
+            pass
 
-        return OpenAI(**kwargs)
+    return OpenAI(**kwargs)
 
-    except Exception:
-        # 3) SDK viejo (openai<1.0)
-        import openai as _openai  # type: ignore
-        _openai.api_key = api_key
-        if proxy:
-            try:
-                import requests  # type: ignore
-                s = requests.Session()
-                s.proxies.update({"http": proxy, "https": proxy})
-                _openai.requestssession = s  # type: ignore[attr-defined]
-            except Exception:
-                pass
-        return _openai
 
 # ── limpiar pies de página recurrentes ────────────────────────────────
 _FOOTER_REGEX = re.compile(
@@ -978,10 +971,7 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
             {"role": "user", "content": texto[:120_000]},
         ],
     )
-    if hasattr(client, "chat"):
-        rsp = client.chat.completions.create(**kwargs)
-    else:
-        rsp = client.ChatCompletion.create(**kwargs)
+    rsp = client.chat.completions.create(**kwargs)  # ← siempre este camino
     datos_api = json.loads(rsp.choices[0].message.content)
 
     # Nos quedamos con "generales" del JSON y con nuestros imputados ya saneados

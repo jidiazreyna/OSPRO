@@ -492,7 +492,8 @@ with st.sidebar:
         key="n_imp", on_change=st.rerun,
     )
     st.session_state.n_imputados = n
-
+    # 👇 Reservo el lugar para los expanders acá
+    imp_expanders_slot = st.container()
     # cargar sentencia y autocompletar
     up = st.file_uploader("Cargar sentencia (PDF/DOCX)", type=["pdf", "docx"])
     if st.button("Autocompletar"):
@@ -507,33 +508,33 @@ with st.sidebar:
         st.error(err)
     elif st.session_state.pop("ac_success", False):
         st.success("Campos cargados. Revisá y editá donde sea necesario.")
-
-    # pestañas de imputados en sidebar
-    for i in range(st.session_state.n_imputados):
-        k = f"imp{i}"
-        with st.expander(f"Imputado {i+1}", expanded=False):
-            st.text_input("Nombre y apellido", key=f"{k}_nom")
-            st.text_input("DNI",               key=f"{k}_dni")
-            st.text_area ("Datos personales",  key=f"{k}_datos", height=80)
-            st.text_input("Condena",           key=f"{k}_condena")
-            st.text_area("Cómputo de pena", key=f"{k}_computo", height=80)
-            st.selectbox("Tipo de cómputo", ["Efec.", "Cond."], key=f"{k}_computo_tipo")
-            combo_editable(
-                "Servicio Correccional o Penitenciario",
-                PENITENCIARIOS,
-                key=f"{k}_servicio_penitenciario",
-            )
-            st.text_input("Legajo", key=f"{k}_legajo")
-            st.text_input("Delito (con el tipo de delito y la fecha)", key=f"{k}_delitos")
-            st.text_input("Liberación (fecha y motivo)", key=f"{k}_liberacion")
-            st.text_area("Historial de delitos y condenas anteriores", key=f"{k}_antecedentes", height=80)
-            st.text_area("Tratamientos médicos y psicológicos", key=f"{k}_tratamientos", height=80)
-            combo_editable(
-                "Juzgado de Niñez, Adolescencia, V.F. y Género",
-                JUZ_NAVFYG,
-                key=f"{k}_juz_navfyg",
-            )
-            st.text_input("Expediente de V.F. relacionado", key=f"{k}_ee_relacionado")
+    with imp_expanders_slot:   # 👈 se dibujan debajo de "Número de imputados"
+        # pestañas de imputados en sidebar
+        for i in range(st.session_state.n_imputados):
+            k = f"imp{i}"
+            with st.expander(f"Imputado {i+1}", expanded=False):
+                st.text_input("Nombre y apellido", key=f"{k}_nom")
+                st.text_input("DNI",               key=f"{k}_dni")
+                st.text_area ("Datos personales",  key=f"{k}_datos", height=80)
+                st.text_input("Condena",           key=f"{k}_condena")
+                st.text_area("Cómputo de pena", key=f"{k}_computo", height=80)
+                st.selectbox("Tipo de cómputo", ["Efec.", "Cond."], key=f"{k}_computo_tipo")
+                combo_editable(
+                    "Servicio Correccional o Penitenciario",
+                    PENITENCIARIOS,
+                    key=f"{k}_servicio_penitenciario",
+                )
+                st.text_input("Legajo", key=f"{k}_legajo")
+                st.text_input("Delito (con el tipo de delito y la fecha)", key=f"{k}_delitos")
+                st.text_input("Liberación (fecha y motivo)", key=f"{k}_liberacion")
+                st.text_area("Historial de delitos y condenas anteriores", key=f"{k}_antecedentes", height=80)
+                st.text_area("Tratamientos médicos y psicológicos", key=f"{k}_tratamientos", height=80)
+                combo_editable(
+                    "Juzgado de Niñez, Adolescencia, V.F. y Género",
+                    JUZ_NAVFYG,
+                    key=f"{k}_juz_navfyg",
+                )
+                st.text_input("Expediente de V.F. relacionado", key=f"{k}_ee_relacionado")
 
 
 # ────────── panel principal: selector de imputado + tabs ───────────
