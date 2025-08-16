@@ -137,35 +137,64 @@ MAX_IMPUTADOS = 20
 
 
 def _get_openai_client():
-    """Return an OpenAI client compatible with v0 and v1 APIs."""
+    """Return an OpenAI client compatible with v0 and v1 APIs, ignorando proxies inválidos."""
     api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", ""))
     if not api_key or api_key == "TU_API_KEY":
         raise RuntimeError(
             "Falta la clave de API de OpenAI. Definí OPENAI_API_KEY o actualizá config.json."
         )
-    proxy = os.environ.get("PROXY_URL", _cfg.get("proxy", ""))
+
+    # 1) Tomo proxy de env o config y lo valido
+    raw_proxy = (os.environ.get("PROXY_URL") or _cfg.get("proxy", "") or "").strip()
+
+    def _proxy_valido(s: str) -> str:
+        if not s:
+            return ""
+        # descartar placeholders y cosas sospechosas
+        if any(bad in s for bad in ("usuario:contraseña@host:puerto", "<", ">", " ")):
+            return ""
+        try:
+            from urllib.parse import urlparse
+            u = urlparse(s)
+            # Debe tener esquema http/https y netloc (host:puerto o host)
+            if u.scheme not in ("http", "https") or not u.netloc:
+                return ""
+            return s
+        except Exception:
+            return ""
+
+    proxy = _proxy_valido(raw_proxy)
+
+    # 2) SDK nuevo (openai>=1.x) con httpx
     try:
         from openai import OpenAI  # type: ignore
         kwargs = {"api_key": api_key}
+
         if proxy:
             try:
                 import httpx  # type: ignore
-                kwargs["http_client"] = httpx.Client(proxy=proxy)
+                # OJO: en httpx es "proxies" (no "proxy")
+                kwargs["http_client"] = httpx.Client(proxies=proxy)
             except Exception:
+                # Si no podemos crear el cliente con proxy, lo ignoramos
                 pass
+
         return OpenAI(**kwargs)
+
     except Exception:
-        # Old OpenAI < 1.0 style
-        openai.api_key = api_key
+        # 3) SDK viejo (openai<1.0)
+        import openai as _openai  # type: ignore
+        _openai.api_key = api_key
         if proxy:
             try:
                 import requests  # type: ignore
-                session = requests.Session()
-                session.proxies.update({"http": proxy, "https": proxy})
-                openai.requestssession = session  # type: ignore[attr-defined]
+                s = requests.Session()
+                s.proxies.update({"http": proxy, "https": proxy})
+                _openai.requestssession = s  # type: ignore[attr-defined]
             except Exception:
                 pass
-        return openai
+        return _openai
+
 # ── limpiar pies de página recurrentes ────────────────────────────────
 _FOOTER_REGEX = re.compile(
     r"""
@@ -399,10 +428,12 @@ PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(
 PRIO_RE    = re.compile(r'(?:Prontuario|Prio\.?|Pront\.?)\s*[:\-]?\s*([^\n.;]+)', re.I)
 # Permite variantes como "DNI n.º 12.345.678" o "DNI N°12345678"
 DNI_TXT_RE = re.compile(
-    r'(?:D\.?\s*N\.?\s*I\.?|DNI)\s*'
-    r'(?:n(?:ro)?\.?\s*(?:[°º])?\s*)?[:\-]?\s*([\d.]+)',
-    re.I,
+    r'(?:D\s*\.?\s*N\s*\.?\s*I\s*\.?|DNI)\s*'         # D N I con o sin puntos/espacios
+    r'(?:n(?:ro)?\.?\s*[°º]?\s*)?[:\-]?\s*'           # “N°/Nro.” opcional
+    r'([\d.\s]{7,15})',                               # el número (con puntos/espacios)
+    re.I
 )
+
 NOMBRE_RE  = re.compile(r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?D\.?N\.?I\.?:?\s*[\d.]+', re.I | re.S)
 NOMBRE_INICIO_RE = re.compile(
     r'^\s*(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,3})\s*,',
@@ -428,11 +459,45 @@ _IMPUTADOS_BLOQUE_RE = re.compile(
     rf'(?=(?:La audiencia de debate|Conforme la requisitoria|A LA PRIMERA|El Tribunal unipersonal|{_ROMAN_CORTE}))',
     re.I | re.S
 )
+# Reemplazar función completa
 def extraer_bloque_imputados(texto: str) -> str:
+    """
+    Devuelve SOLO el tramo que enumera a los imputados.
+    Empieza en la primera mención '... los imputados:' (o variantes)
+    y termina antes de la audiencia / requisitoria / A LA PRIMERA / etc.
+    """
     plano = re.sub(r'\s+', ' ', texto)
-    if (m := _IMPUTADOS_BLOQUE_RE.search(plano)):
-        return m.group('lista').strip()
-    return ""
+
+    # Inicio: varias formulaciones habituales
+    pat_inicio = re.compile(
+        r'(?:'
+        r'han\s+sido\s+tra[ií]d[oa]s?\s+a\s+proceso\s+los\s+imputad[oa]s?\s*:'
+        r'|se\s+encuentran\s+imputad[oa]s?\s*:'
+        r'|los\s+imputad[oa]s?\s*:?'          # ← ahora “:” es opcional
+        r')',
+        re.I
+    )
+
+
+    # Fin del bloque (encabezados típicos)
+    pat_fin = re.compile(
+        r'(?:La\s+audiencia\s+de\s+debate'
+        r'|Conforme\s+la\s+requisitoria'
+        r'|A\s+LA\s+PRIMERA'
+        r'|El\s+Tribunal\s+unipersonal'
+        r'|CONSIDERANDO\b)', re.I)
+
+    m_ini = pat_inicio.search(plano)
+    if not m_ini:
+        m_ini = re.search(r'\bimputad[oa]s?\b', plano, re.I)
+        if not m_ini:
+            return ""
+    start = m_ini.end()  # ← en vez de .start()
+
+    m_fin = pat_fin.search(plano, m_ini.end())
+    fin = m_fin.start() if m_fin else len(plano)
+    return plano[m_ini.end():fin].strip()
+
 
 def es_multipersona(s: str) -> bool:
     # ≥2 ocurrencias de DNI o Prontuario → probable texto con varias personas
@@ -491,17 +556,14 @@ def segmentar_imputados(texto: str) -> list[str]:
 
 
 def _es_bloque_valido(b: str) -> bool:
-    """
-    Acepto el bloque si:
-      - empieza con algo que parece nombre (no 'años de edad'), y
-      - contiene al menos un DNI o un Prontuario.
-    """
-    b = b.strip()
-    # Nombre creíble al inicio
+    b = re.sub(r'\s+', ' ', b)
     tiene_nombre = bool(NOMBRE_INICIO_RE.search(b) or NOMBRE_RE.search(b))
-    # Un identificador fuerte
-    tiene_id = bool(DNI_TXT_RE.search(b) or DNI_REGEX.search(b) or PRIO_RE.search(b))
-    return tiene_nombre and tiene_id
+    tiene_id_fuerte = bool(DNI_TXT_RE.search(b) or DNI_REGEX.search(b) or PRIO_RE.search(b))
+    tiene_pistas = bool(EDAD_RE.search(b) and NAC_RE.search(b))
+    # exigir fórmula típica de imputado
+    contexto = ("nacionalidad" in b.lower() and "domicilio" in b.lower())
+    return tiene_nombre and (tiene_id_fuerte or (tiene_pistas and contexto))
+
 
 
 
@@ -525,19 +587,33 @@ def _es_ficha_real(b: str) -> bool:
     return bool(DNI_TXT_RE.search(s) or PRIO_RE.search(s))  # exige DNI o Prontuario
 
 def _dedup_por_dni(imps: list[dict]) -> list[dict]:
-    vistos = set()
+    vistos_dni = set()
+    vistos_nombre = set()
     out = []
     for imp in imps:
-        dni = (imp.get("dni") 
-               or (imp.get("datos_personales") or {}).get("dni") 
-               or "")
-        dni = normalizar_dni(dni)
-        if not dni or dni in vistos:
-            continue
-        vistos.add(dni)
-        imp["dni"] = dni
+        dp = imp.get("datos_personales") or {}
+        nombre = (imp.get("nombre") or (dp.get("nombre") if isinstance(dp, dict) else "") or "").strip().lower()
+        dni = normalizar_dni(imp.get("dni") or (dp.get("dni") if isinstance(dp, dict) else "") or "")
+
+        # Si no hay DNI, deduplico por nombre; si hay DNI, deduplico por DNI
+        if dni:
+            if dni in vistos_dni:
+                continue
+            vistos_dni.add(dni)
+            imp["dni"] = dni
+        else:
+            if not nombre or nombre in vistos_nombre:
+                # si ni nombre ni dni → mantenelo igual, pero evitá duplicados exactos
+                clave = json.dumps(imp, sort_keys=True, ensure_ascii=False)
+                if clave in vistos_nombre:
+                    continue
+                vistos_nombre.add(clave)
+            else:
+                vistos_nombre.add(nombre)
+
         out.append(imp)
     return out
+
 
 def _nombre_aparente_valido(nombre: str) -> bool:
     """Heurística simple para detectar si `nombre` parece un nombre real."""
@@ -831,6 +907,8 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     # Segmentación:
     bloques = segmentar_imputados(texto_base)
 
+
+
     def _dp_from_block(b: str) -> dict:
         d = extraer_datos_personales(b)
         return {"datos_personales": d, "dni": d.get("dni", ""), "nombre": d.get("nombre", "")}
@@ -838,7 +916,7 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     # Trabajamos en variables locales, sin tocar `datos` todavía
     imps_pre: list[dict] = []
     if bloques:
-        bloques_ok = [b for b in bloques if _es_ficha_real(b)]
+        bloques_ok = [b for b in bloques if _es_bloque_valido(b)]
         imps_pre = [_dp_from_block(b) for b in bloques_ok]
 
     imps_pre = _dedup_por_dni(imps_pre)[:MAX_IMPUTADOS]
@@ -848,6 +926,28 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
             imps_pre = [{"datos_personales": dp_auto,
                         "dni": dp_auto.get("dni", ""),
                         "nombre": dp_auto.get("nombre", "")}]
+    # Log opcional (podés borrarlo cuando ande)
+    import os as _os
+    print("DEBUG(PROXY_ENV)_init:", {k: _os.environ.get(k) for k in (
+        "HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy","NO_PROXY","PROXY_URL"
+    )})
+
+    # 1) Limpiar proxies heredados del entorno del proceso
+    for _k in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
+        _os.environ.pop(_k, None)
+
+    # 2) Evitar proxy para OpenAI
+    _no_proxy = _os.environ.get("NO_PROXY", "")
+    for _h in ("api.openai.com", "api.openai.com:443"):
+        if _h not in _no_proxy:
+            _no_proxy = f"{_no_proxy};{_h}" if _no_proxy else _h
+    _os.environ["NO_PROXY"] = _no_proxy
+
+    # 3) Si PROXY_URL viene con placeholder/valor inválido, lo ignoramos
+    _bad_tokens = ("usuario:contraseña@host:puerto", "<", ">", " ")
+    if any(t in (_os.environ.get("PROXY_URL","") or "") for t in _bad_tokens):
+        _os.environ.pop("PROXY_URL", None)
+    # --- FIN BLOQUE ANTI-PROXY GLOBAL ---
 
     # 2) GPT-4o mini en modo JSON
     client = _get_openai_client()
@@ -900,11 +1000,12 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
             "nombre": d.get("nombre", ""),
         }
 
-    # Opcional: enriquecer con otra pasada (sin pisar)
+    # Opcional: enriquecer SOLO dentro del bloque acotado
     bloques_base = segmentar_imputados(texto_base)
     if bloques_base:
-        extra = [_dp_from_block(b) for b in bloques_base]
+        extra = [_dp_from_block(b) for b in bloques_base if _es_bloque_valido(b)]
         datos["imputados"] = _dedup_por_dni((datos["imputados"] or []) + extra)[:MAX_IMPUTADOS]
+
 
 
 
