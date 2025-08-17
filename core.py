@@ -134,35 +134,52 @@ TRIBUNALES = [
 
 # Máximo de imputados soportados por la interfaz
 MAX_IMPUTADOS = 20
+
+
+
 def _get_openai_client():
     """
     Devuelve un cliente OpenAI (SDK >= 1.x) con httpx.Client propio.
-    Prioriza OPENAI_API_KEY desde st.secrets, luego ENV y por último config.json.
-    Sanea proxies heredados y deja trazas seguras (enmascaradas) para diagnóstico.
+    Lee la API key de st.secrets primero; en cloud ignoramos config.json para evitar fugas.
+    Soporta OPENAI_PROJECT (útil con claves sk-proj-...).
     """
-    # --- API KEY ---
+    # --- API KEY (solo secretos/ENV en cloud) ---
     key = ""
+    src = "none"
     try:
-        # Streamlit Cloud → Secrets (editor TOML)
-        key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
+        if hasattr(st, "secrets"):
+            key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
+            if key:
+                src = "st.secrets"
     except Exception:
         pass
     if not key:
-        key = (os.environ.get("OPENAI_API_KEY", "") or _cfg.get("api_key", "") or "").strip()
+        # local/dev: permito ENV; como último recurso, config.json
+        key = (os.environ.get("OPENAI_API_KEY", "") or "").strip()
+        if key:
+            src = "env"
+    if not key and _cfg.get("api_key"):
+        # SOLO para desarrollo local; en cloud mejor dejarlo vacío
+        key = (_cfg.get("api_key") or "").strip()
+        if key:
+            src = "config.json"
 
     if not key or key.upper() == "TU_API_KEY":
-        raise RuntimeError(
-            "Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o en config.json."
-        )
+        raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets.")
 
-    # --- Organización (opcional) ---
+    # --- ORG y PROJECT (opcionales) ---
     org = ""
+    project = ""
     try:
-        org = (st.secrets.get("OPENAI_ORG", "") or "").strip()
+        if hasattr(st, "secrets"):
+            org = (st.secrets.get("OPENAI_ORG", "") or "").strip()
+            project = (st.secrets.get("OPENAI_PROJECT", "") or "").strip()
     except Exception:
         pass
     if not org:
         org = (os.environ.get("OPENAI_ORG", _cfg.get("org", "")) or "").strip()
+    if not project:
+        project = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
 
     # --- Proxy (opcional + saneo) ---
     raw_proxy = (
@@ -175,8 +192,7 @@ def _get_openai_client():
     def _proxy_valido(s: str) -> str:
         if not s:
             return ""
-        # Evitar placeholders o strings obviously inválidos
-        if any(bad in s for bad in ("usuario:contraseña@host:puerto", "<", ">", " ")):
+        if any(b in s for b in ("usuario:contraseña@host:puerto", "<", ">", " ")):
             return ""
         try:
             from urllib.parse import urlparse
@@ -188,30 +204,34 @@ def _get_openai_client():
     proxy = _proxy_valido(raw_proxy)
 
     # --- Limpiar proxies heredados y asegurar NO_PROXY para OpenAI ---
-    for _k in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
+    for _k in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
         os.environ.pop(_k, None)
-
     no_proxy = os.environ.get("NO_PROXY", "")
     for host in ("api.openai.com", "api.openai.com:443"):
         if host not in no_proxy:
             no_proxy = f"{no_proxy};{host}" if no_proxy else host
     os.environ["NO_PROXY"] = no_proxy
 
-    # --- httpx.Client propio (con 'proxies', no 'proxy') ---
+    # --- httpx.Client propio ---
     import httpx
-    http_client_kwargs = dict(
+    http_client = httpx.Client(
+        proxies=proxy or None,
         timeout=httpx.Timeout(30.0),
         limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
         follow_redirects=True,
     )
-    if proxy:
-        http_client_kwargs["proxies"] = proxy
-    http_client = httpx.Client(**http_client_kwargs)
 
-    # --- Trazas seguras (no exponer la key) ---
+    # --- Trazas seguras ---
     try:
-        masked = f"{key[:4]}…{key[-4:]}" if len(key) >= 8 else "****"
-        print("DEBUG(OAI): key=", masked, " org=", bool(org), " proxy=", bool(proxy))
+        masked = f"{key[:6]}…{key[-4:]}" if len(key) >= 10 else "****"
+        print(
+            "DEBUG(OAI): src=", src,
+            " key=", masked,
+            " kind=", ("proj" if key.startswith("sk-proj-") else "user"),
+            " org=", bool(org),
+            " project=", bool(project),
+            " proxy=", bool(proxy),
+        )
     except Exception:
         pass
 
@@ -220,9 +240,11 @@ def _get_openai_client():
     kwargs = {"api_key": key, "http_client": http_client}
     if org:
         kwargs["organization"] = org
+    # Sumar project si lo tenés (especialmente útil con sk-proj-...)
+    if project:
+        kwargs["project"] = project
+
     return OpenAI(**kwargs)
-
-
 
 
 
