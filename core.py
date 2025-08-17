@@ -140,7 +140,7 @@ MAX_IMPUTADOS = 20
 CONFIG_FILE = "config.json"
 
 # ⚠️ NO RECOMENDADO: solo como último recurso y NUNCA commitear.
-HARDCODED_OPENAI_KEY = "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"  # ← si insistís, pegá aquí tu clave (temporalmente)
+HARDCODED_OPENAI_KEY = ""  # ← si insistís, pegá aquí tu clave (temporalmente)
 
 def _get_openai_client():
     """
