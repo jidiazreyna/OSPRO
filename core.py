@@ -143,99 +143,84 @@ CONFIG_FILE = "config.json"
 # ⚠️ NO RECOMENDADO: solo como último recurso y NUNCA commitear.
 HARDCODED_OPENAI_KEY = ""  # ← si insistís, pegá aquí tu clave (temporalmente)
 
+
 def _get_openai_client():
     """
-    Devuelve un cliente OpenAI (SDK >= 1.x):
-    - Lee la key desde st.secrets → ENV → config.json → HARDCODED.
-    - Si la key es 'sk-proj-*', NO envía organization/project.
-    - Sanea proxies heredados y usa httpx.Client propio (sin proxy).
-    - Deja trazas seguras para diagnóstico (sin exponer la key).
+    Crea un cliente OpenAI robusto:
+    - Lee OPENAI_API_KEY de st.secrets → ENV → config.json → HARDCODED.
+    - Si la key es 'sk-proj-*', no envía org/proj y purga variables.
+    - Fuerza base_url oficial y limpia proxies y bases heredadas.
     """
-    import os
-    import httpx
-    import streamlit as st
-    from openai import OpenAI  # 👈 IMPORT ANTES DE USAR
+    import os, httpx, streamlit as st
+    from openai import OpenAI
 
-    # --- API KEY (orden de prioridad) ---
-    key_src = "secrets"
+    # 1) key
     key = ""
     try:
         key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
     except Exception:
         pass
     if not key:
-        key_src = "env"
         key = (os.environ.get("OPENAI_API_KEY", "") or "").strip()
     if not key:
-        key_src = "config.json"
         key = (_cfg.get("api_key", "") or "").strip()
-    if not key:
-        key_src = "HARDCODED"
-        key = (HARDCODED_OPENAI_KEY or "").strip()
-
     if not key or key.upper() == "TU_API_KEY":
         raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o en config.json.")
 
     is_proj_key = key.startswith("sk-proj-")
 
-    # Si la key es de project, NO meter headers de org/proj ni base_url del entorno
-    if is_proj_key:
-        for var in ("OPENAI_ORG", "OPENAI_ORGANIZATION", "OPENAI_PROJECT", "OPENAI_API_BASE", "OPENAI_BASE_URL"):
-            os.environ.pop(var, None)
-
-    # --- Limpiar proxies heredados y asegurar NO_PROXY para OpenAI ---
-    for k in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
-        os.environ.pop(k, None)
+    # 2) SIEMPRE limpiar bases heredadas y proxies
+    for v in ("OPENAI_BASE_URL", "OPENAI_API_BASE"):
+        os.environ.pop(v, None)
+    for v in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
+        os.environ.pop(v, None)
     no_proxy = os.environ.get("NO_PROXY", "")
     for host in ("api.openai.com", "api.openai.com:443"):
         if host not in no_proxy:
             no_proxy = f"{no_proxy};{host}" if no_proxy else host
     os.environ["NO_PROXY"] = no_proxy
 
-    # --- httpx.Client sin proxy ---
-    http_client = None
+    # 3) httpx sin proxy
     try:
         http_client = httpx.Client(
             timeout=httpx.Timeout(30.0),
             limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
             follow_redirects=True,
         )
-    except Exception as e:
-        print(f"DEBUG(OAI): httpx Client no disponible: {e}")
+    except Exception:
         http_client = None
 
-    # --- Org/Project (solo si NO es sk-proj- ) ---
-    org = proj = ""
-    if not is_proj_key:
+    # 4) org/proj headers
+    org = ""
+    proj = ""
+    if is_proj_key:
+        # Con keys sk-proj-* NO deben existir estos headers/vars
+        for v in ("OPENAI_ORG","OPENAI_ORGANIZATION","OPENAI_PROJECT"):
+            os.environ.pop(v, None)
+    else:
+        # Sólo organization con keys antiguas; NO mandar project
         try:
-            org  = (st.secrets.get("OPENAI_ORG", "") or "").strip()
-            proj = (st.secrets.get("OPENAI_PROJECT", "") or "").strip()
+            org = (st.secrets.get("OPENAI_ORG","") or "").strip()
         except Exception:
             pass
         if not org:
-            org  = (os.environ.get("OPENAI_ORG",  _cfg.get("org", "")) or "").strip()
-        if not proj:
-            proj = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
+            org = (os.environ.get("OPENAI_ORG", _cfg.get("org","")) or "").strip()
+        # Evitar que un OPENAI_PROJECT heredado rompa auth
+        os.environ.pop("OPENAI_PROJECT", None)
 
-    # Trazas seguras
-    try:
-        masked = f"{key[:4]}…{key[-4:]}" if len(key) >= 8 else "****"
-        print(
-            f"DEBUG(OAI): src={key_src} proj_key={is_proj_key} "
-            f"org_set={bool(org)} proj_set={bool(proj)} http_client={http_client is not None}"
-        )
-    except Exception:
-        pass
-
-    # --- Construir cliente OpenAI ---
-    kwargs = {"api_key": key}
+    # 5) construir cliente (forzando base_url oficial)
+    kwargs = {"api_key": key, "base_url": "https://api.openai.com/v1"}
     if http_client is not None:
         kwargs["http_client"] = http_client
-    if not is_proj_key:
-        if org:
-            kwargs["organization"] = org
-        if proj:
-            kwargs["project"] = proj
+    if (not is_proj_key) and org:
+        kwargs["organization"] = org
+    # NUNCA setear "project" manualmente con keys no sk-proj-; y con sk-proj-* no hace falta.
+
+    # Log mínimo seguro
+    try:
+        print(f"DEBUG(OAI): proj_key={is_proj_key} org_set={bool(org)} base_url={kwargs['base_url']}")
+    except Exception:
+        pass
 
     return OpenAI(**kwargs)
 
@@ -1021,16 +1006,18 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
 
     try:
         rsp = client.chat.completions.create(**kwargs)
-    except AuthenticationError as e:
+    except AuthenticationError:
         raise RuntimeError(
-            "Error de autenticación con OpenAI. Revisá OPENAI_API_KEY en Secrets y que la cuenta tenga acceso al modelo."
-        ) from e
+            "Error de autenticación con OpenAI (401). Verificá la OPENAI_API_KEY (y que no tenga espacios/quotes)."
+        )
     except APIStatusError as e:
-        # Esto te da pistas útiles en consola/logs
-        if getattr(e, "status_code", None) in (401, 403):
+        if getattr(e, "status_code", None) == 403:
             raise RuntimeError(
-                f"Error de autenticación/autorización ({e.status_code}). "
-                "Verificá la key y el acceso del proyecto al modelo."
+                "403: La key es válida pero **no tiene acceso** al modelo especificado. Probá con otro modelo o pedí acceso."
+            ) from e
+        if getattr(e, "status_code", None) == 404:
+            raise RuntimeError(
+                "404: Modelo inexistente en tu cuenta/región. Usá un modelo disponible para tu cuenta."
             ) from e
         raise
 
