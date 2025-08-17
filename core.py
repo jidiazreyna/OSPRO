@@ -135,15 +135,26 @@ TRIBUNALES = [
 # Máximo de imputados soportados por la interfaz
 MAX_IMPUTADOS = 20
 
+
+# ────────────────────────── Config ──────────────────────────
+CONFIG_FILE = "config.json"
+
+# ⚠️ NO RECOMENDADO: solo como último recurso y NUNCA commitear.
+HARDCODED_OPENAI_KEY = "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"  # ← si insistís, pegá aquí tu clave (temporalmente)
+
 def _get_openai_client():
     """
     Devuelve un cliente OpenAI (SDK >= 1.x):
-    - Toma OPENAI_API_KEY de st.secrets, luego ENV y por último config.json.
-    - Si la key es 'sk-proj-...', ignora OPENAI_ORG/OPENAI_PROJECT.
-    - Sanea proxies heredados y usa httpx.Client compatible.
-    - Imprime trazas seguras (sin exponer la key completa).
+    - Lee la key desde st.secrets → ENV → config.json → HARDCODED.
+    - Si la key es 'sk-proj-*', NO envía organization/project.
+    - Sanea proxies heredados y usa httpx.Client propio.
+    - Deja trazas seguras para diagnóstico (sin exponer la key).
     """
-    # --- API KEY ---
+    import os
+    import httpx
+    import streamlit as st
+
+    # --- API KEY (orden de prioridad) ---
     key_src = "secrets"
     key = ""
     try:
@@ -156,13 +167,16 @@ def _get_openai_client():
     if not key:
         key_src = "config.json"
         key = (_cfg.get("api_key", "") or "").strip()
+    if not key:
+        key_src = "HARDCODED"
+        key = (HARDCODED_OPENAI_KEY or "").strip()
 
     if not key or key.upper() == "TU_API_KEY":
         raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o en config.json.")
 
     is_proj_key = key.startswith("sk-proj-")
 
-    # --- Org / Project (opcionales, pero NO para sk-proj-) ---
+    # --- Org/Project (solo si NO es sk-proj- ) ---
     org = ""
     proj = ""
     if not is_proj_key:
@@ -172,15 +186,11 @@ def _get_openai_client():
         except Exception:
             pass
         if not org:
-            org = (os.environ.get("OPENAI_ORG", _cfg.get("org", "")) or "").strip()
+            org  = (os.environ.get("OPENAI_ORG",  _cfg.get("org", "")) or "").strip()
         if not proj:
             proj = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
-    else:
-        # Clave de proyecto: evitar headers que puedan invalidar la auth
-        org = ""
-        proj = ""
 
-    # --- Proxy (opcional + saneo) ---
+    # --- Proxy opcional y saneo ---
     raw_proxy = (
         os.environ.get("PROXY_URL")
         or ((st.secrets.get("PROXY_URL", "") or "") if hasattr(st, "secrets") else "")
@@ -200,7 +210,7 @@ def _get_openai_client():
 
     proxy = _proxy_valido(raw_proxy) or None
 
-    # Limpiar proxies heredados y asegurar NO_PROXY para api.openai.com
+    # Limpiar proxies heredados y asegurar NO_PROXY para OpenAI
     for _k in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
         os.environ.pop(_k, None)
     no_proxy = os.environ.get("NO_PROXY", "")
@@ -209,8 +219,7 @@ def _get_openai_client():
             no_proxy = f"{no_proxy};{host}" if no_proxy else host
     os.environ["NO_PROXY"] = no_proxy
 
-    # httpx.Client compatible con firmas distintas
-    import httpx
+    # httpx.Client (compatibilidad proxies=/proxy=)
     base_kwargs = dict(
         timeout=httpx.Timeout(30.0),
         limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
@@ -226,17 +235,16 @@ def _get_openai_client():
         masked = f"{key[:4]}…{key[-4:]}" if len(key) >= 8 else "****"
         print(f"DEBUG(OAI): src={key_src} proj_key={is_proj_key} org_set={bool(org)} proj_set={bool(proj)} proxy={bool(proxy)} key={masked}")
         if is_proj_key:
-            print("DEBUG(OAI): usando clave 'sk-proj-*' → NO se envían headers organization/project.")
+            print("DEBUG(OAI): clave 'sk-proj-*' → NO envío organization/project.")
     except Exception:
         pass
 
+    # Cliente OpenAI (SDK nuevo)
     from openai import OpenAI
     kwargs = {"api_key": key, "http_client": http_client}
-    # Solo añadimos headers si NO es una clave 'sk-proj-*'
-    if org:
-        kwargs["organization"] = org
-    if proj:
-        kwargs["project"] = proj
+    if not is_proj_key:
+        if org:  kwargs["organization"] = org
+        if proj: kwargs["project"]      = proj
     return OpenAI(**kwargs)
 
 
