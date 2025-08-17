@@ -158,9 +158,9 @@ def _get_openai_client():
     key_src = "secrets"
     key = ""
     try:
-        key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
+        key = str(st.secrets["OPENAI_API_KEY"]).strip()
     except Exception:
-        pass
+        key = ""
     if not key:
         key_src = "env"
         key = (os.environ.get("OPENAI_API_KEY", "") or "").strip()
@@ -219,16 +219,14 @@ def _get_openai_client():
             no_proxy = f"{no_proxy};{host}" if no_proxy else host
     os.environ["NO_PROXY"] = no_proxy
 
-    # httpx.Client (compatibilidad proxies=/proxy=)
+    # httpx.Client SIN proxy para OpenAI
     base_kwargs = dict(
         timeout=httpx.Timeout(30.0),
         limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
         follow_redirects=True,
     )
-    try:
-        http_client = httpx.Client(proxies=proxy, **base_kwargs)
-    except TypeError:
-        http_client = httpx.Client(proxy=proxy, **base_kwargs)
+    http_client = httpx.Client(**base_kwargs)
+
 
     # Trazas seguras
     try:
@@ -1024,7 +1022,7 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
             {"role": "user", "content": texto[:120_000]},
         ],
     )
-    from openai import AuthenticationError
+    from openai import AuthenticationError, APIStatusError
 
     try:
         rsp = client.chat.completions.create(**kwargs)
@@ -1032,6 +1030,15 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         raise RuntimeError(
             "Error de autenticación con OpenAI. Revisá OPENAI_API_KEY en Secrets y que la cuenta tenga acceso al modelo."
         ) from e
+    except APIStatusError as e:
+        # Esto te da pistas útiles en consola/logs
+        if getattr(e, "status_code", None) in (401, 403):
+            raise RuntimeError(
+                f"Error de autenticación/autorización ({e.status_code}). "
+                "Verificá la key y el acceso del proyecto al modelo."
+            ) from e
+        raise
+
     datos_api = json.loads(rsp.choices[0].message.content)
 
     # Nos quedamos con "generales" del JSON y con nuestros imputados ya saneados
