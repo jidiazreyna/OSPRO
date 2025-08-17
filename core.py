@@ -304,14 +304,21 @@ _RESUELVO_REGEX = re.compile(
 # ── CARÁTULA ──────────────────────────────────────────────────────────
 _PAT_CARAT_1 = re.compile(          # 1) entre comillas
     r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)\s*\)', re.I)
-
+# Acepta comillas rectas o tipográficas y "Expte. Sac 123..." (con o sin N°)
+_PAT_CARAT_1B = re.compile(
+    r'[“"]([^”"]+?)[”"]\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?([\d.]+)\s*\)',
+    re.I
+)
 _PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
     r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?', re.I)
 
 _PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …”
     r'EXPEDIENTE\s+(?:SAC|Expte\.?)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
-
+_PAT_CARAT_4 = re.compile(
+    r'(?P<title>[^()\n]{8,240}?)\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?(?P<nro>[\d.]+)\s*\)',
+    re.I
+)
 def extraer_caratula(txt: str) -> str:
     """
     Devuelve la carátula formal “…” (SAC N° …) o '' si no encuentra nada creíble.
@@ -322,7 +329,23 @@ def extraer_caratula(txt: str) -> str:
     """
     # normalizo blancos para evitar saltos de línea entre tokens
     plano = re.sub(r'\s+', ' ', txt)
+    # 1) Comillas (rectas o tipográficas) + (SAC / Expte. Sac) + número
+    m = _PAT_CARAT_1B.search(plano)
+    if m:
+        titulo, nro = m.groups()
+        titulo = titulo.strip(' ,;.')
+        return f'“{titulo}” (SAC N° {nro})'
 
+    # 2) Sin comillas: título justo antes del paréntesis (SAC / Expte. Sac)
+    m = _PAT_CARAT_4.search(plano)
+    if m:
+        titulo = m.group('title').strip(' ,;."“”')
+        nro = m.group('nro')
+        # Evitá agarrar "Juzgado/Cámara/Tribunal ..." por error
+        if re.search(r'\b(juzgado|c[aá]mara|tribunal)\b', titulo, re.I):
+            # si el título contiene esas palabras, recortá hasta la 1ª coma/punto
+            titulo = re.split(r'[.;]', titulo, 1)[0].strip(' ,;."“”')
+        return f'“{titulo}” (SAC N° {nro})'
     m = _PAT_CARAT_1.search(plano)
     if m:
         titulo, nro = m.groups()
@@ -461,7 +484,7 @@ _FIRMAS_REGEX = re.compile(r'''
 # Se admite un texto previo con o sin comillas y diferentes variantes de
 # "Expte."/"SAC"/"N°" al final.
 CARATULA_REGEX = QRegularExpression(
-    r'^["“][^"”]+(?:\(Expte\.\s*N°\s*\d+\))?["”](?:\s*\((?:SAC|Expte\.?\s*)\s*N°\s*\d+\))?$'
+    r'^[“"][^"”]+[”"]\s*\(\s*(?:SAC|Expte\.?)\s*(?:N[°º]?\s*)?\d[\d.]*\s*\)$'
 )
 
 # Tribunal: al menos una letra minúscula y empezar en mayúscula
@@ -1155,6 +1178,10 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
     # ----- GENERALES -----
     g = datos.get("generales", {})
     st.session_state.carat    = normalizar_caratula(_as_str(g.get("caratula")))
+    if st.session_state.carat and len(st.session_state.carat) > 200:
+        # Reintenta con lo que vino de "generales"
+        crudo = _as_str(g.get("caratula")) or ""
+        st.session_state.carat = extraer_caratula(crudo) or ""
     st.session_state.trib     = _as_str(g.get("tribunal"))
     st.session_state.snum     = _as_str(g.get("sent_num"))
     st.session_state.sfecha   = _as_str(g.get("sent_fecha"))
