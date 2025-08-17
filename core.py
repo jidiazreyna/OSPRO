@@ -21,6 +21,7 @@ from typing import Any, List, Dict
 
 import os
 import ast
+from xmlrpc import client
 
 import docx2txt
 
@@ -238,11 +239,17 @@ def _get_openai_client():
     # Trazas seguras
     try:
         masked = f"{key[:4]}…{key[-4:]}" if len(key) >= 8 else "****"
-        print(f"DEBUG(OAI): src={key_src} proj_key={is_proj_key} org_set={bool(org)} proj_set={bool(proj)} proxy={bool(proxy)} key={masked}")
-        if is_proj_key:
-            print("DEBUG(OAI): clave 'sk-proj-*' → NO envío organization/project.")
+        print("DEBUG(OAI): src=", key_src,
+              " proj_key=", is_proj_key,
+              " ENV_ORG=", bool(os.environ.get("OPENAI_ORG") or os.environ.get("OPENAI_ORGANIZATION")),
+              " ENV_PROJ=", bool(os.environ.get("OPENAI_PROJECT")))
     except Exception:
         pass
+    from openai import AuthenticationError
+    try:
+        client.models.list()  # fuerza 401/403 si la key/headers no matchean
+    except AuthenticationError as e:
+        raise RuntimeError("Autenticación falló: revisá key y headers (ORG/PROJECT).") from e
 
     # Cliente OpenAI (SDK nuevo)
     from openai import OpenAI
