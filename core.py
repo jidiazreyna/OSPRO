@@ -189,7 +189,14 @@ def _get_openai_client():
             org  = (os.environ.get("OPENAI_ORG",  _cfg.get("org", "")) or "").strip()
         if not proj:
             proj = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
-
+    else:
+        # Con keys sk-proj-* NO deben ir headers de org/proj. El SDK podría
+        # leerlos del entorno: los purgamos para evitar 401.
+        for var in ("OPENAI_ORG", "OPENAI_ORGANIZATION", "OPENAI_PROJECT"):
+            os.environ.pop(var, None)
+        # También evitar confusiones si quedó un base URL viejo
+        for var in ("OPENAI_API_BASE", "OPENAI_BASE_URL"):
+            os.environ.pop(var, None)
     # --- Proxy opcional y saneo ---
     raw_proxy = (
         os.environ.get("PROXY_URL")
