@@ -135,20 +135,42 @@ TRIBUNALES = [
 # Máximo de imputados soportados por la interfaz
 MAX_IMPUTADOS = 20
 
-
 def _get_openai_client():
     """
-    Devuelve SIEMPRE un cliente OpenAI() del SDK nuevo (openai>=1.x),
-    usando un httpx.Client propio para evitar el wrapper interno.
+    Devuelve un cliente OpenAI (SDK >=1.x) usando httpx.Client propio.
+    Prioriza leer la API key de st.secrets. Evita proxies heredados y
+    deja trazas seguras para diagnóstico.
     """
-    api_key = os.environ.get("OPENAI_API_KEY", _cfg.get("api_key", "")).strip()
-    if not api_key or api_key == "TU_API_KEY":
+    # 1) Leer secretos primero (Streamlit Cloud)
+    key = ""
+    try:
+        key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
+    except Exception:
+        pass
+    if not key:
+        key = (os.environ.get("OPENAI_API_KEY", "") or _cfg.get("api_key", "") or "").strip()
+
+    if not key or key.upper() == "TU_API_KEY":
         raise RuntimeError(
-            "Falta la clave de API de OpenAI. Definí OPENAI_API_KEY en los Secrets o en config.json."
+            "Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o config.json."
         )
 
-    # Proxy opcional (validado)
-    raw_proxy = (os.environ.get("PROXY_URL") or _cfg.get("proxy", "") or "").strip()
+    # Organización (opcional)
+    org = ""
+    try:
+        org = (st.secrets.get("OPENAI_ORG", "") or "").strip()
+    except Exception:
+        pass
+    if not org:
+        org = (os.environ.get("OPENAI_ORG", _cfg.get("org", "")) or "").strip()
+
+    # Proxy (opcional + saneo)
+    raw_proxy = (
+        os.environ.get("PROXY_URL")
+        or (st.secrets.get("PROXY_URL", "") if hasattr(st, "secrets") else "")
+        or _cfg.get("proxy", "")
+        or ""
+    ).strip()
 
     def _proxy_valido(s: str) -> str:
         if not s:
@@ -158,44 +180,43 @@ def _get_openai_client():
         try:
             from urllib.parse import urlparse
             u = urlparse(s)
-            if u.scheme not in ("http", "https") or not u.netloc:
-                return ""
-            return s
+            return s if (u.scheme in ("http", "https") and u.netloc) else ""
         except Exception:
             return ""
 
     proxy = _proxy_valido(raw_proxy)
 
-    # Limpieza de proxies heredados
+    # Limpiar proxies heredados y asegurar NO_PROXY para OpenAI
     for _k in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
         os.environ.pop(_k, None)
-    _no_proxy = os.environ.get("NO_PROXY", "")
+    no_proxy = os.environ.get("NO_PROXY", "")
     for host in ("api.openai.com", "api.openai.com:443"):
-        if host not in _no_proxy:
-            _no_proxy = f"{_no_proxy};{host}" if _no_proxy else host
-    os.environ["NO_PROXY"] = _no_proxy
+        if host not in no_proxy:
+            no_proxy = f"{no_proxy};{host}" if no_proxy else host
+    os.environ["NO_PROXY"] = no_proxy
 
-    # httpx.Client propio (siempre), con o sin proxy
+    # httpx.Client propio
     import httpx
-    timeout = httpx.Timeout(30.0)  # o lo que prefieras
-    limits  = httpx.Limits(max_keepalive_connections=10, max_connections=20)
+    http_client = httpx.Client(
+        proxies=proxy or None,
+        timeout=httpx.Timeout(30.0),
+        limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
+        follow_redirects=True,
+    )
 
-    if proxy:
-        http_client = httpx.Client(
-            proxies=proxy,
-            timeout=timeout,
-            limits=limits,
-            follow_redirects=True,
-        )
-    else:
-        http_client = httpx.Client(
-            timeout=timeout,
-            limits=limits,
-            follow_redirects=True,
-        )
+    # Trazas seguras (no exponer la key)
+    try:
+        masked = f"{key[:4]}…{key[-4:]}" if len(key) >= 8 else "****"
+        print("DEBUG(OAI): key=", masked, " org=", bool(org), " proxy=", bool(proxy))
+    except Exception:
+        pass
 
     from openai import OpenAI
-    return OpenAI(api_key=api_key, http_client=http_client)
+    kwargs = {"api_key": key, "http_client": http_client}
+    if org:
+        kwargs["organization"] = org
+    return OpenAI(**kwargs)
+
 
 
 
@@ -982,7 +1003,14 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
             {"role": "user", "content": texto[:120_000]},
         ],
     )
-    rsp = client.chat.completions.create(**kwargs)  # ← siempre este camino
+    from openai import AuthenticationError
+
+    try:
+        rsp = client.chat.completions.create(**kwargs)
+    except AuthenticationError as e:
+        raise RuntimeError(
+            "Error de autenticación con OpenAI. Revisá OPENAI_API_KEY en Secrets y que la cuenta tenga acceso al modelo."
+        ) from e
     datos_api = json.loads(rsp.choices[0].message.content)
 
     # Nos quedamos con "generales" del JSON y con nuestros imputados ya saneados
