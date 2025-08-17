@@ -154,7 +154,19 @@ def _get_openai_client():
     import os
     import httpx
     import streamlit as st
-
+    http_client = None
+    try:
+        base_kwargs = dict(
+            timeout=httpx.Timeout(30.0),
+            limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
+            follow_redirects=True,
+        )
+        # sin proxies para evitar problemas de auth
+        http_client = httpx.Client(**base_kwargs)
+    except Exception as e:
+        # si algo falla (falta httpx, etc.), seguimos sin http_client
+        print(f"DEBUG(OAI): httpx Client no disponible: {e}")
+        http_client = None
     # --- API KEY (orden de prioridad) ---
     key_src = "secrets"
     key = ""
@@ -180,7 +192,11 @@ def _get_openai_client():
         for var in ("OPENAI_ORG", "OPENAI_ORGANIZATION", "OPENAI_PROJECT",
                     "OPENAI_API_BASE", "OPENAI_BASE_URL"):
             os.environ.pop(var, None)
-    kwargs = {"api_key": key, "http_client": http_client, "base_url": "https://api.openai.com/v1"}
+    kwargs = {"api_key": key, "base_url": "https://api.openai.com/v1"}
+    if http_client is not None:
+        kwargs["http_client"] = http_client
+
+    client = OpenAI(**kwargs)
     # --- Org/Project (solo si NO es sk-proj- ) ---
     org = ""
     proj = ""
