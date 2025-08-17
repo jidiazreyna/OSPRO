@@ -357,74 +357,67 @@ def extraer_caratula(txt: str) -> str:
         titulo = resto.split(' - ')[0].strip()
         return f'“{titulo}” (SAC N° {nro})'
     return ""
-
-_CLAVES_TRIB = (
-    "JUZGADO|CAMARA|CÁMARA|TRIBUNAL"
-)
-
-# Preferencia 1: "radicados por ante este/el/la ..."
-_PAT_TRIB_POR_ANTE = re.compile(
-    r'por\s+ante\s+(?:este|esta|el|la)\s+(' + _CLAVES_TRIB + r'[^,;.]+?)(?=[,;.])',
-    re.I
-)
-# Preferencia 2: encabezado en mayúsculas del órgano
-_PAT_TRIB_HEADER = re.compile(
-    r'\b(JUZGADO\s+DE\s+CONTROL[^,\n]+|C[ÁA]MARA\s+EN\s+LO\s+CRIMINAL[^,\n]+)',
-    re.I
-)
-
 # ── TRIBUNAL ──────────────────────────────────────────────────────────
 # Lista de palabras clave válidas al inicio de la descripción
 _CLAVES_TRIB = (
     r'Cámara|Juzgado|Tribunal|Sala|Corte'  # extensible
 )
 
-# Preferencia 1: "radicados por ante este/el/la ..."
-_PAT_TRIB_POR_ANTE = re.compile(
-    r'por\s+ante\s+(?:este|esta|el|la)\s+(' + _CLAVES_TRIB + r'[^,;.]+?)(?=[,;.])',
-    re.I
-)
-# Preferencia 2: encabezado en mayúsculas del órgano
-_PAT_TRIB_HEADER = re.compile(
-    r'\b(JUZGADO\s+DE\s+CONTROL[^,\n]+|C[ÁA]MARA\s+EN\s+LO\s+CRIMINAL[^,\n]+)',
-    re.I
-)
-
-# 1) “… en esta Cámara / en el Juzgado …”
-_PAT_TRIB_1 = re.compile(
-    rf'en\s+(?:esta|este|el|la)\s+({_CLAVES_TRIB}[^,;.]+)', re.I)
-
-# 2) encabezado en versales: “CAMARA EN LO CRIMINAL Y CORRECCIONAL 3ª NOM.”
-_PAT_TRIB_2 = re.compile(
-    r'(CAMARA\s+EN\s+LO\s+CRIMINAL[^/]+NOM\.)', re.I)
-
 def _formatea_tribunal(raw: str) -> str:
     """Pasa a minúsculas y respeta mayúsculas iniciales."""
-    raw = (raw or "")
-    raw = raw.replace('n.°', 'N°').replace('n°', 'N°').replace('Nº', 'N°')
-    raw = raw.lower()
+    raw = raw.lower().strip()
     return capitalizar_frase(raw)
 
+# 1) Preferencia: encabezado en versales (acepta saltos de línea)
+#    Ej.: "CAMARA EN LO CRIMINAL Y\nCORRECCIONAL 9a NOM."
+_PAT_TRIB_HEADER = re.compile(
+    r'\b('
+    r'CAMARA\s+EN\s+LO\s+CRIMINAL(?:\s+Y\s+CORRECCIONAL)?'
+    r'[\s\S]{0,120}?NOM\.'
+    r')',
+    re.I
+)
+
+# 2) “por ante este/el/la …”
+_PAT_TRIB_POR_ANTE = re.compile(
+    r'por\s+ante\s+(?:este|esta|el|la)\s+(' + _CLAVES_TRIB + r'[^,;.]+?)\s*(?=[,;.])',
+    re.I
+)
+
+# 3) “en esta/este/el/la …”
+_PAT_TRIB_1 = re.compile(
+    rf'en\s+(?:esta|este|el|la)\s+({_CLAVES_TRIB}[\s\S]*?)(?=[,;.])',
+    re.I
+)
+
 def extraer_tribunal(txt: str) -> str:
+    # Plano para búsquedas que ignoran saltos; pero conservamos el original para encabezados
     plano = re.sub(r'\s+', ' ', txt)
 
-    # 1) "por ante este/el/la Juzgado/Cámara/Tribunal ..."
+    # 1) Encabezado fuerte (versales) — ahora tolera saltos de línea
+    m = _PAT_TRIB_HEADER.search(txt[:5000])
+    if m:
+        t = _formatea_tribunal(m.group(1))
+        return ('la ' if not re.match(r'^(el|la)\s', t, re.I) else '') + t.strip(' .')
+
+    # 2) “por ante este/la …”
     m = _PAT_TRIB_POR_ANTE.search(plano)
     if m:
         t = _formatea_tribunal(m.group(1))
-        return ('el ' if not re.match(r'^(el|la)\s', t, re.I) else '') + t.strip(' .')
+        # Evita falsos positivos tipo “la sala de audiencias”
+        if 'sala' in t.lower() and 'cámara' not in t.lower() and 'juzgado' not in t.lower() and 'tribunal' not in t.lower():
+            pass
+        else:
+            return ('el ' if t.lower().startswith(('juzgado','tribunal')) and not t.lower().startswith(('el ','la ')) else
+                    'la ' if not re.match(r'^(el|la)\s', t, re.I) else '') + t.strip(' .')
 
-    # 2) Encabezado fuerte (versales)
-    m = _PAT_TRIB_HEADER.search(txt[:3000])
-    if m:
-        return _formatea_tribunal(m.group(1)).strip(' .')
-
-    # 3) Patrón genérico, pero filtrando "sala"
+    # 3) “en esta/este/el/la …”
     m = _PAT_TRIB_1.search(plano)
     if m:
         cand = _formatea_tribunal(m.group(1))
-        if 'sala' not in cand.lower():  # evita "la sala de audiencias"
-            return ('la ' if not re.match(r'^(el|la)\s', cand, re.I) else '') + cand.strip(' .')
+        if 'sala' not in cand.lower():  # evita “la sala de audiencias”
+            return ('el ' if cand.lower().startswith(('juzgado','tribunal')) and not cand.lower().startswith(('el ','la ')) else
+                    'la ' if not re.match(r'^(el|la)\s', cand, re.I) else '') + cand.strip(' .')
 
     # 4) Sin hallazgos
     return ""
