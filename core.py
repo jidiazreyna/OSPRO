@@ -135,41 +135,52 @@ TRIBUNALES = [
 # Máximo de imputados soportados por la interfaz
 MAX_IMPUTADOS = 20
 
-
-
 def _get_openai_client():
     """
-    Devuelve un cliente OpenAI (SDK >= 1.x).
+    Devuelve un cliente OpenAI (SDK >= 1.x):
     - Toma OPENAI_API_KEY de st.secrets, luego ENV y por último config.json.
-    - Soporta httpx con firmas distintas ('proxies' vs 'proxy').
-    - Sanea proxies heredados y deja trazas seguras.
+    - Si la key es 'sk-proj-...', ignora OPENAI_ORG/OPENAI_PROJECT.
+    - Sanea proxies heredados y usa httpx.Client compatible.
+    - Imprime trazas seguras (sin exponer la key completa).
     """
-    # 1) API key (prioriza Secrets)
+    # --- API KEY ---
+    key_src = "secrets"
     key = ""
     try:
         key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
     except Exception:
         pass
     if not key:
-        key = (os.environ.get("OPENAI_API_KEY", "") or _cfg.get("api_key", "") or "").strip()
+        key_src = "env"
+        key = (os.environ.get("OPENAI_API_KEY", "") or "").strip()
+    if not key:
+        key_src = "config.json"
+        key = (_cfg.get("api_key", "") or "").strip()
 
     if not key or key.upper() == "TU_API_KEY":
         raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o en config.json.")
 
-    # 2) Org y Project (opcionales)
+    is_proj_key = key.startswith("sk-proj-")
+
+    # --- Org / Project (opcionales, pero NO para sk-proj-) ---
     org = ""
     proj = ""
-    try:
-        org  = (st.secrets.get("OPENAI_ORG", "") or "").strip()
-        proj = (st.secrets.get("OPENAI_PROJECT", "") or "").strip()
-    except Exception:
-        pass
-    if not org:
-        org = (os.environ.get("OPENAI_ORG", _cfg.get("org", "")) or "").strip()
-    if not proj:
-        proj = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
+    if not is_proj_key:
+        try:
+            org  = (st.secrets.get("OPENAI_ORG", "") or "").strip()
+            proj = (st.secrets.get("OPENAI_PROJECT", "") or "").strip()
+        except Exception:
+            pass
+        if not org:
+            org = (os.environ.get("OPENAI_ORG", _cfg.get("org", "")) or "").strip()
+        if not proj:
+            proj = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
+    else:
+        # Clave de proyecto: evitar headers que puedan invalidar la auth
+        org = ""
+        proj = ""
 
-    # 3) Proxy (opcional + saneo)
+    # --- Proxy (opcional + saneo) ---
     raw_proxy = (
         os.environ.get("PROXY_URL")
         or ((st.secrets.get("PROXY_URL", "") or "") if hasattr(st, "secrets") else "")
@@ -178,10 +189,8 @@ def _get_openai_client():
     ).strip()
 
     def _proxy_valido(s: str) -> str:
-        if not s:
-            return ""
-        if any(bad in s for bad in ("usuario:contraseña@host:puerto", "<", ">", " ")):
-            return ""
+        if not s: return ""
+        if any(b in s for b in ("usuario:contraseña@host:puerto", "<", ">", " ")): return ""
         try:
             from urllib.parse import urlparse
             u = urlparse(s)
@@ -191,7 +200,7 @@ def _get_openai_client():
 
     proxy = _proxy_valido(raw_proxy) or None
 
-    # 4) Limpiar proxies heredados + NO_PROXY para api.openai.com
+    # Limpiar proxies heredados y asegurar NO_PROXY para api.openai.com
     for _k in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
         os.environ.pop(_k, None)
     no_proxy = os.environ.get("NO_PROXY", "")
@@ -200,31 +209,30 @@ def _get_openai_client():
             no_proxy = f"{no_proxy};{host}" if no_proxy else host
     os.environ["NO_PROXY"] = no_proxy
 
-    # 5) httpx.Client compatible con ambas firmas
+    # httpx.Client compatible con firmas distintas
     import httpx
     base_kwargs = dict(
         timeout=httpx.Timeout(30.0),
         limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
         follow_redirects=True,
     )
-    http_client = None
     try:
-        # httpx >= 0.28 (y muchas anteriores) aceptan 'proxies='
         http_client = httpx.Client(proxies=proxy, **base_kwargs)
     except TypeError:
-        # fallback para entornos donde la firma es 'proxy='
         http_client = httpx.Client(proxy=proxy, **base_kwargs)
 
-    # 6) Trazas seguras
+    # Trazas seguras
     try:
         masked = f"{key[:4]}…{key[-4:]}" if len(key) >= 8 else "****"
-        print("DEBUG(OAI): key=", masked, " org=", bool(org), " proj=", bool(proj), " proxy=", bool(proxy))
+        print(f"DEBUG(OAI): src={key_src} proj_key={is_proj_key} org_set={bool(org)} proj_set={bool(proj)} proxy={bool(proxy)} key={masked}")
+        if is_proj_key:
+            print("DEBUG(OAI): usando clave 'sk-proj-*' → NO se envían headers organization/project.")
     except Exception:
         pass
 
-    # 7) Cliente OpenAI (SDK nuevo)
     from openai import OpenAI
     kwargs = {"api_key": key, "http_client": http_client}
+    # Solo añadimos headers si NO es una clave 'sk-proj-*'
     if org:
         kwargs["organization"] = org
     if proj:
