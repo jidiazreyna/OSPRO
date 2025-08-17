@@ -180,7 +180,7 @@ def _get_openai_client():
         for var in ("OPENAI_ORG", "OPENAI_ORGANIZATION", "OPENAI_PROJECT",
                     "OPENAI_API_BASE", "OPENAI_BASE_URL"):
             os.environ.pop(var, None)
-
+    kwargs = {"api_key": key, "http_client": http_client, "base_url": "https://api.openai.com/v1"}
     # --- Org/Project (solo si NO es sk-proj- ) ---
     org = ""
     proj = ""
