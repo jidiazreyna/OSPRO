@@ -309,67 +309,85 @@ _PAT_CARAT_1B = re.compile(
     r'[“"]([^”"]+?)[”"]\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?([\d.]+)\s*\)',
     re.I
 )
+# Sin comillas: título inmediatamente antes del paréntesis (SAC / Expte. Sac)
+_PAT_CARAT_4 = re.compile(
+    r'(?P<title>[^()\n]{8,240}?)\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?(?P<nro>[\d.]+)\s*\)',
+    re.I
+)
 _PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
     r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?', re.I)
 
 _PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …”
     r'EXPEDIENTE\s+(?:SAC|Expte\.?)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
-_PAT_CARAT_4 = re.compile(
-    r'(?P<title>[^()\n]{8,240}?)\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?(?P<nro>[\d.]+)\s*\)',
-    re.I
-)
+
 def extraer_caratula(txt: str) -> str:
-    """
-    Devuelve la carátula formal “…” (SAC N° …) o '' si no encuentra nada creíble.
-    Se prueban, en orden, tres patrones:
-      1. Entre comillas + (SAC/Expte N° …)
-      2. Frase “… autos caratulados ‘X’ …”
-      3. Encabezado “EXPEDIENTE SAC: 123 – X – …”
-    """
-    # normalizo blancos para evitar saltos de línea entre tokens
     plano = re.sub(r'\s+', ' ', txt)
-    # 1) Comillas (rectas o tipográficas) + (SAC / Expte. Sac) + número
+
+    # 1) Comillas (rectas o tipográficas) + (SAC/Expte. Sac) + número
     m = _PAT_CARAT_1B.search(plano)
     if m:
         titulo, nro = m.groups()
-        titulo = titulo.strip(' ,;.')
-        return f'“{titulo}” (SAC N° {nro})'
+        return f'“{titulo.strip(" ,;.")}” (SAC N° {nro})'
 
-    # 2) Sin comillas: título justo antes del paréntesis (SAC / Expte. Sac)
+    # 2) Sin comillas: título antes del paréntesis
     m = _PAT_CARAT_4.search(plano)
     if m:
         titulo = m.group('title').strip(' ,;."“”')
         nro = m.group('nro')
-        # Evitá agarrar "Juzgado/Cámara/Tribunal ..." por error
-        if re.search(r'\b(juzgado|c[aá]mara|tribunal)\b', titulo, re.I):
-            # si el título contiene esas palabras, recortá hasta la 1ª coma/punto
+        # Evitá órganos por error
+        if re.search(r'\b(juzgado|c[aá]mara|tribunal|sala)\b', titulo, re.I):
             titulo = re.split(r'[.;]', titulo, 1)[0].strip(' ,;."“”')
         return f'“{titulo}” (SAC N° {nro})'
+
+    # 3) Tus patrones anteriores (compatibilidad)
     m = _PAT_CARAT_1.search(plano)
     if m:
         titulo, nro = m.groups()
         return f'“{titulo.strip()}” (SAC N° {nro})'
-
     m = _PAT_CARAT_2.search(plano)
     if m:
         titulo = m.group(1).strip()
-        # intento buscar el número SAC/Expte más próximo
-        mnum = re.search(r'(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)', plano)
-        nro  = mnum.group(1) if mnum else '…'
+        mnum = re.search(r'(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)', plano, re.I)
+        nro = mnum.group(1) if mnum else '…'
         return f'“{titulo}” (SAC N° {nro})'
-
-    # El encabezado suele estar en la primera página; me quedo con la 1ª coincidencia
     encabezados = _PAT_CARAT_3.findall(plano[:5000])
     if encabezados:
         nro, resto = encabezados[0]
         titulo = resto.split(' - ')[0].strip()
         return f'“{titulo}” (SAC N° {nro})'
     return ""
+
+_CLAVES_TRIB = (
+    "JUZGADO|CAMARA|CÁMARA|TRIBUNAL"
+)
+
+# Preferencia 1: "radicados por ante este/el/la ..."
+_PAT_TRIB_POR_ANTE = re.compile(
+    r'por\s+ante\s+(?:este|esta|el|la)\s+(' + _CLAVES_TRIB + r'[^,;.]+?)(?=[,;.])',
+    re.I
+)
+# Preferencia 2: encabezado en mayúsculas del órgano
+_PAT_TRIB_HEADER = re.compile(
+    r'\b(JUZGADO\s+DE\s+CONTROL[^,\n]+|C[ÁA]MARA\s+EN\s+LO\s+CRIMINAL[^,\n]+)',
+    re.I
+)
+
 # ── TRIBUNAL ──────────────────────────────────────────────────────────
 # Lista de palabras clave válidas al inicio de la descripción
 _CLAVES_TRIB = (
     r'Cámara|Juzgado|Tribunal|Sala|Corte'  # extensible
+)
+
+# Preferencia 1: "radicados por ante este/el/la ..."
+_PAT_TRIB_POR_ANTE = re.compile(
+    r'por\s+ante\s+(?:este|esta|el|la)\s+(' + _CLAVES_TRIB + r'[^,;.]+?)(?=[,;.])',
+    re.I
+)
+# Preferencia 2: encabezado en mayúsculas del órgano
+_PAT_TRIB_HEADER = re.compile(
+    r'\b(JUZGADO\s+DE\s+CONTROL[^,\n]+|C[ÁA]MARA\s+EN\s+LO\s+CRIMINAL[^,\n]+)',
+    re.I
 )
 
 # 1) “… en esta Cámara / en el Juzgado …”
@@ -382,31 +400,34 @@ _PAT_TRIB_2 = re.compile(
 
 def _formatea_tribunal(raw: str) -> str:
     """Pasa a minúsculas y respeta mayúsculas iniciales."""
+    raw = (raw or "")
+    raw = raw.replace('n.°', 'N°').replace('n°', 'N°').replace('Nº', 'N°')
     raw = raw.lower()
     return capitalizar_frase(raw)
 
 def extraer_tribunal(txt: str) -> str:
-    """Devuelve la mención al órgano: 'la Cámara …' / 'el Juzgado …'."""
     plano = re.sub(r'\s+', ' ', txt)
 
-    m = _PAT_TRIB_1.search(plano)
+    # 1) "por ante este/el/la Juzgado/Cámara/Tribunal ..."
+    m = _PAT_TRIB_POR_ANTE.search(plano)
     if m:
         t = _formatea_tribunal(m.group(1))
-        if not re.match(r'^(el|la)\s', t, re.I):
-            t = 'la ' + t
-        return t.strip(' .')
+        return ('el ' if not re.match(r'^(el|la)\s', t, re.I) else '') + t.strip(' .')
 
-    m = _PAT_TRIB_2.search(plano[:2000])  # suele estar arriba de todo
+    # 2) Encabezado fuerte (versales)
+    m = _PAT_TRIB_HEADER.search(txt[:3000])
     if m:
-        nom = m.group(1)
-        nom = (nom
-               .replace('CAMARA', 'la Cámara')
-               .replace('NOM.-', 'Nominación')
-               .replace('NOM.',  'Nominación')
-               .title())        # Cámara En Lo…
-        return nom
-    return ""
+        return _formatea_tribunal(m.group(1)).strip(' .')
 
+    # 3) Patrón genérico, pero filtrando "sala"
+    m = _PAT_TRIB_1.search(plano)
+    if m:
+        cand = _formatea_tribunal(m.group(1))
+        if 'sala' not in cand.lower():  # evita "la sala de audiencias"
+            return ('la ' if not re.match(r'^(el|la)\s', cand, re.I) else '') + cand.strip(' .')
+
+    # 4) Sin hallazgos
+    return ""
 
 _FIRMA_FIN_PAT = re.compile(
     r'''
