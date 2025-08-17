@@ -155,20 +155,49 @@ def _get_openai_client():
     from openai import OpenAI
 
     # 1) key
-    key = ""
+    # --- API KEY (orden de prioridad) ---
+    key_src, key = "secrets", ""
     try:
-        key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
+        key = (st.secrets.get("OPENAI_API_KEY", "") or "")
     except Exception:
         pass
     if not key:
-        key = (os.environ.get("OPENAI_API_KEY", "") or "").strip()
+        key_src, key = "env", (os.environ.get("OPENAI_API_KEY", "") or "")
     if not key:
-        key = (_cfg.get("api_key", "") or "").strip()
-    if not key or key.upper() == "TU_API_KEY":
-        raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o en config.json.")
+        key_src, key = "config.json", (_cfg.get("api_key", "") or "")
+    if not key:
+        key_src, key = "HARDCODED", (HARDCODED_OPENAI_KEY or "")
+
+    # Sanitización fuerte (comillas, espacios, invisibles, saltos)
+    key = str(key)
+    key = key.replace("\ufeff", "").replace("\u200b", "")  # BOM, zero-width
+    key = key.strip().strip('"').strip("'")
+    key = "".join(key.split())  # quita espacios/saltos en medio
+
+    # Validaciones básicas
+    if not key:
+        raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY.")
+    if not (key.startswith("sk-") or key.startswith("sk-proj-")):
+        raise RuntimeError("OPENAI_API_KEY no parece válida (debería empezar con 'sk-' o 'sk-proj-').")
+
+    # Huella para saber si cambió realmente la key (sin exponerla)
+    try:
+        import hashlib
+        fp = hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
+        print(f"DEBUG(OAI): src={key_src} len={len(key)} fp={fp}")
+    except Exception:
+        pass
 
     is_proj_key = key.startswith("sk-proj-")
-
+    if key.startswith("sk-proj-"):
+        for var in ("OPENAI_ORG","OPENAI_ORGANIZATION","OPENAI_PROJECT","OPENAI_API_BASE","OPENAI_BASE_URL"):
+            os.environ.pop(var, None)
+    try:
+        _ = OpenAI(api_key=key).models.list()
+        print("DEBUG(OAI): auth OK, se listaron modelos.")
+    except Exception as e:
+        print("DEBUG(OAI):", type(e).__name__, str(e))
+        raise
     # 2) SIEMPRE limpiar bases heredadas y proxies
     for v in ("OPENAI_BASE_URL", "OPENAI_API_BASE"):
         os.environ.pop(v, None)
