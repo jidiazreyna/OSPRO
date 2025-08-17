@@ -21,7 +21,7 @@ from typing import Any, List, Dict
 
 import os
 import ast
-from xmlrpc import client
+import xmlrpc.client as xmlrpc_client
 
 import docx2txt
 
@@ -148,32 +148,21 @@ def _get_openai_client():
     Devuelve un cliente OpenAI (SDK >= 1.x):
     - Lee la key desde st.secrets → ENV → config.json → HARDCODED.
     - Si la key es 'sk-proj-*', NO envía organization/project.
-    - Sanea proxies heredados y usa httpx.Client propio.
+    - Sanea proxies heredados y usa httpx.Client propio (sin proxy).
     - Deja trazas seguras para diagnóstico (sin exponer la key).
     """
     import os
     import httpx
     import streamlit as st
-    http_client = None
-    try:
-        base_kwargs = dict(
-            timeout=httpx.Timeout(30.0),
-            limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
-            follow_redirects=True,
-        )
-        # sin proxies para evitar problemas de auth
-        http_client = httpx.Client(**base_kwargs)
-    except Exception as e:
-        # si algo falla (falta httpx, etc.), seguimos sin http_client
-        print(f"DEBUG(OAI): httpx Client no disponible: {e}")
-        http_client = None
+    from openai import OpenAI  # 👈 IMPORT ANTES DE USAR
+
     # --- API KEY (orden de prioridad) ---
     key_src = "secrets"
     key = ""
     try:
-        key = str(st.secrets["OPENAI_API_KEY"]).strip()
+        key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
     except Exception:
-        key = ""
+        pass
     if not key:
         key_src = "env"
         key = (os.environ.get("OPENAI_API_KEY", "") or "").strip()
@@ -188,18 +177,35 @@ def _get_openai_client():
         raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o en config.json.")
 
     is_proj_key = key.startswith("sk-proj-")
-    if is_proj_key:
-        for var in ("OPENAI_ORG", "OPENAI_ORGANIZATION", "OPENAI_PROJECT",
-                    "OPENAI_API_BASE", "OPENAI_BASE_URL"):
-            os.environ.pop(var, None)
-    kwargs = {"api_key": key, "base_url": "https://api.openai.com/v1"}
-    if http_client is not None:
-        kwargs["http_client"] = http_client
 
-    client = OpenAI(**kwargs)
+    # Si la key es de project, NO meter headers de org/proj ni base_url del entorno
+    if is_proj_key:
+        for var in ("OPENAI_ORG", "OPENAI_ORGANIZATION", "OPENAI_PROJECT", "OPENAI_API_BASE", "OPENAI_BASE_URL"):
+            os.environ.pop(var, None)
+
+    # --- Limpiar proxies heredados y asegurar NO_PROXY para OpenAI ---
+    for k in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
+        os.environ.pop(k, None)
+    no_proxy = os.environ.get("NO_PROXY", "")
+    for host in ("api.openai.com", "api.openai.com:443"):
+        if host not in no_proxy:
+            no_proxy = f"{no_proxy};{host}" if no_proxy else host
+    os.environ["NO_PROXY"] = no_proxy
+
+    # --- httpx.Client sin proxy ---
+    http_client = None
+    try:
+        http_client = httpx.Client(
+            timeout=httpx.Timeout(30.0),
+            limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
+            follow_redirects=True,
+        )
+    except Exception as e:
+        print(f"DEBUG(OAI): httpx Client no disponible: {e}")
+        http_client = None
+
     # --- Org/Project (solo si NO es sk-proj- ) ---
-    org = ""
-    proj = ""
+    org = proj = ""
     if not is_proj_key:
         try:
             org  = (st.secrets.get("OPENAI_ORG", "") or "").strip()
@@ -210,70 +216,29 @@ def _get_openai_client():
             org  = (os.environ.get("OPENAI_ORG",  _cfg.get("org", "")) or "").strip()
         if not proj:
             proj = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
-    else:
-        # Con keys sk-proj-* NO deben ir headers de org/proj. El SDK podría
-        # leerlos del entorno: los purgamos para evitar 401.
-        for var in ("OPENAI_ORG", "OPENAI_ORGANIZATION", "OPENAI_PROJECT"):
-            os.environ.pop(var, None)
-        # También evitar confusiones si quedó un base URL viejo
-        for var in ("OPENAI_API_BASE", "OPENAI_BASE_URL"):
-            os.environ.pop(var, None)
-    # --- Proxy opcional y saneo ---
-    raw_proxy = (
-        os.environ.get("PROXY_URL")
-        or ((st.secrets.get("PROXY_URL", "") or "") if hasattr(st, "secrets") else "")
-        or _cfg.get("proxy", "")
-        or ""
-    ).strip()
-
-    def _proxy_valido(s: str) -> str:
-        if not s: return ""
-        if any(b in s for b in ("usuario:contraseña@host:puerto", "<", ">", " ")): return ""
-        try:
-            from urllib.parse import urlparse
-            u = urlparse(s)
-            return s if (u.scheme in ("http", "https") and u.netloc) else ""
-        except Exception:
-            return ""
-
-    proxy = _proxy_valido(raw_proxy) or None
-
-    # Limpiar proxies heredados y asegurar NO_PROXY para OpenAI
-    for _k in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
-        os.environ.pop(_k, None)
-    no_proxy = os.environ.get("NO_PROXY", "")
-    for host in ("api.openai.com", "api.openai.com:443"):
-        if host not in no_proxy:
-            no_proxy = f"{no_proxy};{host}" if no_proxy else host
-    os.environ["NO_PROXY"] = no_proxy
-
-    # httpx.Client SIN proxy para OpenAI
-    base_kwargs = dict(
-        timeout=httpx.Timeout(30.0),
-        limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
-        follow_redirects=True,
-    )
-    http_client = httpx.Client(**base_kwargs)
-
 
     # Trazas seguras
     try:
         masked = f"{key[:4]}…{key[-4:]}" if len(key) >= 8 else "****"
-        print("DEBUG(OAI): src=", key_src,
-              " proj_key=", is_proj_key,
-              " ENV_ORG=", bool(os.environ.get("OPENAI_ORG") or os.environ.get("OPENAI_ORGANIZATION")),
-              " ENV_PROJ=", bool(os.environ.get("OPENAI_PROJECT")))
+        print(
+            f"DEBUG(OAI): src={key_src} proj_key={is_proj_key} "
+            f"org_set={bool(org)} proj_set={bool(proj)} http_client={http_client is not None}"
+        )
     except Exception:
         pass
 
-
-    # Cliente OpenAI (SDK nuevo)
-    from openai import OpenAI
-    kwargs = {"api_key": key, "http_client": http_client}
+    # --- Construir cliente OpenAI ---
+    kwargs = {"api_key": key}
+    if http_client is not None:
+        kwargs["http_client"] = http_client
     if not is_proj_key:
-        if org:  kwargs["organization"] = org
-        if proj: kwargs["project"]      = proj
+        if org:
+            kwargs["organization"] = org
+        if proj:
+            kwargs["project"] = proj
+
     return OpenAI(**kwargs)
+
 
 
 
