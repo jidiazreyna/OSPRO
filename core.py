@@ -212,7 +212,7 @@ def _get_openai_client():
     # 3) httpx sin proxy
     try:
         http_client = httpx.Client(
-            timeout=httpx.Timeout(30.0),
+            timeout=httpx.Timeout(60.0, connect=15.0, read=60.0, write=60.0),  # ← más generoso
             limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
             follow_redirects=True,
         )
@@ -238,12 +238,12 @@ def _get_openai_client():
         os.environ.pop("OPENAI_PROJECT", None)
 
     # 5) construir cliente (forzando base_url oficial)
-    kwargs = {"api_key": key, "base_url": "https://api.openai.com/v1"}
+    kwargs = {"api_key": key, "base_url": "https://api.openai.com/v1", "timeout": 60.0}
     if http_client is not None:
         kwargs["http_client"] = http_client
     if (not is_proj_key) and org:
         kwargs["organization"] = org
-    # NUNCA setear "project" manualmente con keys no sk-proj-; y con sk-proj-* no hace falta.
+
 
     # Log mínimo seguro
     try:
@@ -1032,7 +1032,6 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         ],
     )
     from openai import AuthenticationError, APIStatusError
-
     try:
         rsp = client.chat.completions.create(**kwargs)
     except AuthenticationError:
