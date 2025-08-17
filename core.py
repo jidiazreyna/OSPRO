@@ -139,49 +139,37 @@ MAX_IMPUTADOS = 20
 
 def _get_openai_client():
     """
-    Devuelve un cliente OpenAI (SDK >= 1.x) con httpx.Client propio.
-    Lee la API key de st.secrets primero; en cloud ignoramos config.json para evitar fugas.
-    Soporta OPENAI_PROJECT (útil con claves sk-proj-...).
+    Devuelve un cliente OpenAI (SDK >= 1.x).
+    - Toma OPENAI_API_KEY de st.secrets, luego ENV y por último config.json.
+    - Soporta httpx con firmas distintas ('proxies' vs 'proxy').
+    - Sanea proxies heredados y deja trazas seguras.
     """
-    # --- API KEY (solo secretos/ENV en cloud) ---
+    # 1) API key (prioriza Secrets)
     key = ""
-    src = "none"
     try:
-        if hasattr(st, "secrets"):
-            key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
-            if key:
-                src = "st.secrets"
+        key = (st.secrets.get("OPENAI_API_KEY", "") or "").strip()
     except Exception:
         pass
     if not key:
-        # local/dev: permito ENV; como último recurso, config.json
-        key = (os.environ.get("OPENAI_API_KEY", "") or "").strip()
-        if key:
-            src = "env"
-    if not key and _cfg.get("api_key"):
-        # SOLO para desarrollo local; en cloud mejor dejarlo vacío
-        key = (_cfg.get("api_key") or "").strip()
-        if key:
-            src = "config.json"
+        key = (os.environ.get("OPENAI_API_KEY", "") or _cfg.get("api_key", "") or "").strip()
 
     if not key or key.upper() == "TU_API_KEY":
-        raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets.")
+        raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o en config.json.")
 
-    # --- ORG y PROJECT (opcionales) ---
+    # 2) Org y Project (opcionales)
     org = ""
-    project = ""
+    proj = ""
     try:
-        if hasattr(st, "secrets"):
-            org = (st.secrets.get("OPENAI_ORG", "") or "").strip()
-            project = (st.secrets.get("OPENAI_PROJECT", "") or "").strip()
+        org  = (st.secrets.get("OPENAI_ORG", "") or "").strip()
+        proj = (st.secrets.get("OPENAI_PROJECT", "") or "").strip()
     except Exception:
         pass
     if not org:
         org = (os.environ.get("OPENAI_ORG", _cfg.get("org", "")) or "").strip()
-    if not project:
-        project = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
+    if not proj:
+        proj = (os.environ.get("OPENAI_PROJECT", _cfg.get("project", "")) or "").strip()
 
-    # --- Proxy (opcional + saneo) ---
+    # 3) Proxy (opcional + saneo)
     raw_proxy = (
         os.environ.get("PROXY_URL")
         or ((st.secrets.get("PROXY_URL", "") or "") if hasattr(st, "secrets") else "")
@@ -192,7 +180,7 @@ def _get_openai_client():
     def _proxy_valido(s: str) -> str:
         if not s:
             return ""
-        if any(b in s for b in ("usuario:contraseña@host:puerto", "<", ">", " ")):
+        if any(bad in s for bad in ("usuario:contraseña@host:puerto", "<", ">", " ")):
             return ""
         try:
             from urllib.parse import urlparse
@@ -201,9 +189,9 @@ def _get_openai_client():
         except Exception:
             return ""
 
-    proxy = _proxy_valido(raw_proxy)
+    proxy = _proxy_valido(raw_proxy) or None
 
-    # --- Limpiar proxies heredados y asegurar NO_PROXY para OpenAI ---
+    # 4) Limpiar proxies heredados + NO_PROXY para api.openai.com
     for _k in ("HTTP_PROXY","HTTPS_PROXY","ALL_PROXY","http_proxy","https_proxy","all_proxy"):
         os.environ.pop(_k, None)
     no_proxy = os.environ.get("NO_PROXY", "")
@@ -212,38 +200,35 @@ def _get_openai_client():
             no_proxy = f"{no_proxy};{host}" if no_proxy else host
     os.environ["NO_PROXY"] = no_proxy
 
-    # --- httpx.Client propio ---
+    # 5) httpx.Client compatible con ambas firmas
     import httpx
-    http_client = httpx.Client(
-        proxies=proxy or None,
+    base_kwargs = dict(
         timeout=httpx.Timeout(30.0),
         limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
         follow_redirects=True,
     )
-
-    # --- Trazas seguras ---
+    http_client = None
     try:
-        masked = f"{key[:6]}…{key[-4:]}" if len(key) >= 10 else "****"
-        print(
-            "DEBUG(OAI): src=", src,
-            " key=", masked,
-            " kind=", ("proj" if key.startswith("sk-proj-") else "user"),
-            " org=", bool(org),
-            " project=", bool(project),
-            " proxy=", bool(proxy),
-        )
+        # httpx >= 0.28 (y muchas anteriores) aceptan 'proxies='
+        http_client = httpx.Client(proxies=proxy, **base_kwargs)
+    except TypeError:
+        # fallback para entornos donde la firma es 'proxy='
+        http_client = httpx.Client(proxy=proxy, **base_kwargs)
+
+    # 6) Trazas seguras
+    try:
+        masked = f"{key[:4]}…{key[-4:]}" if len(key) >= 8 else "****"
+        print("DEBUG(OAI): key=", masked, " org=", bool(org), " proj=", bool(proj), " proxy=", bool(proxy))
     except Exception:
         pass
 
-    # --- Cliente OpenAI (SDK nuevo) ---
+    # 7) Cliente OpenAI (SDK nuevo)
     from openai import OpenAI
     kwargs = {"api_key": key, "http_client": http_client}
     if org:
         kwargs["organization"] = org
-    # Sumar project si lo tenés (especialmente útil con sk-proj-...)
-    if project:
-        kwargs["project"] = project
-
+    if proj:
+        kwargs["project"] = proj
     return OpenAI(**kwargs)
 
 
@@ -677,9 +662,7 @@ def _nombre_aparente_valido(nombre: str) -> bool:
     texto = nombre.lower()
     return not any(pal in texto for pal in ("imputado", "acusado", "alias", "dni"))
 
-
 def _extraer_nombre_gpt(texto: str) -> str:
-    """Usa GPT como última instancia para extraer el nombre."""
     try:
         client = _get_openai_client()
     except Exception:
@@ -688,24 +671,18 @@ def _extraer_nombre_gpt(texto: str) -> str:
         model="gpt-4o-mini",
         temperature=0,
         messages=[
-            {
-                "role": "system",
-                "content": "Devuelve únicamente el nombre completo de la primera persona mencionada.",
-            },
-            {"role": "user", "content": texto[:1000]},
+            {"role": "system", "content": "Devuelve únicamente el nombre completo de la primera persona mencionada."},
+            {"role": "user",   "content": texto[:1000]},
         ],
         max_tokens=20,
     )
     try:
-        if hasattr(client, "chat"):
-            rsp = client.chat.completions.create(**kwargs)  # type: ignore
-            nombre = rsp.choices[0].message.content.strip()
-        else:
-            rsp = client.ChatCompletion.create(**kwargs)  # type: ignore
-            nombre = rsp["choices"][0]["message"]["content"].strip()
+        rsp = client.chat.completions.create(**kwargs)
+        nombre = (rsp.choices[0].message.content or "").strip()
     except Exception:
         return ""
     return capitalizar_frase(nombre.split("\n")[0].strip())
+
 
 
 def extraer_datos_personales(texto: str) -> dict:
