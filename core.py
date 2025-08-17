@@ -198,7 +198,7 @@ def _get_openai_client():
     # httpx.Client propio
     import httpx
     http_client = httpx.Client(
-        proxies=proxy or None,
+        proxy=proxy or None,
         timeout=httpx.Timeout(30.0),
         limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
         follow_redirects=True,
