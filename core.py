@@ -176,6 +176,10 @@ def _get_openai_client():
         raise RuntimeError("Falta la clave de OpenAI. Definí OPENAI_API_KEY en Secrets o en config.json.")
 
     is_proj_key = key.startswith("sk-proj-")
+    if is_proj_key:
+        for var in ("OPENAI_ORG", "OPENAI_ORGANIZATION", "OPENAI_PROJECT",
+                    "OPENAI_API_BASE", "OPENAI_BASE_URL"):
+            os.environ.pop(var, None)
 
     # --- Org/Project (solo si NO es sk-proj- ) ---
     org = ""
@@ -245,11 +249,7 @@ def _get_openai_client():
               " ENV_PROJ=", bool(os.environ.get("OPENAI_PROJECT")))
     except Exception:
         pass
-    from openai import AuthenticationError
-    try:
-        client.models.list()  # fuerza 401/403 si la key/headers no matchean
-    except AuthenticationError as e:
-        raise RuntimeError("Autenticación falló: revisá key y headers (ORG/PROJECT).") from e
+
 
     # Cliente OpenAI (SDK nuevo)
     from openai import OpenAI
