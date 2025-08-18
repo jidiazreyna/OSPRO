@@ -1011,14 +1011,19 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
 
 
 
+    # Definir helper ANTES de usarlo
+    def _dp_from_block(b: str) -> dict:
+        d = extraer_datos_personales(b)
+        return {"datos_personales": d, "dni": d.get("dni", ""), "nombre": d.get("nombre", "")}
+
     # Trabajamos en variables locales, sin tocar `datos` todavía
     imps_pre: list[dict] = []
     if bloques:
         bloques_ok = [b for b in bloques if _es_bloque_valido(b)]
+        # filtro anti-falsos positivos (ej.: “no ingresaron a la audiencia...”)
+        bloques_ok = [b for b in bloques_ok if "no ingresaron a la audiencia" not in b.lower()]
         imps_pre = [_dp_from_block(b) for b in bloques_ok]
-    # justo después de calcular `bloques_ok` en procesar_sentencia
-    bloques_ok = [b for b in bloques if _es_bloque_valido(b)]
-    bloques_ok = [b for b in bloques_ok if "no ingresaron a la audiencia" not in b.lower()]  # ← NUEVO
+
 
     imps_pre = _dedup_por_dni(imps_pre)[:MAX_IMPUTADOS]
 
@@ -1105,15 +1110,6 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
 
 
     imps = datos.get("imputados") or []
-
-
-    def _dp_from_block(b: str) -> dict:
-        d = extraer_datos_personales(b)
-        return {
-            "datos_personales": d,
-            "dni": d.get("dni", ""),
-            "nombre": d.get("nombre", ""),
-        }
 
     # Opcional: enriquecer SOLO dentro del bloque acotado
     bloques_base = segmentar_imputados(texto_base)
