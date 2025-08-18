@@ -307,7 +307,8 @@ def _normalizar_caratula():
     auto = extraer_caratula(normalizar_caratula(raw))
     if auto != raw:
         st.session_state.carat = auto
-        st.experimental_rerun()      # fuerza un ciclo nuevo y seguro
+        # 🔕 nada de st.experimental_rerun() / st.rerun() aquí
+
 # ────────── estado inicial de sesión ────────────────────────────────
 if "n_imputados" not in st.session_state:
     st.session_state.n_imputados = 1
@@ -486,11 +487,11 @@ with st.sidebar:
     itim_fecha = col_it[1].text_input("Fecha", key="itim_fecha")
 
     # Nº de imputados dinámico
-    st.session_state.n_imputados = min(st.session_state.n_imputados, MAX_IMPUTADOS)
     n = st.number_input(
         "Número de imputados", 1, MAX_IMPUTADOS, st.session_state.n_imputados,
-        key="n_imp", on_change=st.rerun,
+        key="n_imp",
     )
+
     st.session_state.n_imputados = n
     # 👇 Reservo el lugar para los expanders acá
     imp_expanders_slot = st.container()
