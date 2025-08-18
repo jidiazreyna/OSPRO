@@ -311,15 +311,21 @@ def _qre_has_match(qre, text: str) -> bool:
 _PAT_CARAT_1 = re.compile(          # 1) entre comillas
     r'“([^”]+?)”\s*\(\s*(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)\s*\)', re.I)
 # Acepta comillas rectas o tipográficas y "Expte. Sac 123..." (con o sin N°)
+
+# 1) Regex que aceptan texto extra después del primer número de SAC
 _PAT_CARAT_1B = re.compile(
-    r'[“"]([^”"]+?)[”"]\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?([\d.]+)\s*\)',
+    r'[“"]([^”"]+?)[”"]\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?'
+    r'(?P<nro>[\d.]+)[^)]*\)',  # ← permite 'y acumulados ...' hasta ')'
     re.I
 )
+
 # Sin comillas: título inmediatamente antes del paréntesis (SAC / Expte. Sac)
 _PAT_CARAT_4 = re.compile(
-    r'(?P<title>[^()\n]{8,240}?)\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?(?P<nro>[\d.]+)\s*\)',
+    r'(?P<title>[^()\n]{8,240}?)\s*\(\s*(?:SAC|Expte\.?\s*(?:SAC)?)\s*(?:N[°º]?\s*)?'
+    r'(?P<nro>[\d.]+)[^)]*\)',  # ← mismo ajuste
     re.I
 )
+
 _PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
     r'autos?\s+(?:se\s+)?(?:denominad[oa]s?|intitulad[oa]s?|'
     r'caratulad[oa]s?)\s+[«"”]?([^"»\n]+)[»"”]?', re.I)
@@ -330,39 +336,43 @@ _PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …
 def extraer_caratula(txt: str) -> str:
     plano = re.sub(r'\s+', ' ', txt)
 
-    # 1) Comillas (rectas o tipográficas) + (SAC/Expte. Sac) + número
-    m = _PAT_CARAT_1B.search(plano)
+    # A) Encabezado “EXPEDIENTE SAC: … - …”
+    m = _PAT_CARAT_3.search(plano[:5000])
     if m:
-        titulo, nro = m.groups()
-        return f'“{titulo.strip(" ,;.")}” (SAC N° {nro})'
-
-    # 2) Sin comillas: título antes del paréntesis
-    m = _PAT_CARAT_4.search(plano)
-    if m:
-        titulo = m.group('title').strip(' ,;."“”')
-        nro = m.group('nro')
-        # Evitá órganos por error
-        if re.search(r'\b(juzgado|c[aá]mara|tribunal|sala)\b', titulo, re.I):
-            titulo = re.split(r'[.;]', titulo, 1)[0].strip(' ,;."“”')
+        nro, resto = m.groups()
+        titulo = resto.split(' - ')[0].strip(' ;,."“”')
         return f'“{titulo}” (SAC N° {nro})'
 
-    # 3) Tus patrones anteriores (compatibilidad)
-    m = _PAT_CARAT_1.search(plano)
+    # B) “causa caratulada “…” (SAC …)” o comillas + (SAC …) en general
+    m = _PAT_CARAT_1B.search(plano)
     if m:
-        titulo, nro = m.groups()
-        return f'“{titulo.strip()}” (SAC N° {nro})'
+        titulo = m.group(1)
+        nro = m.group('nro')
+        return f'“{titulo.strip(" ,;.")}” (SAC N° {nro})'
+
+    # C) “autos caratulados …” (si no hubo comillas)
     m = _PAT_CARAT_2.search(plano)
     if m:
-        titulo = m.group(1).strip()
+        titulo = m.group(1).strip(' ;,."“”')
         mnum = re.search(r'(?:SAC|Expte\.?)\s*N°?\s*([\d.]+)', plano, re.I)
         nro = mnum.group(1) if mnum else '…'
         return f'“{titulo}” (SAC N° {nro})'
-    encabezados = _PAT_CARAT_3.findall(plano[:5000])
-    if encabezados:
-        nro, resto = encabezados[0]
-        titulo = resto.split(' - ')[0].strip()
-        return f'“{titulo}” (SAC N° {nro})'
+
+    # D) Sin comillas (fallback), con filtro anti-piezas acusatorias
+    m = _PAT_CARAT_4.search(plano)
+    if m:
+        titulo = m.group('title').strip(' ,;."“”')
+        if titulo.lower().startswith('las siguientes piezas acusatorias'):
+            pass  # evitar falso positivo
+        else:
+            # Evitá órganos por error
+            if re.search(r'\b(juzgado|c[aá]mara|tribunal|sala)\b', titulo, re.I):
+                titulo = re.split(r'[.;]', titulo, 1)[0].strip(' ,;."“”')
+            return f'“{titulo}” (SAC N° {m.group("nro")})'
+
     return ""
+
+
 # ── TRIBUNAL ──────────────────────────────────────────────────────────
 # Lista de palabras clave válidas al inicio de la descripción
 _CLAVES_TRIB = (
