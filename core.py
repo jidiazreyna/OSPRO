@@ -300,6 +300,12 @@ _RESUELVO_REGEX = re.compile(
     """,
     re.IGNORECASE | re.DOTALL | re.VERBOSE,
 )
+# poner cerca de las regex, antes de usar CARATULA_REGEX / TRIBUNAL_REGEX
+def _qre_has_match(qre, text: str) -> bool:
+    try:
+        return bool(qre.match(text).hasMatch())   # Qt real
+    except Exception:
+        return bool(qre.match(text))              # stub o PyQt5 fallback
 
 # ── CARÁTULA ──────────────────────────────────────────────────────────
 _PAT_CARAT_1 = re.compile(          # 1) entre comillas
@@ -571,10 +577,13 @@ def extraer_bloque_imputados(texto: str) -> str:
         r'(?:'
         r'han\s+sido\s+tra[ií]d[oa]s?\s+a\s+proceso\s+los\s+imputad[oa]s?\s*:'
         r'|se\s+encuentran\s+imputad[oa]s?\s*:'
-        r'|los\s+imputad[oa]s?\s*:?'          # ← ahora “:” es opcional
+        r'|los\s+imputad[oa]s?\s*:?'                       # existente
+        r'|en\s+esta\s+causa\s+fueron\s+acusad[oa]s?\s*:?' # ← NUEVO
+        r'|en\s+los\s+autos\s+fueron\s+acusad[oa]s?\s*:?'  # ← NUEVO
         r')',
         re.I
     )
+
 
 
     # Fin del bloque (encabezados típicos)
@@ -583,7 +592,10 @@ def extraer_bloque_imputados(texto: str) -> str:
         r'|Conforme\s+la\s+requisitoria'
         r'|A\s+LA\s+PRIMERA'
         r'|El\s+Tribunal\s+unipersonal'
-        r'|CONSIDERANDO\b)', re.I)
+        r'|CONSIDERANDO\b'
+        r'|Cabe\s+aclarar\s+que\b'         # ← NUEVO
+        r')', re.I)
+
 
     m_ini = pat_inicio.search(plano)
     if not m_ini:
@@ -999,15 +1011,14 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
 
 
 
-    def _dp_from_block(b: str) -> dict:
-        d = extraer_datos_personales(b)
-        return {"datos_personales": d, "dni": d.get("dni", ""), "nombre": d.get("nombre", "")}
-
     # Trabajamos en variables locales, sin tocar `datos` todavía
     imps_pre: list[dict] = []
     if bloques:
         bloques_ok = [b for b in bloques if _es_bloque_valido(b)]
         imps_pre = [_dp_from_block(b) for b in bloques_ok]
+    # justo después de calcular `bloques_ok` en procesar_sentencia
+    bloques_ok = [b for b in bloques if _es_bloque_valido(b)]
+    bloques_ok = [b for b in bloques_ok if "no ingresaron a la audiencia" not in b.lower()]  # ← NUEVO
 
     imps_pre = _dedup_por_dni(imps_pre)[:MAX_IMPUTADOS]
 
@@ -1132,8 +1143,9 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     carat_raw = g.get("caratula", "").strip()
     trib_raw = g.get("tribunal", "").strip()
 
-    carat_ok = CARATULA_REGEX.match(carat_raw)
-    trib_ok = TRIBUNAL_REGEX.match(trib_raw)
+    carat_ok = _qre_has_match(CARATULA_REGEX, carat_raw)
+    trib_ok  = _qre_has_match(TRIBUNAL_REGEX,  trib_raw)
+
 
     if not carat_ok and (
         "cámara" in carat_raw.lower() or "juzgado" in carat_raw.lower()
