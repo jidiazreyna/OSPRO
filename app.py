@@ -307,8 +307,8 @@ def _normalizar_caratula():
     auto = extraer_caratula(normalizar_caratula(raw))
     if auto != raw:
         st.session_state.carat = auto
+        # marcar que necesitamos un rerun, pero NO rerun acá
         st.session_state["_carat_norm_rerun"] = True
-        st.rerun()  # 👈 fuerza que el valor normalizado se pinte al apretar Enter
 
 
 # ────────── estado inicial de sesión ────────────────────────────────
@@ -1186,3 +1186,5 @@ with tabs[16]:
     st.markdown(saludo_html, unsafe_allow_html=True)
 
     html_copy_button("Copiar", fecha_html + cuerpo_html + saludo_html, key="copy_decom_st")
+if st.session_state.pop("_carat_norm_rerun", False):
+    st.rerun()
