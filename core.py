@@ -548,7 +548,11 @@ DNI_TXT_RE = re.compile(
     re.I
 )
 
-NOMBRE_RE  = re.compile(r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?D\.?N\.?I\.?:?\s*[\d.]+', re.I | re.S)
+NOMBRE_RE  = re.compile(
+    r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?'
+    r'D\.?\s*N\.?\s*I\.?(?:\s*n\.?\s*°\s*)?:?\s*[\d.]+' ,
+    re.I | re.S,
+)
 NOMBRE_INICIO_RE = re.compile(
     r'^\s*(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,3})\s*,',
     re.M
@@ -558,6 +562,10 @@ NOMBRE_DNI_RE = re.compile(
     r'^\s*(?:imputad[oa]:?\s*)?(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][^,\n]+?)\s*(?:,\s*)?(?:D\.?\s*N\.?\s*I\.?|DNI)',
     re.I | re.M,
 )
+
+
+def _limpiar_nombre(n: str) -> str:
+    return re.sub(r'^(?:[YyEe]\s+)', '', n).strip()
 
 # ── NUEVO: helpers de segmentación ─────────────────────────
 # Añadimos "Prio." como abreviatura de "Prontuario" para ampliar la detección.
@@ -656,10 +664,23 @@ def segmentar_imputados(texto: str) -> list[str]:
 
     bloques: list[str] = []
     if hits:
-        for i, m in enumerate(hits):
-            start = m.start(1)
-            end = hits[i+1].start(1) if i + 1 < len(hits) else len(plano)
-            b = _recortar_bloque_un_persona(plano[start:end])
+        starts = []
+        prev = 0
+        for m in hits:
+            s = m.start(1)
+            segmento = plano[prev:s]
+            prev_prios = list(re.finditer(r"(?:Prontuario|Prio\.?)[^\n.]*\.", segmento, re.I))
+            if prev_prios:
+                pp = prev_prios[-1]
+                cand = prev + pp.start()
+                if s - cand < 80:
+                    s = cand
+            starts.append(s)
+            prev = s
+        starts.append(len(plano))
+        for i, s in enumerate(starts[:-1]):
+            e = starts[i+1]
+            b = _recortar_bloque_un_persona(plano[s:e])
             if _es_bloque_valido(b):       # filtro de sanidad
                 bloques.append(b)
         return bloques
@@ -774,13 +795,13 @@ def extraer_datos_personales(texto: str) -> dict:
     # Nombre cerca de "de XX años ... DNI"
     m = NOMBRE_RE.search(t)
     if m:
-        dp["nombre"] = capitalizar_frase(m.group(1).strip())
+        dp["nombre"] = capitalizar_frase(_limpiar_nombre(m.group(1)))
     # Nombre: prefiero el que está al INICIO del bloque; si no, el genérico
     m = NOMBRE_INICIO_RE.search(t) or NOMBRE_RE.search(t)
     if m:
-        dp["nombre"] = capitalizar_frase(m.group(1).strip())
+        dp["nombre"] = capitalizar_frase(_limpiar_nombre(m.group(1)))
     elif m is None and (m := NOMBRE_DNI_RE.search(t)):
-        dp["nombre"] = capitalizar_frase(m.group(1).strip())
+        dp["nombre"] = capitalizar_frase(_limpiar_nombre(m.group(1)))
     if not _nombre_aparente_valido(dp.get("nombre", "")):
         nombre_ai = _extraer_nombre_gpt(t)
         if nombre_ai:
@@ -925,6 +946,33 @@ def _flatten_resuelvo(text: str) -> str:
     text = re.sub(r"\s*\n\s*", " ", text)
     return re.sub(r"\s{2,}", " ", text).strip()
 
+
+def _format_firmantes(value) -> str:
+    """Convierte firmantes (lista/dict/str) en cadena legible."""
+    if not value:
+        return ""
+    if isinstance(value, list):
+        if all(isinstance(x, str) for x in value):
+            return ", ".join(x.strip() for x in value if x)
+        partes: list[str] = []
+        for x in value:
+            if isinstance(x, dict):
+                nombre = x.get("nombre", "").strip()
+                cargo = x.get("cargo", "").strip()
+                if nombre and cargo:
+                    partes.append(f"{nombre}, {cargo}")
+                else:
+                    partes.append((nombre or cargo).strip())
+            else:
+                partes.append(str(x).strip())
+        return "; ".join(p for p in partes if p)
+    if isinstance(value, dict):
+        nombre = value.get("nombre", "").strip()
+        cargo = value.get("cargo", "").strip()
+        if nombre and cargo:
+            return f"{nombre}, {cargo}"
+        return (nombre or cargo).strip()
+    return str(value)
 
 
 def _format_datos_personales(raw):
@@ -1218,8 +1266,10 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
     st.session_state.snum     = _as_str(g.get("sent_num"))
     st.session_state.sfecha   = _as_str(g.get("sent_fecha"))
     st.session_state.sres       = _flatten_resuelvo(_as_str(g.get("resuelvo")))
-    st.session_state.sfirmeza   = _as_str(g.get("sent_firmeza") or "")  
-    st.session_state.sfirmantes = _as_str(g.get("firmantes"))
+    st.session_state.sfirmeza   = _as_str(g.get("sent_firmeza") or "")
+    firmantes_str = _format_firmantes(g.get("firmantes"))
+    st.session_state.sfirmaza   = firmantes_str
+    st.session_state.sfirmantes = firmantes_str
 
 
     # ----- IMPUTADOS -----

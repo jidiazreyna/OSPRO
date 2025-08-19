@@ -320,6 +320,8 @@ if isinstance(edit_event, dict):
     k, v = edit_event.get("key"), edit_event.get("value")
     if isinstance(k, str) and isinstance(v, str):
         st.session_state[k] = v
+        if k == "carat":
+            _normalizar_caratula()
         # No hacer rerun aquí, los cambios se reflejarán automáticamente
 
 
