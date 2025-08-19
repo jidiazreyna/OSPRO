@@ -216,7 +216,7 @@ _js_edit_handler = """
       const key = el.dataset.key, value = el.innerText;
       const campo = doc.getElementById(key);
       if (campo) { campo.dataset.origin='span'; if (campo.value !== value) campo.value = value; campo.dataset.origin=''; }
-      try { Streamlit.setComponentValue({ key, value, origin: 'span' }); } catch(_){}
+      try { Streamlit.setComponentValue({ key, value, origin: 'span', nonce: Date.now() }); } catch(_){}
       el.blur();
       cleanupAfter(el);
       placeCaretAfter(el);
@@ -242,7 +242,7 @@ _js_edit_handler = """
     const key = el.dataset.key, value = el.innerText;
     const campo = doc.getElementById(key);
     if (campo) { campo.dataset.origin='span'; if (campo.value !== value) campo.value=value; campo.dataset.origin=''; }
-    try { Streamlit.setComponentValue({ key, value, origin: 'span' }); } catch (_){}
+    try { Streamlit.setComponentValue({ key, value, origin: 'span', nonce: Date.now() }); } catch (_){}
   }
 
   function sidebarHandler(e) {
@@ -306,9 +306,9 @@ def _normalizar_caratula():
     raw  = st.session_state.carat
     auto = extraer_caratula(normalizar_caratula(raw))
     if auto != raw:
-        # solo actualizar estado; NO llamar a st.rerun() aquí
         st.session_state.carat = auto
-        st.session_state["_carat_norm_rerun"] = True  # por si querés saber que normalizó
+        st.session_state["_carat_norm_rerun"] = True
+        st.rerun()  # 👈 fuerza que el valor normalizado se pinte al apretar Enter
 
 
 # ────────── estado inicial de sesión ────────────────────────────────
@@ -324,9 +324,7 @@ if isinstance(edit_event, dict):
     if isinstance(k, str) and isinstance(v, str):
         st.session_state[k] = v
         if k == "carat":
-            _normalizar_caratula()  # sin st.rerun()
-
-
+            _normalizar_caratula()
 
 
 # ────────── procesamiento diferido del autocompletar ────────────────
