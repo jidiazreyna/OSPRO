@@ -307,7 +307,8 @@ def _normalizar_caratula():
     auto = extraer_caratula(normalizar_caratula(raw))
     if auto != raw:
         st.session_state.carat = auto
-        # 🔕 nada de st.experimental_rerun() / st.rerun() aquí
+        st.session_state["_carat_norm_rerun"] = True  # bandera para evitar bucles
+        st.rerun()
 
 # ────────── estado inicial de sesión ────────────────────────────────
 if "n_imputados" not in st.session_state:
@@ -316,13 +317,14 @@ if "datos_autocompletados" not in st.session_state:
     st.session_state.datos_autocompletados = {}
 st.session_state.setdefault("carat", "")
 # sincronicemos spans editables → barra lateral
+
 if isinstance(edit_event, dict):
     k, v = edit_event.get("key"), edit_event.get("value")
     if isinstance(k, str) and isinstance(v, str):
         st.session_state[k] = v
         if k == "carat":
-            _normalizar_caratula()
-        # No hacer rerun aquí, los cambios se reflejarán automáticamente
+            _normalizar_caratula()  # esto ya hará el rerun si cambió
+
 
 
 # ────────── procesamiento diferido del autocompletar ────────────────
