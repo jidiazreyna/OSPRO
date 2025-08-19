@@ -306,9 +306,10 @@ def _normalizar_caratula():
     raw  = st.session_state.carat
     auto = extraer_caratula(normalizar_caratula(raw))
     if auto != raw:
+        # solo actualizar estado; NO llamar a st.rerun() aquí
         st.session_state.carat = auto
-        st.session_state["_carat_norm_rerun"] = True  # bandera para evitar bucles
-        st.rerun()
+        st.session_state["_carat_norm_rerun"] = True  # por si querés saber que normalizó
+
 
 # ────────── estado inicial de sesión ────────────────────────────────
 if "n_imputados" not in st.session_state:
@@ -323,7 +324,8 @@ if isinstance(edit_event, dict):
     if isinstance(k, str) and isinstance(v, str):
         st.session_state[k] = v
         if k == "carat":
-            _normalizar_caratula()  # esto ya hará el rerun si cambió
+            _normalizar_caratula()  # sin st.rerun()
+
 
 
 
