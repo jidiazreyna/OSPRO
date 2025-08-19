@@ -303,12 +303,22 @@ def res_decomiso() -> str:
 
 # ────────── callback: normaliza la carátula después de editar ───────
 def _normalizar_caratula():
-    raw  = st.session_state.carat
-    auto = extraer_caratula(normalizar_caratula(raw))
+    raw = st.session_state.get("carat", "") or ""
+
+    # Siempre normalizar comillas/balanceo, pero sin perder texto
+    norm = normalizar_caratula(raw)
+
+    # Consideramos “completo” cuando ya hay (SAC|Expte) y un cierre de paréntesis
+    looks_complete = bool(re.search(r'\((?:SAC|Expte\.?)', norm, re.I)) and (')' in norm)
+
+    auto = extraer_caratula(norm) if looks_complete else norm
+    if not auto:
+        auto = norm  # fallback seguro: no vaciar mientras el usuario escribe
+
     if auto != raw:
         st.session_state.carat = auto
-        # marcar que necesitamos un rerun, pero NO rerun acá
         st.session_state["_carat_norm_rerun"] = True
+
 
 
 # ────────── estado inicial de sesión ────────────────────────────────
