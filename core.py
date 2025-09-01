@@ -552,7 +552,9 @@ FNAC_RE = re.compile(r'(?:Nacid[oa]\s+el\s+|el\s*d[íi]a\s*)(\d{1,2}/\d{1,2}/\d{
 LNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+\d{1,2}/\d{1,2}/\d{2,4},?\s+en\s+([^.,\n]+)', re.I)
 PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(?:[,.;]|\s$)', re.I)
 PRIO_RE = re.compile(
-    r'(?:Prontuario|Prio\.?|Pront\.?)\s*[:\-]?\s*([^\n;]+)',
+    r'(?:Prontuario|Prio\.?|Pront\.?)\s*[:\-]?\s*'
+    r'(?P<val>.+?)'
+    r'(?=(?:\s+(?:El|La|Los|Las|Con|En|Por|Hecho|HECHO)\b)|$)',
     re.I
 )
 # Permite variantes como "DNI n.º 12.345.678" o "DNI N°12345678"
@@ -582,8 +584,8 @@ NOMBRE_INICIO_RE = re.compile(
 )
 # Fallback: nombre justo antes de "DNI" (sin edad requerida)
 NOMBRE_DNI_RE = re.compile(
-    r'^\s*(?:imputad[oa]:?\s*)?(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][^,\n]+?)\s*(?:,\s*)?(?:D\.?\s*N\.?\s*I\.?|DNI)',
-    re.I | re.M,
+    r'(?:imputad[oa]:?\s*)?(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][^,\n]+?)\s*(?:,\s*)?(?:D\.?\s*N\.?\s*I\.?|DNI)',
+    re.I
 )
 
 # Encabezados en versales de juzgados (no sólo "Cámara")
@@ -673,18 +675,19 @@ def segmentar_imputados(texto: str) -> list[str]:
 
     # Importante: SIN re.I para que exija mayúscula real al inicio del nombre.
     NAME_START = re.compile(
-        r'(?<!\w)(?:[YyEe]\s+)?'                                  # y/e opcional
-        r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+'                # 1ª palabra
-        r'(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,4})'    # +1 a +4 palabras
-        r'(?:\s*\([^)]{0,80}\))?'                                 # paréntesis opcionales
+        r'(?<!\w)(?:[YyEe]\s+)?'
+        r'(?!Los\b|Las\b|El\b|La\b|En\b|Por\b|Con\b|Hecho\b|HECHO\b|PRIMERA\b|SEGUNDA\b|TERCERA\b)'
+        r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,4})'
+        r'(?:\s*\([^)]{0,80}\))?'
         r'\s*,\s*'
-        r'(?:[^,]{0,50},\s*)?'                                    # "sin apodo", "alias ...", etc.
-        r'(?:'                                                    # condiciones que confirman la ficha
-        r'(?:de\s+)?nacionalidad'                                 # "de nacionalidad" O "nacionalidad"
-        r'|de\s*\d{1,3}\s*años'                                   # "de 35 años"
-        r'|(?i:D\.?\s*N\.?\s*I\.?)'                               # "DNI" en cualquier variante
+        r'(?:[^,]{0,50},\s*)?'
+        r'(?:'
+        r'(?:de\s+)?nacionalidad'
+        r'|de\s*\d{1,3}\s*años'
+        r'|(?i:D\.?\s*N\.?\s*I\.?)'
         r')'
     )
+
 
     hits = list(NAME_START.finditer(plano))
 
