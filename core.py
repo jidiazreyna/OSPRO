@@ -709,9 +709,8 @@ def segmentar_imputados(texto: str) -> list[str]:
     # Listas enumeradas simples: "Imputado 1 – Juan Pérez"
     enum_pat = re.compile(r"\bImputad[oa]\s+\d+\s*[–-]\s*([^\n\r]+)", re.I)
     enumerados = [m.strip() for m in enum_pat.findall(texto)]
-    if enumerados:
-        return enumerados
 
+    texto = enum_pat.sub(" ", texto)
     plano = re.sub(r'\s+', ' ', texto)
 
     NAME_START = re.compile(
@@ -751,20 +750,29 @@ def segmentar_imputados(texto: str) -> list[str]:
             prev = s
         starts.append(len(plano))
         for i, s in enumerate(starts[:-1]):
-            e = starts[i+1]
+            e = starts[i + 1]
             b = _recortar_bloque_un_persona(plano[s:e])
-            if _es_bloque_valido(b):       # filtro de sanidad
+            if _es_bloque_valido(b):  # filtro de sanidad
                 bloques.append(b)
-        return bloques
 
-    # Fallback: por "Prontuario/Prio."
-    prios = list(re.finditer(r"(?:Prontuario|Prio\.?)", plano, re.I))
-    for i, m in enumerate(prios):
-        start = m.start()
-        end = prios[i + 1].start() if i + 1 < len(prios) else len(plano)
-        b = _recortar_bloque_un_persona(plano[start:end])
-        if _es_bloque_valido(b):
-            bloques.append(b)
+    if not bloques:
+        # Fallback: por "Prontuario/Prio."
+        prios = list(re.finditer(r"(?:Prontuario|Prio\.?)", plano, re.I))
+        for i, m in enumerate(prios):
+            start = m.start()
+            end = prios[i + 1].start() if i + 1 < len(prios) else len(plano)
+            b = _recortar_bloque_un_persona(plano[start:end])
+            if _es_bloque_valido(b):
+                bloques.append(b)
+
+    if enumerados:
+        if not bloques:
+            bloques = enumerados
+        else:
+            for e in enumerados:
+                if not any(e in b for b in bloques):
+                    bloques.append(e)
+
     return bloques
 
 
