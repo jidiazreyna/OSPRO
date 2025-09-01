@@ -533,7 +533,7 @@ _FIRMAS_REGEX = re.compile(r'''
 # "Expte."/"SAC"/"N°" al final.
 NAME_TOKEN = r'[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+'
 CONNECTOR  = r'(?:de|del|de\s+los|de\s+las|la|las|los|y|e|da|do|dos|das|san|santa)'
-NAME_GROUP = rf'({NAME_TOKEN}(?:\s+(?:{CONNECTOR}|{NAME_TOKEN})){1,7})'
+NAME_GROUP = rf'({NAME_TOKEN}(?:\s+(?:{CONNECTOR}|{NAME_TOKEN})){{1,7}})'
 CARATULA_REGEX = QRegularExpression(
     r'^[“"][^"”]+[”"]\s*\(\s*(?:SAC|Expte\.?|EE\.?)\s*(?:N[°º]?\s*)?\d[\d.]*\s*\)$'
 )
@@ -573,13 +573,15 @@ FNAC_RE = re.compile(r'(?:Nacid[oa]\s+el\s+|el\s*d[íi]a\s*)(\d{1,2}/\d{1,2}/\d{
 LNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+\d{1,2}/\d{1,2}/\d{2,4},?\s+en\s+([^.,\n]+)', re.I)
 PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(?:[,.;]|\s$)', re.I)
 PRIO_RE = re.compile(
-    r'(?:Prontuario|Prio\.?)\s*[:\-]?\s*'
-    r'(?P<val>[^.\n;()]*?)'               # captura corta hasta . ; ) o salto de línea
-    r'(?=\s*(?:[.;)]|\n|$'                # y corta ahí…
-    r'|(?:\d+\s*(?:\)|\.-|\.|-))'         # …o antes de “16) / 2.- / 3.” (nuevo inciso)
-    r'|(?:[IVXLCDM]+\s*(?:\)|\.-|\.|-)))' # …o incisos en romanos tipo “II) / III.-”
-    ,
-    re.I
+    r"""
+    (?:Prontuario|Prio\.?)\s*[:\-]?\s*           # encabezado del campo
+    (?P<val>[^.\n;()]+)                             # captura hasta . ; ) o salto de línea
+    (?=\s*(?:[.;)]|\n|$|                           # y corta ahí…
+        (?:\d+\s*(?:\)|\.-|\.|-))|              # …o antes de “16) / 2.- / 3.” (nuevo inciso)
+        (?:[IVXLCDM]+\s*(?:\)|\.-|\.|-))         # …o incisos en romanos tipo “II) / III.-”
+    ))
+    """,
+    re.I | re.X,
 )
 # Permite variantes como "DNI n.º 12.345.678" o "DNI N°12345678"
 DNI_TXT_RE = re.compile(
@@ -905,17 +907,13 @@ def extraer_datos_personales(texto: str) -> dict:
             dp["nombre"] = nombre_ai
 
     # 4) DNI (robusto)
-    m = DNI_TXT_RE.search(t) or DNI_PLAIN_RE.search(t)
-    if m:
-        dni_match = m.group(1) if m.lastindex else m.group(0)
-        dp["dni"] = normalizar_dni(dni_match)
-
-    # 5) Alias sólo antes del primer DNI (igual que tenías)
     m_dni = DNI_TXT_RE.search(t) or DNI_PLAIN_RE.search(t)
     if m_dni:
         dni_match = m_dni.group(1) if m_dni.lastindex else m_dni.group(0)
         dp["dni"] = normalizar_dni(dni_match)
-    alias_scope = t[:m_dni.start()] if m_dni else t
+
+    # 5) Alias (busca en todo el texto excepto el número de DNI)
+    alias_scope = t if not m_dni else t[:m_dni.start()] + t[m_dni.end():]
     if (m2 := ALIAS_RE.search(alias_scope)):
         alias_txt = re.split(r'[,;.:]\s*', m2.group(1), 1)[0].strip()
         if alias_txt.lower() not in {"sin apodo", "sin alias", "sin sobrenombre"}:
