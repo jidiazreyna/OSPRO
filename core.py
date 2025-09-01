@@ -549,6 +549,13 @@ DNI_TXT_RE = re.compile(
     re.I
 )
 DNI_PLAIN_RE = re.compile(r'(?<![Ss][Aa][Cc]\s)\b\d{7,8}\b')
+# --- NUEVO: nombre por rol ("imputado"/"acusado") justo antes de tus NOMBRE_* ---
+NOMBRE_ROL_RE = re.compile(
+    r'(?:el\s+)?(?:imputad[oa]|acusad[oa])\s+'
+    r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,3})'
+    r'(?:\s+(?:cuy[oa]s|sus|D\.?\s*N\.?\s*I\.?|DNI|,|\(|que)\b|\s*)',
+    re.I
+)
 
 NOMBRE_RE  = re.compile(
     r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?'
@@ -789,54 +796,68 @@ def _extraer_nombre_gpt(texto: str) -> str:
         return ""
     return capitalizar_frase(nombre.split("\n")[0].strip())
 
-
-
 def extraer_datos_personales(texto: str) -> dict:
-    t = re.sub(r'\s+', ' ', texto)  # línea corrida para facilitar regex largas
+    t = re.sub(r'\s+', ' ', texto)
     dp: dict[str, str | list] = {}
 
-    # Nombre cerca de "de XX años ... DNI"
-    m = NOMBRE_RE.search(t)
+    # 0) Padres primero (para poder excluirlos si un regex de nombre los captura)
+    padres_names: list[str] = []
+    if (m := PADRES_RE.search(t)):
+        padres_names = [m.group(1).strip()]
+        if m.group(2):
+            padres_names.append(m.group(2).strip())
+        dp["padres"] = padres_names
+
+    def _norm_nom(s: str) -> str:
+        s = re.sub(r'\s*\(.*?\)\s*', '', s or '')  # quita (v), (f), etc.
+        return s.strip().lower()
+
+    # 1) Nombre inmediatamente después de "imputado"/"acusado"
+    m = NOMBRE_ROL_RE.search(t)
     if m:
-        dp["nombre"] = capitalizar_frase(_limpiar_nombre(m.group(1)))
-    # Nombre: prefiero el que está al INICIO del bloque; si no, el genérico
-    m = NOMBRE_INICIO_RE.search(t) or NOMBRE_RE.search(t)
-    if m:
-        dp["nombre"] = capitalizar_frase(_limpiar_nombre(m.group(1)))
-    elif m is None and (m := NOMBRE_DNI_RE.search(t)):
-        dp["nombre"] = capitalizar_frase(_limpiar_nombre(m.group(1)))
+        cand = capitalizar_frase(_limpiar_nombre(m.group(1)))
+        if cand and all(_norm_nom(cand) != _norm_nom(p) for p in padres_names):
+            dp["nombre"] = cand
+
+    # 2) Fallbacks clásicos, pero sólo si aún no tenemos nombre válido
+    if "nombre" not in dp:
+        m = NOMBRE_RE.search(t)
+        if m:
+            cand = capitalizar_frase(_limpiar_nombre(m.group(1)))
+            if all(_norm_nom(cand) != _norm_nom(p) for p in padres_names):
+                dp["nombre"] = cand
+
+    if "nombre" not in dp:
+        m = NOMBRE_INICIO_RE.search(t) or NOMBRE_DNI_RE.search(t)
+        if m:
+            cand = capitalizar_frase(_limpiar_nombre(m.group(1)))
+            if all(_norm_nom(cand) != _norm_nom(p) for p in padres_names):
+                dp["nombre"] = cand
+
+    # 3) Sólo como último recurso, pedirle al modelo (si no hay nombre o parece raro)
     if not _nombre_aparente_valido(dp.get("nombre", "")):
         nombre_ai = _extraer_nombre_gpt(t)
-        if nombre_ai:
+        if nombre_ai and all(_norm_nom(nombre_ai) != _norm_nom(p) for p in padres_names):
             dp["nombre"] = nombre_ai
 
-    # DNI (robusto)
+    # 4) DNI (robusto)
     m = DNI_TXT_RE.search(t) or DNI_PLAIN_RE.search(t)
     if m:
-        # DNI_TXT_RE posee un grupo de captura con el número, pero
-        # DNI_REGEX no.  En este último caso, `group(1)` levanta
-        # ``IndexError: no such group``.  Usamos el grupo 1 sólo si
-        # existe; de lo contrario, tomamos el grupo completo.
         dni_match = m.group(1) if m.lastindex else m.group(0)
         dp["dni"] = normalizar_dni(dni_match)
 
-    # DNI (robusto) — primero, para acotar alias al texto anterior al 1er DNI
+    # 5) Alias sólo antes del primer DNI (igual que tenías)
     m_dni = DNI_TXT_RE.search(t) or DNI_PLAIN_RE.search(t)
     if m_dni:
         dni_match = m_dni.group(1) if m_dni.lastindex else m_dni.group(0)
         dp["dni"] = normalizar_dni(dni_match)
-
-    # Alias SOLO antes del primer DNI
     alias_scope = t[:m_dni.start()] if m_dni else t
     if (m2 := ALIAS_RE.search(alias_scope)):
-        alias_txt = m2.group(1)
-        # corta en la primera coma/punto/; por si vino sin comillas
-        alias_txt = re.split(r'[,;.:]\s*', alias_txt, 1)[0].strip()
+        alias_txt = re.split(r'[,;.:]\s*', m2.group(1), 1)[0].strip()
         if alias_txt.lower() not in {"sin apodo", "sin alias", "sin sobrenombre"}:
             dp["alias"] = alias_txt
 
-
-    if (m := ALIAS_RE.search(t)):   dp["alias"] = m.group(1).strip()
+    # 6) El resto de campos igual que antes
     if (m := EDAD_RE.search(t)):    dp["edad"]  = m.group(1)
     if (m := NAC_RE.search(t)):     dp["nacionalidad"] = m.group(1).strip()
     if (m := ECIVIL_RE.search(t)):  dp["estado_civil"] = m.group(1).strip()
@@ -845,16 +866,13 @@ def extraer_datos_personales(texto: str) -> dict:
     if (m := DOM_RE.search(t)):     dp["domicilio"]    = m.group(1).strip()
     if (m := FNAC_RE.search(t)):    dp["fecha_nacimiento"] = m.group(1).strip()
     if (m := LNAC_RE.search(t)):    dp["lugar_nacimiento"] = m.group(1).strip()
-    if (m := PADRES_RE.search(t)):
-        padres = [m.group(1).strip()]
-        if m.group(2): padres.append(m.group(2).strip())
-        dp["padres"] = padres
     if (m := PRIO_RE.search(t)):
         prio = m.group(1).strip()
         dp["prio"] = prio
         dp.setdefault("prontuario", prio)
 
     return dp
+
 
 
 def extraer_dni(texto: str) -> str:
