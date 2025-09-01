@@ -749,7 +749,7 @@ def _recortar_bloque_un_persona(b: str) -> str:
     s = re.sub(r'\s+', ' ', b).strip()
     # 1) Corto en el primer "Prontuario/Prio. ... .", si existe.
     #    Pero si el nombre aparece después del prontuario, no recorto
-    m_prio = re.search(r"(?:Prontuario|Prio\.?)[^\n.;]*[.;]", s, re.I)
+    m_prio = re.search(r"(?:Prontuario|Prio\.?)[^\n;]*?\d[^\n;]*[.;]?", s, re.I)
     if m_prio:
         resto = s[m_prio.end():]
         if not (NOMBRE_INICIO_RE.search(resto) or NOMBRE_RE.search(resto)):
