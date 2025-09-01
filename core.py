@@ -776,6 +776,44 @@ def segmentar_imputados(texto: str) -> list[str]:
     return bloques
 
 
+def _extraer_nombres_lista_intervinientes(texto: str) -> list[str]:
+    """Extrae los nombres listados en la frase "los imputados ... y sus respectivos defensores".
+
+    Devuelve una lista de nombres capitalizados; se usa como salvavidas para
+    completar imputados que no fueron segmentados por ficha detallada.
+    """
+    t = re.sub(r"\s+", " ", texto or "")
+    m = re.search(
+        r"los\s+imputad[oa]s?\s+(.+?)\s*,?\s*y\s+sus\s+respectivos\s+defensores",
+        t,
+        flags=re.I,
+    )
+    if not m:
+        return []
+    lista = m.group(1).strip()
+    # Reemplazar el último " y " por coma para dividir homogéneo
+    lista = re.sub(r"\s+y\s+", ", ", lista)
+    partes = [p.strip(" ,;") for p in lista.split(",")]
+    nombres: list[str] = []
+    for p in partes:
+        if not p:
+            continue
+        if any(tok in p.lower() for tok in ("fiscal", "defensor", "dres", "doctor", "doctora")):
+            continue
+        nom = capitalizar_frase(p)
+        if nom:
+            nombres.append(nom)
+    # Quitar duplicados conservando orden
+    vistos: set[str] = set()
+    out: list[str] = []
+    for nom in nombres:
+        k = nom.lower()
+        if k not in vistos:
+            vistos.add(k)
+            out.append(nom)
+    return out
+
+
 def _es_bloque_valido(b: str) -> bool:
     b = re.sub(r'\s+', ' ', b)
     tiene_nombre = bool(NOMBRE_INICIO_RE.search(b) or NOMBRE_RE.search(b))
@@ -1330,6 +1368,27 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     if bloques_base:
         extra = [_dp_from_block(b) for b in bloques_base if _es_bloque_valido(b)]
         datos["imputados"] = _dedup_por_dni((datos["imputados"] or []) + extra)[:MAX_IMPUTADOS]
+
+    # Fallback adicional: asegurar que todos los mencionados en
+    # "los imputados ..., y sus respectivos defensores" estén presentes
+    try:
+        mencionados = _extraer_nombres_lista_intervinientes(texto)
+    except Exception:
+        mencionados = []
+    if mencionados:
+        actuales = datos.get("imputados") or []
+        actuales_nombres = set()
+        for imp in actuales:
+            nom = (imp.get("nombre") or (imp.get("datos_personales") or {}).get("nombre") or "").strip().lower()
+            if nom:
+                actuales_nombres.add(nom)
+        faltantes = [n for n in mencionados if n.lower() not in actuales_nombres]
+        if faltantes:
+            stubs = [
+                {"nombre": n, "dni": "", "datos_personales": {"nombre": n}}
+                for n in faltantes
+            ]
+            datos["imputados"] = _dedup_por_dni((datos.get("imputados") or []) + stubs)[:MAX_IMPUTADOS]
 
 
 
