@@ -981,6 +981,51 @@ def _format_firmantes(value) -> str:
         return (nombre or cargo).strip()
     return str(value)
 
+def _alinear_a_opcion(value: str, opciones: list[str]) -> str:
+    """Devuelve el string EXACTO de opciones que mejor coincide con value.
+    Normaliza espacios, ignora artículo inicial y prueba agregarlo si falta.
+    """
+    if not value:
+        return ""
+    def norm(s: str) -> str:
+        return re.sub(r"\s+", " ", s).strip().lower()
+    def sin_art(s: str) -> str:
+        return re.sub(r"^(la|el)\s+", "", norm(s))
+
+    v = value.strip()
+    # 1) Coincidencia exacta
+    if v in opciones:
+        return v
+
+    # 2) Probar agregando artículo correcto si falta
+    if not re.match(r"^(la|el)\s+", v, flags=re.I):
+        if re.match(r"^(cámara|sala)\b", v, flags=re.I):
+            v2 = "la " + v
+        elif re.match(r"^(juzgado|tribunal)\b", v, flags=re.I):
+            v2 = "el " + v
+        else:
+            v2 = v
+        if v2 in opciones:
+            return v2
+
+    # 3) Igualar ignorando artículo / normalizando
+    for opt in opciones:
+        if norm(opt) == norm(v) or sin_art(opt) == sin_art(v):
+            return opt
+
+    # 4) Heurística por ordinal de nominación (p.ej. “Sexta Nominación”)
+    m = re.search(
+        r'(primera|segunda|tercera|cuarta|quinta|sexta|séptima|septima|octava|novena|décima|decima|onceava|doceava)\s+nominación',
+        norm(v), re.I
+    )
+    if m:
+        ord_norm = m.group(1)
+        for opt in opciones:
+            if ord_norm in norm(opt) and "cámara en lo criminal y correccional" in norm(opt):
+                return opt
+
+    return ""
+
 
 def _format_datos_personales(raw):
     # Si ya viene como dict, seguimos como estaba
@@ -1269,7 +1314,15 @@ def autocompletar(file_bytes: bytes, filename: str) -> None:
         # Reintenta con lo que vino de "generales"
         crudo = _as_str(g.get("caratula")) or ""
         st.session_state.carat = extraer_caratula(crudo) or ""
-    st.session_state.trib     = _as_str(g.get("tribunal"))
+    trib_val_raw = _as_str(g.get("tribunal"))
+    trib_fmt = _formatea_tribunal(trib_val_raw) if trib_val_raw else ""
+    trib_alineado = _alinear_a_opcion(trib_fmt, TRIBUNALES)
+    if trib_alineado:
+        st.session_state.trib = trib_alineado
+    else:
+        # Evitar ValueError en el selectbox si no hay coincidencia en opciones
+        st.session_state.pop("trib", None)
+
     st.session_state.snum     = _as_str(g.get("sent_num"))
     st.session_state.sfecha   = _as_str(g.get("sent_fecha"))
     st.session_state.sres       = _flatten_resuelvo(_as_str(g.get("resuelvo")))
