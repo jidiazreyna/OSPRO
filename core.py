@@ -845,6 +845,25 @@ def _es_ficha_real(b: str) -> bool:
     s = re.sub(r'\s+', ' ', b)
     return bool(DNI_TXT_RE.search(s) or PRIO_RE.search(s))  # exige DNI o Prontuario
 
+def _norm_name_key(nombre: str) -> str:
+    """Normaliza un nombre para comparaciones robustas.
+
+    - quita diacríticos
+    - minúsculas
+    - reemplaza 'z' por 's' (Yazmín/Yasmín)
+    - colapsa espacios y quita signos
+    """
+    try:
+        import unicodedata as _ud
+        n = _ud.normalize('NFD', nombre or '')
+        n = ''.join(ch for ch in n if _ud.category(ch) != 'Mn')
+    except Exception:
+        n = nombre or ''
+    n = re.sub(r'[^A-Za-z\s]', ' ', n)
+    n = n.lower().replace('z', 's')
+    n = re.sub(r'\s+', ' ', n).strip()
+    return n
+
 def _dedup_por_dni(imps: list[dict]) -> list[dict]:
     vistos_dni = set()
     vistos_nombre = set()
@@ -1377,12 +1396,12 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         mencionados = []
     if mencionados:
         actuales = datos.get("imputados") or []
-        actuales_nombres = set()
+        actuales_nombres_norm: set[str] = set()
         for imp in actuales:
-            nom = (imp.get("nombre") or (imp.get("datos_personales") or {}).get("nombre") or "").strip().lower()
+            nom = (imp.get("nombre") or (imp.get("datos_personales") or {}).get("nombre") or "").strip()
             if nom:
-                actuales_nombres.add(nom)
-        faltantes = [n for n in mencionados if n.lower() not in actuales_nombres]
+                actuales_nombres_norm.add(_norm_name_key(nom))
+        faltantes = [n for n in mencionados if _norm_name_key(n) not in actuales_nombres_norm]
         if faltantes:
             stubs = [
                 {"nombre": n, "dni": "", "datos_personales": {"nombre": n}}
