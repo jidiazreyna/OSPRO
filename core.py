@@ -275,6 +275,21 @@ def limpiar_pies_de_pagina(texto: str) -> str:
 # alias histÃ³rico
 limpiar_pies = limpiar_pies_de_pagina
 
+# Fix de mojibake (UTF-8 visto como Latin-1/CP1252: "CÃ¡mara" -> "Cámara")
+def _fix_mojibake(s: str) -> str:
+    if not s:
+        return s
+    if not re.search(r"[ÃÂâ€“—“”‘’¢£¤¥¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾]", s):
+        return s
+    try:
+        s2 = s.encode("latin1", errors="ignore").decode("utf-8", errors="ignore")
+        # Preferir la versión con más acentos/repertorio latino
+        def _score(txt: str) -> int:
+            return sum(ch in "áéíóúñÁÉÍÓÚÑ¿¡–—“”‘’°" for ch in txt)
+        return s2 if _score(s2) >= _score(s) else s
+    except Exception:
+        return s
+
 # Â­Â­Â­ ---- bloque RESUELVE / RESUELVO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _RESUELVO_REGEX = re.compile(
     r"""
@@ -1316,6 +1331,7 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         raise ValueError("Formato no soportado (PDF o DOCX)")
 
     texto = limpiar_pies(texto)
+    texto = _fix_mojibake(texto)
     # justo despuÃ©s de: texto = limpiar_pies(texto)
     texto_base = extraer_bloque_imputados(texto) or texto
     datos: Dict[str, Any] = {"generales": {}, "imputados": []}
@@ -1497,6 +1513,12 @@ def procesar_sentencia(file_bytes: bytes, filename: str) -> Dict[str, Any]:
         nuevo_trib = extraer_tribunal(texto)
         if nuevo_trib:
             g["tribunal"] = nuevo_trib
+
+    # Normalizar posibles mojibake en carátula/tribunal
+    if g.get("caratula"):
+        g["caratula"] = _fix_mojibake(g.get("caratula", ""))
+    if g.get("tribunal"):
+        g["tribunal"] = _fix_mojibake(g.get("tribunal", ""))
 
     datos["generales"] = g
 
