@@ -584,10 +584,11 @@ NOMBRE_INICIO_RE = re.compile(
 )
 # Fallback: nombre justo antes de "DNI" (sin edad requerida)
 NOMBRE_DNI_RE = re.compile(
-    r'(?:imputad[oa]:?\s*)?(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][^,\n]+?)\s*(?:,\s*)?(?:D\.?\s*N\.?\s*I\.?|DNI)',
-    re.I
+    r'^(?!\s*(?:Los|Las|El|La)\b)'
+    r'(?:imputad[oa]:?\s*)?(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][^,\n]+?)\s*'
+    r'(?:,\s*)?(?:D\.?\s*N\.?\s*I\.?|DNI)',
+    re.I | re.M,
 )
-
 # Encabezados en versales de juzgados (no sólo "Cámara")
 _PAT_TRIB_HEADER_JUZ = re.compile(
     r'\b('
@@ -634,14 +635,13 @@ def extraer_bloque_imputados(texto: str) -> str:
         r'han\s+sido\s+tra[ií]d[oa]s?\s+a\s+proceso\s+los\s+imputad[oa]s?\s*:'
         r'|imputad[oa][^:]{0,120}(?:sus|cuyas?)\s+condiciones\s+personales\s+son\s*:'
         r'|se\s+encuentran\s+imputad[oa]s?\s*:'
-        r'|los\s+imputad[oa]s?\s*:?'                       # existente
-        r'|en\s+esta\s+causa\s+fueron\s+acusad[oa]s?\s*:?' # ← NUEVO
-        r'|en\s+los\s+autos\s+fueron\s+acusad[oa]s?\s*:?'  # ← NUEVO
+        r'|los\s+imputad[oa]s?\s*:?'                       
+        r'|en\s+esta\s+causa\s+fueron\s+acusad[oa]s?\s*:?' 
+        r'|en\s+los\s+autos\s+fueron\s+acusad[oa]s?\s*:?'
+        r'|en\s+esta\s+causa\s+fue\s+acusad[oa]\s*:?'      # ← NUEVO (singular)
         r')',
         re.I
     )
-
-
 
     # Fin del bloque (encabezados típicos)
     pat_fin = re.compile(
@@ -676,10 +676,10 @@ def segmentar_imputados(texto: str) -> list[str]:
     # Importante: SIN re.I para que exija mayúscula real al inicio del nombre.
     NAME_START = re.compile(
         r'(?<!\w)(?:[YyEe]\s+)?'
-        r'(?!Los\b|Las\b|El\b|La\b|En\b|Por\b|Con\b|Hecho\b|HECHO\b|PRIMERA\b|SEGUNDA\b|TERCERA\b)'
-        r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,4})'
-        r'(?:\s*\([^)]{0,80}\))?'
-        r'\s*,\s*'
+        r'(?!Los\b|Las\b|El\b|La\b|Hechos\b|Primera\b|Segunda\b|Tercera\b)'
+        r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+'
+        r'(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,4})'
+        r'(?:\s*\([^)]{0,80}\))?\s*,\s*'
         r'(?:[^,]{0,50},\s*)?'
         r'(?:'
         r'(?:de\s+)?nacionalidad'
@@ -687,7 +687,6 @@ def segmentar_imputados(texto: str) -> list[str]:
         r'|(?i:D\.?\s*N\.?\s*I\.?)'
         r')'
     )
-
 
     hits = list(NAME_START.finditer(plano))
 
@@ -798,6 +797,9 @@ def _dedup_por_dni(imps: list[dict]) -> list[dict]:
 
 def _nombre_aparente_valido(nombre: str) -> bool:
     """Heurística simple para detectar si `nombre` parece un nombre real."""
+    texto = nombre.lower().strip()
+    if re.match(r'^(los|las|el|la|hechos|primera|segunda|tercera|considerando|resuelv)', texto):
+        return False
     if not nombre:
         return False
     if any(ch.isdigit() for ch in nombre):
