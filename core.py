@@ -333,9 +333,17 @@ _PAT_CARAT_2 = re.compile(          # 2) autos caratulados “…”
 _PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …”
     r'EXPEDIENTE\s+(?:SAC|Expte\.?)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-–]|$)', re.I)
 
+_PAT_CARAT_EE = re.compile(
+    r'causa\s*:\s*[«"“]?([^"”»\n]+)[»"”]?\s+(?:EE\.?|Expediente\s+Electrónico)\s*[:.]?\s*(\d[\d.]*)',
+    re.I
+)
+
 def extraer_caratula(txt: str) -> str:
     plano = re.sub(r'\s+', ' ', txt)
-
+    m = _PAT_CARAT_EE.search(plano)
+    if m:
+        titulo, nro = m.groups()
+        return f'“{titulo.strip(" ,;.")}” (EE {nro})'
     # 1) Preferencia: “causa caratulada …” o comillas + (SAC/Expte …)
     m = _PAT_CARAT_1B.search(plano)
     if m:
@@ -462,6 +470,7 @@ _FIRMA_FIN_PAT = re.compile(
     ''', re.I | re.M | re.X)
 
 
+
 def extraer_resuelvo(texto: str) -> str:
     """
     Devuelve el ÚLTIMO bloque dispositvo completo (incluidas las fórmulas
@@ -522,10 +531,22 @@ _FIRMAS_REGEX = re.compile(r'''
 # Carátula: debe incluir un número de expediente o SAC.
 # Se admite un texto previo con o sin comillas y diferentes variantes de
 # "Expte."/"SAC"/"N°" al final.
+NAME_TOKEN = r'[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+'
+CONNECTOR  = r'(?:de|del|de\s+los|de\s+las|la|las|los|y|e|da|do|dos|das|san|santa)'
+NAME_GROUP = rf'({NAME_TOKEN}(?:\s+(?:{CONNECTOR}|{NAME_TOKEN})){1,7})'
 CARATULA_REGEX = QRegularExpression(
-    r'^[“"][^"”]+[”"]\s*\(\s*(?:SAC|Expte\.?)\s*(?:N[°º]?\s*)?\d[\d.]*\s*\)$'
+    r'^[“"][^"”]+[”"]\s*\(\s*(?:SAC|Expte\.?|EE\.?)\s*(?:N[°º]?\s*)?\d[\d.]*\s*\)$'
+)
+NOMBRE_DNI_ANY = re.compile(
+    r'([A-ZÁÉÍÓÚÑ][^,\n]+?)\s*,?\s*(?:D\.?\s*N\.?\s*I\.?|DNI)',
+    re.I
 )
 
+# Enumerados "1) Nombre ..., alias/DNI/de N años..."
+NOMBRE_ENUM_RE = re.compile(
+    rf'(?:\d+\)\s*)?{NAME_GROUP}\s*,\s*(?:alias|DNI|D\.?\s*N\.?\s*I\.?|de\s+\d{{1,3}}\s*años)',
+    re.I
+)
 # Tribunal: al menos una letra minúscula y empezar en mayúscula
 TRIBUNAL_REGEX = QRegularExpression(r'^(?=.*[a-záéíóúñ])[A-ZÁÉÍÓÚÑ].*$')
 
@@ -579,7 +600,7 @@ NOMBRE_RE  = re.compile(
     re.I | re.S,
 )
 NOMBRE_INICIO_RE = re.compile(
-    r'^\s*(?:[YyEe]\s+)?([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,3})\s*,',
+    rf'(?<!\w)(?:\d+\)\s*)?(?:[YyEe]\s+)?{NAME_GROUP}\s*,',
     re.M
 )
 # Fallback: nombre justo antes de "DNI" (sin edad requerida)
@@ -669,23 +690,18 @@ def extraer_bloque_imputados(texto: str) -> str:
 def es_multipersona(s: str) -> bool:
     # ≥2 ocurrencias de DNI o Prontuario → probable texto con varias personas
     return len(MULTI_PERSONA_PAT.findall(s or "")) >= 2
+
+
+
 def segmentar_imputados(texto: str) -> list[str]:
     """Devuelve bloques 'Nombre, ...' robustos, sin falsos positivos tipo 'años de edad'."""
     plano = re.sub(r'\s+', ' ', texto)
 
     # Importante: SIN re.I para que exija mayúscula real al inicio del nombre.
     NAME_START = re.compile(
-        r'(?<!\w)(?:[YyEe]\s+)?'
-        r'(?!Los\b|Las\b|El\b|La\b|Hechos\b|Primera\b|Segunda\b|Tercera\b)'
-        r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+'
-        r'(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\-]+){1,4})'
-        r'(?:\s*\([^)]{0,80}\))?\s*,\s*'
-        r'(?:[^,]{0,50},\s*)?'
-        r'(?:'
-        r'(?:de\s+)?nacionalidad'
-        r'|de\s*\d{1,3}\s*años'
-        r'|(?i:D\.?\s*N\.?\s*I\.?)'
-        r')'
+        rf'(?<!\w)(?:\d+\)\s*)?(?:[YyEe]\s+)?{NAME_GROUP}\s*,\s*'
+        rf'(?:[^,]{{0,80}},\s*)?'
+        rf'(?:nacionalidad|de\s+\d{{1,3}}\s*años|(?i:D\.?\s*N\.?\s*I\.?)|DNI)'
     )
 
     hits = list(NAME_START.finditer(plano))
@@ -829,7 +845,8 @@ def _extraer_nombre_gpt(texto: str) -> str:
     return capitalizar_frase(nombre.split("\n")[0].strip())
 
 def extraer_datos_personales(texto: str) -> dict:
-    t = re.sub(r'\s+', ' ', texto)
+    t = texto                               # con saltos de línea (para ^ y re.M)
+    plano = re.sub(r'\s+', ' ', texto)      # versión “aplanada” si hace falta
     dp: dict[str, str | list] = {}
 
     # 0) Padres primero (para poder excluirlos si un regex de nombre los captura)
@@ -843,7 +860,13 @@ def extraer_datos_personales(texto: str) -> dict:
     def _norm_nom(s: str) -> str:
         s = re.sub(r'\s*\(.*?\)\s*', '', s or '')  # quita (v), (f), etc.
         return s.strip().lower()
-
+    # 0.bis) Nombre por enumerado o por “..., DNI ...”
+    if "nombre" not in dp:
+        m = NOMBRE_ENUM_RE.search(t) or NOMBRE_DNI_ANY.search(t)
+        if m:
+            cand = capitalizar_frase(_limpiar_nombre(m.group(1)))
+            if all(_norm_nom(cand) != _norm_nom(p) for p in padres_names):
+                dp["nombre"] = cand
     # 1) Nombre inmediatamente después de "imputado"/"acusado"
     m = NOMBRE_ROL_RE.search(t)
     if m:
