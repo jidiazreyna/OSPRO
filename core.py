@@ -573,9 +573,12 @@ FNAC_RE = re.compile(r'(?:Nacid[oa]\s+el\s+|el\s*d[íi]a\s*)(\d{1,2}/\d{1,2}/\d{
 LNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+\d{1,2}/\d{1,2}/\d{2,4},?\s+en\s+([^.,\n]+)', re.I)
 PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(?:[,.;]|\s$)', re.I)
 PRIO_RE = re.compile(
-    r'(?:Prontuario|Prio\.?|Pront\.?)\s*[:\-]?\s*'
-    r'(?P<val>.+?)'
-    r'(?=(?:\s+(?:El|La|Los|Las|Con|En|Por|Hecho|HECHO)\b)|$)',
+    r'(?:Prontuario|Prio\.?)\s*[:\-]?\s*'
+    r'(?P<val>[^.\n;()]*?)'               # captura corta hasta . ; ) o salto de línea
+    r'(?=\s*(?:[.;)]|\n|$'                # y corta ahí…
+    r'|(?:\d+\s*(?:\)|\.-|\.|-))'         # …o antes de “16) / 2.- / 3.” (nuevo inciso)
+    r'|(?:[IVXLCDM]+\s*(?:\)|\.-|\.|-)))' # …o incisos en romanos tipo “II) / III.-”
+    ,
     re.I
 )
 # Permite variantes como "DNI n.º 12.345.678" o "DNI N°12345678"
@@ -659,7 +662,9 @@ def extraer_bloque_imputados(texto: str) -> str:
         r'|los\s+imputad[oa]s?\s*:?'                       
         r'|en\s+esta\s+causa\s+fueron\s+acusad[oa]s?\s*:?' 
         r'|en\s+los\s+autos\s+fueron\s+acusad[oa]s?\s*:?'
-        r'|en\s+esta\s+causa\s+fue\s+acusad[oa]\s*:?'      # ← NUEVO (singular)
+        r'|en\s+esta\s+causa\s+fue\s+acusad[oa]\s*:?'      
+        # NUEVO: fórmula muy usada en oficios a Migraciones
+        r'|respecto\s+de\s+las?\s+personas?\s+cuy[oa]s?\s+datos\s+personales\s+se\s+mencionan\s+a\s+continuaci[oó]n\s*:?' 
         r')',
         re.I
     )
@@ -671,9 +676,12 @@ def extraer_bloque_imputados(texto: str) -> str:
         r'|A\s+LA\s+PRIMERA'
         r'|El\s+Tribunal\s+unipersonal'
         r'|CONSIDERANDO\b'
-        r'|Cabe\s+aclarar\s+que\b'         # ← NUEVO
-        r')', re.I)
-
+        r'|SENTENCI[AO]\b|SENTENCIA\s*N[°º]'
+        r'|RESUELV[EO]\b|Se\s+Resuelve\b'
+        r'|Protocol[íi]cese|Notif[ií]quese|Of[íi]ciese'
+        r')',
+        re.I
+    )
 
     m_ini = pat_inicio.search(plano)
     if not m_ini:
@@ -688,21 +696,22 @@ def extraer_bloque_imputados(texto: str) -> str:
 
 
 def es_multipersona(s: str) -> bool:
-    # ≥2 ocurrencias de DNI o Prontuario → probable texto con varias personas
-    return len(MULTI_PERSONA_PAT.findall(s or "")) >= 2
-
+    dnis  = re.findall(r'(?:D\s*\.?\s*N\s*\.?\s*I\s*\.?|DNI)\b', s or "", re.I)
+    prios = re.findall(r'(?:Prontuario|Prio\.?)\b', s or "", re.I)
+    # exigir 2 del mismo tipo; un DNI + un Prio. no alcanza
+    return len(dnis) >= 2 or len(prios) >= 2
 
 
 def segmentar_imputados(texto: str) -> list[str]:
     """Devuelve bloques 'Nombre, ...' robustos, sin falsos positivos tipo 'años de edad'."""
     plano = re.sub(r'\s+', ' ', texto)
 
-    # Importante: SIN re.I para que exija mayúscula real al inicio del nombre.
     NAME_START = re.compile(
         rf'(?<!\w)(?:\d+\)\s*)?(?:[YyEe]\s+)?{NAME_GROUP}\s*,\s*'
-        rf'(?:[^,]{{0,80}},\s*)?'
+        rf'(?:[^,]{{0,120}},\s*)?'               # antes 80 → 120 para soportar "alias …,"
         rf'(?:nacionalidad|de\s+\d{{1,3}}\s*años|(?i:D\.?\s*N\.?\s*I\.?)|DNI)'
     )
+
 
     hits = list(NAME_START.finditer(plano))
 
