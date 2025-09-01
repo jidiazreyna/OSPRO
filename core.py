@@ -706,6 +706,12 @@ def es_multipersona(s: str) -> bool:
 
 def segmentar_imputados(texto: str) -> list[str]:
     """Devuelve bloques 'Nombre, ...' robustos, sin falsos positivos tipo 'años de edad'."""
+    # Listas enumeradas simples: "Imputado 1 – Juan Pérez"
+    enum_pat = re.compile(r"\bImputad[oa]\s+\d+\s*[–-]\s*([^\n\r]+)", re.I)
+    enumerados = [m.strip() for m in enum_pat.findall(texto)]
+    if enumerados:
+        return enumerados
+
     plano = re.sub(r'\s+', ' ', texto)
 
     NAME_START = re.compile(
@@ -859,6 +865,16 @@ def extraer_datos_personales(texto: str) -> dict:
     t = texto                               # con saltos de línea (para ^ y re.M)
     plano = re.sub(r'\s+', ' ', texto)      # versión “aplanada” si hace falta
     dp: dict[str, str | list] = {}
+
+    # Caso mínimo: solo un nombre sin datos extra
+    s_simple = texto.strip()
+    if (
+        "," not in s_simple
+        and " " in s_simple
+        and re.fullmatch(r"[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñüÜ.\s-]+", s_simple)
+    ):
+        dp["nombre"] = capitalizar_frase(_limpiar_nombre(s_simple))
+        return dp
 
     # 0) Padres primero (para poder excluirlos si un regex de nombre los captura)
     padres_names: list[str] = []
