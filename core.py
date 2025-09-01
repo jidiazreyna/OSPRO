@@ -289,6 +289,11 @@ def _fix_mojibake(s: str) -> str:
         return s2 if _score(s2) >= _score(s) else s
     except Exception:
         return s
+# --- Normalizar listas de opciones por si quedaron con mojibake en el código ---
+PENITENCIARIOS = [_fix_mojibake(s) for s in PENITENCIARIOS]
+DEPOSITOS      = [_fix_mojibake(s) for s in DEPOSITOS]
+JUZ_NAVFYG     = [_fix_mojibake(s) for s in JUZ_NAVFYG]
+TRIBUNALES     = [_fix_mojibake(s) for s in TRIBUNALES]
 
 # Â­Â­Â­ ---- bloque RESUELVE / RESUELVO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _RESUELVO_REGEX = re.compile(
@@ -398,7 +403,8 @@ _CLAVES_TRIB = (
 )
 
 def _formatea_tribunal(raw: str) -> str:
-    s = " ".join(raw.split()).strip(" .,-;")
+    s = _fix_mojibake(" ".join(raw.split()).strip(" .,-;"))
+
     s = re.sub(r'\b[Cc]amara\b', 'CÃ¡mara', s)
     # Normalizar "n.Âº / nÂº / nÂ° / n ." â†’ "NÂ° <num>"
     s = re.sub(r'\bn[.\sÂºÂ°]*\s*(\d+)\b', r'NÂ° \1', s, flags=re.I)
@@ -1199,6 +1205,8 @@ def _alinear_a_opcion(value: str, opciones: list[str]) -> str:
     """Devuelve el string EXACTO de opciones que mejor coincide con value.
     Normaliza espacios, ignora artÃ­culo inicial y prueba agregarlo si falta.
     """
+    value    = _fix_mojibake(value)
+    opciones = [_fix_mojibake(o) for o in opciones]
     if not value:
         return ""
     def norm(s: str) -> str:
