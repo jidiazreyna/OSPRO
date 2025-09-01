@@ -336,21 +336,13 @@ _PAT_CARAT_3 = re.compile(          # 3) encabezado “EXPEDIENTE SAC: … - …
 def extraer_caratula(txt: str) -> str:
     plano = re.sub(r'\s+', ' ', txt)
 
-    # A) Encabezado “EXPEDIENTE SAC: … - …”
-    m = _PAT_CARAT_3.search(plano[:5000])
-    if m:
-        nro, resto = m.groups()
-        titulo = resto.split(' - ')[0].strip(' ;,."“”')
-        return f'“{titulo}” (SAC N° {nro})'
-
-    # B) “causa caratulada “…” (SAC …)” o comillas + (SAC …) en general
+    # 1) Preferencia: “causa caratulada …” o comillas + (SAC/Expte …)
     m = _PAT_CARAT_1B.search(plano)
     if m:
         titulo = m.group(1)
         nro = m.group('nro')
         return f'“{titulo.strip(" ,;.")}” (SAC N° {nro})'
 
-    # C) “autos caratulados …” (si no hubo comillas)
     m = _PAT_CARAT_2.search(plano)
     if m:
         titulo = m.group(1).strip(' ;,."“”')
@@ -358,19 +350,22 @@ def extraer_caratula(txt: str) -> str:
         nro = mnum.group(1) if mnum else '…'
         return f'“{titulo}” (SAC N° {nro})'
 
-    # D) Sin comillas (fallback), con filtro anti-piezas acusatorias
+    # 2) Fallback: encabezado “EXPEDIENTE SAC: … - …”
+    m = _PAT_CARAT_3.search(plano[:5000])
+    if m:
+        nro, resto = m.groups()
+        titulo = resto.split(' - ')[0].strip(' ;,."“”')
+        return f'“{titulo}” (SAC N° {nro})'
+
+    # 3) Último recurso (sin comillas), con filtro anti-órganos
     m = _PAT_CARAT_4.search(plano)
     if m:
         titulo = m.group('title').strip(' ,;."“”')
-        if titulo.lower().startswith('las siguientes piezas acusatorias'):
-            pass  # evitar falso positivo
-        else:
-            # Evitá órganos por error
-            if re.search(r'\b(juzgado|c[aá]mara|tribunal|sala)\b', titulo, re.I):
-                titulo = re.split(r'[.;]', titulo, 1)[0].strip(' ,;."“”')
+        if not re.search(r'\b(juzgado|c[aá]mara|tribunal|sala)\b', titulo, re.I):
             return f'“{titulo}” (SAC N° {m.group("nro")})'
 
     return ""
+
 
 
 # ── TRIBUNAL ──────────────────────────────────────────────────────────
@@ -380,9 +375,21 @@ _CLAVES_TRIB = (
 )
 
 def _formatea_tribunal(raw: str) -> str:
-    """Pasa a minúsculas y respeta mayúsculas iniciales."""
-    raw = raw.lower().strip()
-    return capitalizar_frase(raw)
+    """Normaliza espacios y acentos sin ‘titularizar’ todo."""
+    s = " ".join(raw.split()).strip(" .,-;")
+    # Acento en Cámara
+    s = re.sub(r'\b[Cc]amara\b', 'Cámara', s)
+    # Expandir abreviatura “Nom.” sólo si viene con número (“6a Nom.” → “Sexta Nominación”)
+    def _to_ordinal(m):
+        mapa = {
+            '1': 'Primera', '2': 'Segunda', '3': 'Tercera', '4': 'Cuarta',
+            '5': 'Quinta', '6': 'Sexta', '7': 'Séptima', '8': 'Octava',
+            '9': 'Novena', '10': 'Décima', '11': 'Onceava', '12': 'Doceava'
+        }
+        return f"de {mapa.get(m.group(1), m.group(1))} Nominación"
+    s = re.sub(r'\b(\d{1,2})\s*(?:a|ª)\s*Nom\.?\b', _to_ordinal, s, flags=re.I)
+    return s
+
 
 # 1) Preferencia: encabezado en versales (acepta saltos de línea)
 #    Ej.: "CAMARA EN LO CRIMINAL Y\nCORRECCIONAL 9a NOM."
@@ -405,38 +412,32 @@ _PAT_TRIB_1 = re.compile(
     rf'en\s+(?:esta|este|el|la)\s+({_CLAVES_TRIB}[\s\S]*?)(?=[,;.])',
     re.I
 )
-
 def extraer_tribunal(txt: str) -> str:
-    # Plano para búsquedas que ignoran saltos; pero conservamos el original para encabezados
     plano = re.sub(r'\s+', ' ', txt)
 
-    # 1) Encabezado fuerte (versales) — ahora tolera saltos de línea
-    m = _PAT_TRIB_HEADER.search(txt[:5000])
-    if m:
-        t = _formatea_tribunal(m.group(1))
-        return ('la ' if not re.match(r'^(el|la)\s', t, re.I) else '') + t.strip(' .')
-
-    # 2) “por ante este/la …”
+    # 1) “por ante este/la …” (preferido)
     m = _PAT_TRIB_POR_ANTE.search(plano)
     if m:
         t = _formatea_tribunal(m.group(1))
-        # Evita falsos positivos tipo “la sala de audiencias”
-        if 'sala' in t.lower() and 'cámara' not in t.lower() and 'juzgado' not in t.lower() and 'tribunal' not in t.lower():
+        if 'sala' in t.lower() and all(k not in t.lower() for k in ('cámara','juzgado','tribunal')):
             pass
         else:
-            return ('el ' if t.lower().startswith(('juzgado','tribunal')) and not t.lower().startswith(('el ','la ')) else
-                    'la ' if not re.match(r'^(el|la)\s', t, re.I) else '') + t.strip(' .')
+            return t
 
-    # 3) “en esta/este/el/la …”
+    # 2) “en esta/este/el/la …”
     m = _PAT_TRIB_1.search(plano)
     if m:
         cand = _formatea_tribunal(m.group(1))
-        if 'sala' not in cand.lower():  # evita “la sala de audiencias”
-            return ('el ' if cand.lower().startswith(('juzgado','tribunal')) and not cand.lower().startswith(('el ','la ')) else
-                    'la ' if not re.match(r'^(el|la)\s', cand, re.I) else '') + cand.strip(' .')
+        if 'sala' not in cand.lower():
+            return cand
 
-    # 4) Sin hallazgos
+    # 3) Fallback: encabezado en versales
+    m = _PAT_TRIB_HEADER.search(txt[:5000])
+    if m:
+        return _formatea_tribunal(m.group(1))
+
     return ""
+
 
 _FIRMA_FIN_PAT = re.compile(
     r'''
@@ -547,6 +548,7 @@ DNI_TXT_RE = re.compile(
     r'([\d.\s]{7,15})',                               # el número (con puntos/espacios)
     re.I
 )
+DNI_PLAIN_RE = re.compile(r'(?<![Ss][Aa][Cc]\s)\b\d{7,8}\b')
 
 NOMBRE_RE  = re.compile(
     r'([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ\s.\-]+?),\s*de\s*\d{1,3}\s*años.*?'
@@ -594,6 +596,7 @@ def extraer_bloque_imputados(texto: str) -> str:
     pat_inicio = re.compile(
         r'(?:'
         r'han\s+sido\s+tra[ií]d[oa]s?\s+a\s+proceso\s+los\s+imputad[oa]s?\s*:'
+        r'|imputad[oa][^:]{0,120}(?:sus|cuyas?)\s+condiciones\s+personales\s+son\s*:'
         r'|se\s+encuentran\s+imputad[oa]s?\s*:'
         r'|los\s+imputad[oa]s?\s*:?'                       # existente
         r'|en\s+esta\s+causa\s+fueron\s+acusad[oa]s?\s*:?' # ← NUEVO
@@ -808,7 +811,7 @@ def extraer_datos_personales(texto: str) -> dict:
             dp["nombre"] = nombre_ai
 
     # DNI (robusto)
-    m = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
+    m = DNI_TXT_RE.search(t) or DNI_PLAIN_RE.search(t)
     if m:
         # DNI_TXT_RE posee un grupo de captura con el número, pero
         # DNI_REGEX no.  En este último caso, `group(1)` levanta
@@ -818,7 +821,7 @@ def extraer_datos_personales(texto: str) -> dict:
         dp["dni"] = normalizar_dni(dni_match)
 
     # DNI (robusto) — primero, para acotar alias al texto anterior al 1er DNI
-    m_dni = DNI_TXT_RE.search(t) or DNI_REGEX.search(t)
+    m_dni = DNI_TXT_RE.search(t) or DNI_PLAIN_RE.search(t)
     if m_dni:
         dni_match = m_dni.group(1) if m_dni.lastindex else m_dni.group(0)
         dp["dni"] = normalizar_dni(dni_match)
@@ -855,11 +858,15 @@ def extraer_datos_personales(texto: str) -> dict:
 
 
 def extraer_dni(texto: str) -> str:
-    """Devuelve sólo los dígitos del primer DNI hallado en texto."""
+    """Devuelve sólo los dígitos del primer DNI; evita confundir SAC/Expte con DNI."""
     if not texto:
         return ""
-    m = DNI_REGEX.search(texto)
-    return normalizar_dni(m.group(0)) if m else ""
+    m = DNI_TXT_RE.search(texto)
+    if m:
+        return normalizar_dni(m.group(1))
+    m2 = DNI_PLAIN_RE.search(texto)
+    return normalizar_dni(m2.group(0)) if m2 else ""
+
 # ─────────────────────────────────────────────────────────────
 
 
