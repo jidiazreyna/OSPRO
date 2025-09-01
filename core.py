@@ -375,17 +375,14 @@ _CLAVES_TRIB = (
 )
 
 def _formatea_tribunal(raw: str) -> str:
-    """Normaliza espacios y acentos sin ‘titularizar’ todo."""
     s = " ".join(raw.split()).strip(" .,-;")
-    # Acento en Cámara
     s = re.sub(r'\b[Cc]amara\b', 'Cámara', s)
-    # Expandir abreviatura “Nom.” sólo si viene con número (“6a Nom.” → “Sexta Nominación”)
+    # Normalizar "n.º / nº / n° / n ." → "N° <num>"
+    s = re.sub(r'\bn[.\sº°]*\s*(\d+)\b', r'N° \1', s, flags=re.I)
+    # Expandir "6a Nom." etc.
     def _to_ordinal(m):
-        mapa = {
-            '1': 'Primera', '2': 'Segunda', '3': 'Tercera', '4': 'Cuarta',
-            '5': 'Quinta', '6': 'Sexta', '7': 'Séptima', '8': 'Octava',
-            '9': 'Novena', '10': 'Décima', '11': 'Onceava', '12': 'Doceava'
-        }
+        mapa = {'1':'Primera','2':'Segunda','3':'Tercera','4':'Cuarta','5':'Quinta','6':'Sexta',
+                '7':'Séptima','8':'Octava','9':'Novena','10':'Décima','11':'Onceava','12':'Doceava'}
         return f"de {mapa.get(m.group(1), m.group(1))} Nominación"
     s = re.sub(r'\b(\d{1,2})\s*(?:a|ª)\s*Nom\.?\b', _to_ordinal, s, flags=re.I)
     return s
@@ -415,7 +412,14 @@ _PAT_TRIB_1 = re.compile(
 def extraer_tribunal(txt: str) -> str:
     plano = re.sub(r'\s+', ' ', txt)
 
-    # 1) “por ante este/la …” (preferido)
+    # 0) “resuelta/dictada por este/esta/el/la …”
+    m = _PAT_TRIB_RESUELTA_POR.search(plano)
+    if m:
+        t = _formatea_tribunal(m.group(1))
+        if 'sala' not in t.lower():   # evitar capturar salas sueltas
+            return t
+
+    # 1) “por ante este/la …” (ya estaba)
     m = _PAT_TRIB_POR_ANTE.search(plano)
     if m:
         t = _formatea_tribunal(m.group(1))
@@ -424,20 +428,24 @@ def extraer_tribunal(txt: str) -> str:
         else:
             return t
 
-    # 2) “en esta/este/el/la …”
+    # 2) “en esta/este/el/la …” (ya estaba)
     m = _PAT_TRIB_1.search(plano)
     if m:
         cand = _formatea_tribunal(m.group(1))
         if 'sala' not in cand.lower():
             return cand
 
-    # 3) Fallback: encabezado en versales
+    # 3) Encabezado de JUZGADO en versales
+    m = _PAT_TRIB_HEADER_JUZ.search(txt[:6000])
+    if m:
+        return _formatea_tribunal(m.group(1))
+
+    # 4) Fallback: encabezado de CAMARA en versales (ya estaba)
     m = _PAT_TRIB_HEADER.search(txt[:5000])
     if m:
         return _formatea_tribunal(m.group(1))
 
     return ""
-
 
 _FIRMA_FIN_PAT = re.compile(
     r'''
@@ -536,11 +544,17 @@ NAC_RE = re.compile(r'(?:de\s+)?nacionalidad\s+([a-záéíóúñ]+)', re.I)
 ECIVIL_RE  = re.compile(r'de\s+estado\s+civil\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
 OCUP_RE    = re.compile(r'de\s+ocupaci[oó]n\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
 INSTR_RE   = re.compile(r'instrucci[oó]n\s+([a-záéíóúñ\s]+?)(?:[,.;]|\s$)', re.I)
-DOM_RE = re.compile(r'(?:domiciliad[oa]\s+en|con\s+domicilio\s+en)\s+([^.\n]+)', re.I)
+DOM_RE = re.compile(
+    r'(?:domiciliad[oa]\s+en|con\s+domicilio\s+en)\s+([^,\n;]+)',
+    re.I
+)
 FNAC_RE = re.compile(r'(?:Nacid[oa]\s+el\s+|el\s*d[íi]a\s*)(\d{1,2}/\d{1,2}/\d{2,4})', re.I)
 LNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+\d{1,2}/\d{1,2}/\d{2,4},?\s+en\s+([^.,\n]+)', re.I)
 PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(?:[,.;]|\s$)', re.I)
-PRIO_RE    = re.compile(r'(?:Prontuario|Prio\.?|Pront\.?)\s*[:\-]?\s*([^\n.;]+)', re.I)
+PRIO_RE = re.compile(
+    r'(?:Prontuario|Prio\.?|Pront\.?)\s*[:\-]?\s*([^\n;]+)',
+    re.I
+)
 # Permite variantes como "DNI n.º 12.345.678" o "DNI N°12345678"
 DNI_TXT_RE = re.compile(
     r'(?:D\s*\.?\s*N\s*\.?\s*I\s*\.?|DNI)\s*'         # D N I con o sin puntos/espacios
@@ -572,6 +586,19 @@ NOMBRE_DNI_RE = re.compile(
     re.I | re.M,
 )
 
+# Encabezados en versales de juzgados (no sólo "Cámara")
+_PAT_TRIB_HEADER_JUZ = re.compile(
+    r'\b('
+    r'JUZGADO\s+DE\s+CONTROL\s+Y\s+FALTAS\s+N[°º]\s*\d+'
+    r')\b',
+    re.I
+)
+
+# “resuelta/dictada por este/esta/el/la …”
+_PAT_TRIB_RESUELTA_POR = re.compile(
+    r'(?:resuelt[ao]|dictad[ao])\s+por\s+(?:este|esta|el|la)\s+(' + _CLAVES_TRIB + r'[^,;.]+?)\s*(?=[,;.])',
+    re.I
+)
 
 def _limpiar_nombre(n: str) -> str:
     return re.sub(r'^(?:[YyEe]\s+)', '', n).strip()
