@@ -354,7 +354,7 @@ _PAT_CARAT_3 = re.compile(          # 3) encabezado â€œEXPEDIENTE SAC: â€
     r'EXPEDIENTE\s+(?:SAC|Expte\.?)\s*:?\s*([\d.]+)\s*-\s*(.+?)(?:[-â€“]|$)', re.I)
 
 _PAT_CARAT_EE = re.compile(
-    r'causa\s*:\s*[Â«"â€œ]?([^"â€Â»\n]+)[Â»"â€]?\s+(?:EE\.?|Expediente\s+ElectrÃ³nico)\s*[:.]?\s*(\d[\d.]*)',
+    r'causa\s*:\s*[Â«"â€œ]?([^"â€Â»\n]+)[Â»"â€]?\s*(?:\(\s*)?(?:EE\.?|Expediente\s+ElectrÃ³nico)\s*[:.)]?\s*(\d[\d.]*)',
     re.I
 )
 
@@ -382,25 +382,41 @@ def extraer_caratula(txt: str) -> str:
     m = _PAT_CARAT_3.search(plano[:5000])
     if m:
         nro, resto = m.groups()
-        titulo = resto.split(' - ')[0].strip(' ;,."â€œâ€')
-        return f'â€œ{titulo}â€ (SAC NÂ° {nro})'
-
-    # 3) Ãšltimo recurso (sin comillas), con filtro anti-Ã³rganos
-    m = _PAT_CARAT_4.search(plano)
-    if m:
-        titulo = m.group('title').strip(' ,;."â€œâ€')
-        if not re.search(r'\b(juzgado|c[aÃ¡]mara|tribunal|sala)\b', titulo, re.I):
-            return f'â€œ{titulo}â€ (SAC NÂ° {m.group("nro")})'
-
-    return ""
-
-
-
+        partes = [p.strip(' ;,."â€œâ€') for p in re.split(r'\s*-\s*', resto)]
+        causa_partes: list[str] = []
+        for parte in partes:
+            if not parte:
+                continue
+            low = parte.lower()
+            if any(clave in low for clave in ("juzgado", "cámara", "camara", "tribunal", "secret", "oficina", "dependencia", "sala", "vocal")):
+                break
+            causa_partes.append(parte)
+        titulo = ' - '.join(causa_partes).strip(' ;,."â€œâ€')
+        if not titulo and partes:
+            titulo = partes[0].strip(' ;,."â€œâ€')
+        if titulo:
+            return f'â€œ{titulo}â€ (SAC NÂ° {nro})'
 # â”€â”€ TRIBUNAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Lista de palabras clave vÃ¡lidas al inicio de la descripciÃ³n
 _CLAVES_TRIB = (
     r'CÃ¡mara|Juzgado|Tribunal|Sala|Corte'  # extensible
 )
+
+_ROMAN_DIGITS = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+
+def _roman_to_int(valor: str) -> int:
+    total = 0
+    prev = 0
+    for ch in reversed(valor.upper()):
+        val = _ROMAN_DIGITS.get(ch)
+        if not val:
+            return 0
+        if val < prev:
+            total -= val
+        else:
+            total += val
+            prev = val
+    return total
 
 def _formatea_tribunal(raw: str) -> str:
     s = _fix_mojibake(" ".join(raw.split()).strip(" .,-;"))
@@ -409,15 +425,23 @@ def _formatea_tribunal(raw: str) -> str:
     # Normalizar "n.Âº / nÂº / nÂ° / n ." â†’ "NÂ° <num>"
     s = re.sub(r'\bn[.\sÂºÂ°]*\s*(\d+)\b', r'NÂ° \1', s, flags=re.I)
     # Expandir "6a Nom." etc.
+    ordinal_map = {'1': 'Primera', '2': 'Segunda', '3': 'Tercera', '4': 'Cuarta', '5': 'Quinta', '6': 'Sexta',
+                   '7': 'Séptima', '8': 'Octava', '9': 'Novena', '10': 'Décima', '11': 'Onceava', '12': 'Doceava'}
     def _to_ordinal(m):
-        mapa = {'1':'Primera','2':'Segunda','3':'Tercera','4':'Cuarta','5':'Quinta','6':'Sexta',
-                '7':'SÃ©ptima','8':'Octava','9':'Novena','10':'DÃ©cima','11':'Onceava','12':'Doceava'}
-        return f"de {mapa.get(m.group(1), m.group(1))} NominaciÃ³n"
-    s = re.sub(r'\b(\d{1,2})\s*(?:a|Âª)\s*Nom\.?\b', _to_ordinal, s, flags=re.I)
+        return f"de {ordinal_map.get(m.group(1), m.group(1))} Nominación"
+    s = re.sub(r'\b(\d{1,2})\s*(?:a|ª)\s*Nom\.?\b', _to_ordinal, s, flags=re.I)
+    def _roman_ordinal(m):
+        valor = _roman_to_int(m.group('roman'))
+        if not valor:
+            return m.group(0)
+        clave = str(valor)
+        if clave not in ordinal_map:
+            return m.group(0)
+        return f"de {ordinal_map[clave]} Nominación"
+    s = re.sub(r'\b(?:de\s+)?(?P<roman>[IVXLCDM]{1,4})\s*(?:Nom\.?|Nominaci[oó]n)\b', _roman_ordinal, s, flags=re.I)
     return s
 
-
-# 1) Preferencia: encabezado en versales (acepta saltos de lÃ­nea)
+# 1) Preferencia: encabezado en versales (acepta saltos de línea)
 #    Ej.: "CAMARA EN LO CRIMINAL Y\nCORRECCIONAL 9a NOM."
 _PAT_TRIB_HEADER = re.compile(
     r'\b('
@@ -426,6 +450,7 @@ _PAT_TRIB_HEADER = re.compile(
     r')',
     re.I
 )
+
 
 # 2) â€œpor ante este/el/la â€¦â€
 _PAT_TRIB_POR_ANTE = re.compile(
@@ -590,7 +615,7 @@ DOM_RE = re.compile(
     r'(?:domiciliad[oa]\s+en|con\s+domicilio\s+en)\s+([^,\n;]+)',
     re.I
 )
-FNAC_RE = re.compile(r'(?:Nacid[oa]\s+el\s+|el\s*d[Ã­i]a\s*)(\d{1,2}/\d{1,2}/\d{2,4})', re.I)
+FNAC_RE = re.compile(r'(?:Nacid[oa]\s+el\s+|el\s*d[Ã­i]a\s*|fecha\s+de\s+nac(?:imiento)?\s*[:\-]?\s*)(\d{1,2}/\d{1,2}/\d{2,4})', re.I)
 LNAC_RE    = re.compile(r'Nacid[oa]\s+el\s+\d{1,2}/\d{1,2}/\d{2,4},?\s+en\s+([^.,\n]+)', re.I)
 PADRES_RE  = re.compile(r'hij[oa]\s+de\s+([^.,\n]+?)(?:\s+y\s+de\s+([^.,\n]+))?(?:[,.;]|\s$)', re.I)
 PRIO_RE = re.compile(
